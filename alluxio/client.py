@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 import requests
 
-from . import option
 from . import wire
 
 
@@ -14,14 +13,14 @@ class Client(object):
         self.port = port
         self.timeout = timeout
 
-    def url(self, endpoint):
+    def _url(self, endpoint):
         return 'http://%s:%s/api/v1/%s' % (self.host, self.port, endpoint)
 
-    def paths_url(self, path, action):
-        return self.url('paths/%s/%s' % (path, action))
+    def _paths_url(self, path, action):
+        return self._url('paths/%s/%s' % (path, action))
     
-    def streams_url(self, file_id, action):
-        return self.url('streams/%s/%s' % (file_id, action))
+    def _streams_url(self, file_id, action):
+        return self._url('streams/%s/%s' % (file_id, action))
 
     def _check_response(self, r):
         if r.status_code != requests.codes.ok:
@@ -30,7 +29,7 @@ class Client(object):
             raise requests.HTTPError(err_msg, response=r)
         return
 
-    def post(self, url, opt=None, params=None) :
+    def _post(self, url, opt=None, params=None) :
         if opt is not None:
             r = requests.post(url, params=params, json=opt.json())
         else:
@@ -39,68 +38,67 @@ class Client(object):
         return r
 
     def create_directory(self, path, opt=None):
-        url = self.paths_url(path, 'create-directory')
-        self.post(url, opt)
+        url = self._paths_url(path, 'create-directory')
+        self._post(url, opt)
         
     def delete(self, path, opt=None):
-        url = self.paths_url(path, 'delete')
-        self.post(url, opt)
+        url = self._paths_url(path, 'delete')
+        self._post(url, opt)
 
     def exists(self, path, opt=None):
-        url = self.paths_url(path, 'exists')
-        return self.post(url, opt).json()
+        url = self._paths_url(path, 'exists')
+        return self._post(url, opt).json()
 
     def free(self, path, opt=None):
-        url = self.paths_url(path, 'free')
-        self.post(url, opt)
+        url = self._paths_url(path, 'free')
+        self._post(url, opt)
 
     def get_status(self, path, opt=None):
-        url = self.paths_url(path, 'get-status')
-        info = self.post(url, opt).json()
+        url = self._paths_url(path, 'get-status')
+        info = self._post(url, opt).json()
         return wire.FileInfo.from_json(info)
 
     def list_status(self, path, opt=None):
-        url = self.paths_url(path, 'list-status')
-        result = self.post(url, opt).json()
+        url = self._paths_url(path, 'list-status')
+        result = self._post(url, opt).json()
         file_infos = [wire.FileInfo.from_json(info) for info in result]
         file_infos.sort()
         return file_infos
 
     def mount(self, path, src, opt=None):
-        url = self.paths_url(path, 'mount')
-        self.post(url, opt, {'src': src})
+        url = self._paths_url(path, 'mount')
+        self._post(url, opt, {'src': src})
 
     def unmount(self, path, opt=None):
-        url = self.paths_url(path, 'unmount')
+        url = self._paths_url(path, 'unmount')
+        self._post(url, opt)
 
     def rename(self, path, dst, opt=None):
-        url = self.paths_url(path, 'rename')
-        self.post(url, opt, {'dst': dst})
+        url = self._paths_url(path, 'rename')
+        self._post(url, opt, {'dst': dst})
 
     def set_attribute(self, path, opt=None):
-        url = self.paths_url(path, 'set-attribute')
-        self.post(url, opt)
+        url = self._paths_url(path, 'set-attribute')
+        self._post(url, opt)
 
     def open_file(self, path, opt=None):
-        url = self.paths_url(path, 'open-file')
-        file_id = self.post(url, opt).json()
-        return file_id
+        url = self._paths_url(path, 'open-file')
+        return self._post(url, opt).json()
 
     def create_file(self, path, opt=None):
-        url = self.paths_url(path, 'create-file')
-        file_id = self.post(url, opt).json()
-        return file_id
+        url = self._paths_url(path, 'create-file')
+        return self._post(url, opt).json()
 
     def close(self, file_id):
-        url = self.streams_url(file_id, 'close')
-        self.post(url)
+        url = self._streams_url(file_id, 'close')
+        self._post(url)
 
     def read(self, file_id):
-        url = self.streams_url(file_id, 'read')
+        url = self._streams_url(file_id, 'read')
         return Reader(url)
 
     def write(self, file_id):
-        url = self.streams_url(file_id, 'write')
+        url = self._streams_url(file_id, 'write')
         return Writer(url)
 
     @contextmanager
