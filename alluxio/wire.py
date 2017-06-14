@@ -3,39 +3,65 @@
 import json
 
 
-class StrAlias(str):
+class Bits(object):
+    """String representation of the access mode's bits.
+
+    Args:
+        name (str): The string representation of the access mode.
+
+    Existing instances are:
+    
+    * BITS_NONE
+    * BITS_EXECUTE
+    * BITS_WRITE
+    * BITS_WRITE_EXECUTE
+    * BITS_READ
+    * BITS_READ_EXECUTE
+    * BITS_READ_WRITE
+    * BITS_ALL
+    """
+
+    def __init__(self, name):
+        self.name = name
+
     def json(self):
-        return self
+        """Return the string representation which can be marshaled into json."""
 
-
-class Bits(StrAlias):
-    """Bits represents access mode's bits."""
+        return self.name
 
     @staticmethod
     def from_json(obj):
+        """Unmarshal the json encoded obj string into a Bits object."""
+
         return Bits(str(obj))
 
 
-# bits_none represents no access.
-bits_none = Bits('NONE')
-# bits_execute represent execute access.
-bits_execute = Bits('EXECUTE')
-# bits_write represents write access.
-bits_write = Bits('WRITE')
-# bits_write_execute represents write and execute access.
-bits_write_execute = Bits('WRITE_EXECUTE')
-# bits_read represents read access.
-bits_read = Bits('READ')
-# bits_read_execute represents read and execute access.
-bits_read_execute = Bits('READ_EXECUTE')
-# bits_read_write represents read and write access.
-bits_read_write = Bits('READ_WRITE')
-# bits_all represents read, write, and execute access
-bits_all = Bits('ALL')
+#: No access.
+BITS_NONE = Bits('NONE')
+#: Execute access.
+BITS_EXECUTE = Bits('EXECUTE')
+#: Write access.
+BITS_WRITE = Bits('WRITE')
+#: Write and execute access.
+BITS_WRITE_EXECUTE = Bits('WRITE_EXECUTE')
+#: Read access.
+BITS_READ = Bits('READ')
+#: Read and execute access.
+BITS_READ_EXECUTE = Bits('READ_EXECUTE')
+#: Read and write access.
+BITS_READ_WRITE = Bits('READ_WRITE')
+#: Read, write, and execute access
+BITS_ALL = Bits('ALL')
 
 
 class BlockInfo(object):
-    """BlockInfo represents a block's information."""
+    """Alluxio file block's information.
+
+    Args:
+        block_id (int): block ID.
+        length (int): block 
+    
+    """
 
     def __init__(self, block_id, length, locations):
         self.block_id = block_id
@@ -197,8 +223,14 @@ class FileInfo(object):
         return info
 
 
-class LoadMetadataType(StrAlias):
+class LoadMetadataType(object):
     """LoadMetadataType represents the load metadata type."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def json(self):
+        return self.name
 
     @staticmethod
     def from_json(obj):
@@ -237,8 +269,14 @@ class Mode(object):
         return Mode(owner, group, other)
 
 
-class ReadType(StrAlias):
+class ReadType(object):
     """ReadType represents a read type."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def json(self):
+        return self.name
 
     @staticmethod
     def from_json(obj):
@@ -249,8 +287,14 @@ read_type_cache = ReadType('CACHE')
 read_type_cache_promote = ReadType('CACHE_PROMOTE')
 
 
-class TTLAction(StrAlias):
+class TTLAction(object):
     """TTLAction represents a TTL action."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def json(self):
+        return self.name
 
     @staticmethod
     def from_json(obj):
@@ -287,22 +331,26 @@ class WorkerNetAddress(object):
         return addr
 
 
-class WriteType(StrAlias):
+class WriteType(object):
     """WriteType represents a write type"""
+
+    def __init__(self, name):
+        self.name = name
+
+    def json(self):
+        return self.name
 
     @staticmethod
     def from_json(obj):
         return WriteType(str(obj))
 
-# write_type_must_cache means the data will be stored in Alluxio.
-write_type_must_cache = WriteType("MUST_CACHE")
-# write_type_cache_through means the data will be stored in Alluxio and
-# synchronously written to UFS.
-write_type_cache_through = WriteType("CACHE_THROUGH")
-# write_type_through means the data will be sychrounously written to UFS.
-write_type_through = WriteType("THROUGH")
-# write_type_async_through means the data will be stored in Alluxio and
-# asynchrounously written to UFS.
-write_type_async_through = WriteType("ASYNC_THROUGH")
-# write_type_none means the data will no be stored.
-write_type_none = WriteType("NONE")
+#: Data will be stored in Alluxio.
+WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
+#: Data will be stored in Alluxio and synchronously written to UFS.
+WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
+# Data will be sychrounously written to UFS.
+WRITE_TYPE_THROUGH = WriteType("THROUGH")
+# Data will be stored in Alluxio and asynchrounously written to UFS.
+WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
+# Data will no be stored.
+WRITE_TYPE_NONE = WriteType("NONE")
