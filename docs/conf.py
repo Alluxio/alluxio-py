@@ -55,8 +55,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Alluxio Python API'
-copyright = u'2017, Alluxio, Inc.'
-author = u'Alluxio, Inc.'
+copyright = u'2017, Alluxio, Inc'
+author = u'Alluxio, Inc'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -205,7 +205,7 @@ html_static_path = ['_static']
 
 # If true, links to the reST sources are added to the pages.
 #
-# html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 #
@@ -270,7 +270,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'alluxio.tex', u'alluxio Documentation',
-     u'Alluxio, Inc.', 'manual'),
+     u'Alluxio, Inc', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
