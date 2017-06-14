@@ -22,6 +22,22 @@ from . import option
 from . import wire
 
 
+def _check_response(r):
+        """Check the response of the REST API request.
+
+        Args:
+            r (:class:`requests.Response`): The response of the REST API request.
+
+        Raises:
+            requests.HTTPError: If the response status is not 200.
+        """
+            
+        if r.status_code != requests.codes.ok:
+            err_msg = 'Response status: %s (%d):\nResponse body:\n%s' % \
+                (r.reason, r.status_code, r.content)
+            raise requests.HTTPError(err_msg, response=r)
+
+
 class Client(object):
     """Alluxio client.
     
@@ -75,20 +91,6 @@ class Client(object):
 
         return self._url('streams/%d/%s' % (file_id, action))
 
-    def _check_response(self, r):
-        """Check the response of the REST API request.
-
-        Args:
-            r (:class:`requests.Response`): The response of the REST API request.
-
-        Raises:
-            requests.HTTPError: If the response status is not 200.
-        """
-            
-        if r.status_code != requests.codes.ok:
-            err_msg = 'Response status: %s (%d):\nResponse body:\n%s' % \
-                (r.reason, r.status_code, r.content)
-            raise requests.HTTPError(err_msg, response=r)
 
     def _post(self, url, opt=None, params=None) :
         """Send a POST request to the REST API server.
@@ -112,7 +114,7 @@ class Client(object):
             r = requests.post(url, params=params, json=opt.json())
         else:
             r = requests.post(url, params=params)
-        self._check_response(r)
+        _check_response(r)
         return r
 
     def __repr__(self):
@@ -513,6 +515,7 @@ class Reader(object):
 
         if self.r is None:
             self.r = requests.post(self.url, stream=True)
+            _check_response(self.r)
         if n is None:
             return ''.join([chunk for chunk in self.r.iter_content(chunk_size=128)])
         return self.r.raw.read(n)
@@ -561,6 +564,7 @@ class Writer(object):
         """
 
         self.r = requests.post(self.url, data=data, stream=True)
+        _check_response(self.r)
         bytes_written = self.r.json()
         return bytes_written
 
