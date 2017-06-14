@@ -9,6 +9,18 @@
 pip install -r requirements.txt
 ```
 
+## Code Style
+
+Follow [pep8](https://www.python.org/dev/peps/pep-0008/) for source code style,
+except the restriction for line width.
+
+Check code style by ```bash
+pep8 --ignore=E501 alluxio/
+```
+
+Follow [Google style](http://www.sphinx-doc.org/en/stable/ext/example_google.html)
+for docstrings.
+
 ## Generate Documentation
 
 ```bash

@@ -31,6 +31,7 @@ class CreateDirectory(_Jsonable):
             where the directory will be created, like in Alluxio only, or in
             both Alluxio and under storage.
     """
+
     def __init__(self, **kwargs):
         self.allow_exists = kwargs.get('allow_exists')
         self.mode = kwargs.get('mode')
@@ -223,10 +224,12 @@ class OpenFile(_Jsonable):
     """
 
     def __init__(self, **kwargs):
-        self.cache_location_policy_class = kwargs.get('cache_location_policy_class')
+        self.cache_location_policy_class = kwargs.get(
+            'cache_location_policy_class')
         self.max_ufs_read_concurrency = kwargs.get('max_ufs_read_concurrency')
         self.read_type = kwargs.get('read_type')
-        self.ufs_read_location_policy_class = kwargs.get('ufs_read_location_policy_class')
+        self.ufs_read_location_policy_class = kwargs.get(
+            'ufs_read_location_policy_class')
 
     def json(self):
         obj = {}

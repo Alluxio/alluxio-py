@@ -20,7 +20,7 @@ class Bits(_Jsonable):
         The unix mode bits *wrx* can be represented as :data:`BITS_ALL`.
 
     Existing instances are:
-    
+
     * :data:`BITS_NONE`
     * :data:`BITS_EXECUTE`
     * :data:`BITS_WRITE`
@@ -91,7 +91,8 @@ class BlockInfo(_Jsonable):
         block_id = obj['blockId']
         length = obj['length']
         locations = obj['locations']
-        locations = [BlockLocation.from_json(location) for location in locations]
+        locations = [BlockLocation.from_json(
+            location) for location in locations]
         return BlockInfo(block_id, length, locations)
 
 
@@ -131,7 +132,7 @@ class WorkerNetAddress(_Jsonable):
 
 class BlockLocation(_Jsonable):
     """A block's location.
-    
+
     Args:
         worker_id (int): ID of the worker that contains the block.
         worker_address (:obj:`alluxio.wire.WorkerNetAddress`): Address of the
@@ -162,7 +163,7 @@ class BlockLocation(_Jsonable):
 
 class FileBlockInfo(_Jsonable):
     """A file block's information.
-    
+
     Args:
         block_info (:obj:`alluxio.wire.BlockInfo`): The block's information.
         offset (int): The block's offset in the file.
@@ -194,7 +195,7 @@ class FileInfo(_Jsonable):
 
     Two :obj:`FileInfo` are comparable based on the attribute **name**. So a
     list of :obj:`FileInfo` can be sorted by python's built-in **sort** function.
-    
+
     Args:
         block_ids (list of int): List of block IDs.
         block_size_bytes (int): Block size in bytes.
@@ -229,30 +230,30 @@ class FileInfo(_Jsonable):
     """
 
     def __init__(self,
-        block_ids=[],
-        block_size_bytes=0,
-        cacheable=False,
-        completed=False,
-        creation_time_ms=0,
-        last_modification_time_ms=0,
-        file_block_infos=[],
-        file_id=0,
-        folder=False,
-        owner='',
-        group='',
-        in_memory_percentage=0,
-        length=0,
-        name='',
-        path='',
-        ufs_path='',
-        pinned=False,
-        persisted=False,
-        persistence_state='',
-        mode=0,
-        mount_point=False,
-        ttl=0,
-        ttl_action='',
-    ):
+                 block_ids=[],
+                 block_size_bytes=0,
+                 cacheable=False,
+                 completed=False,
+                 creation_time_ms=0,
+                 last_modification_time_ms=0,
+                 file_block_infos=[],
+                 file_id=0,
+                 folder=False,
+                 owner='',
+                 group='',
+                 in_memory_percentage=0,
+                 length=0,
+                 name='',
+                 path='',
+                 ufs_path='',
+                 pinned=False,
+                 persisted=False,
+                 persistence_state='',
+                 mode=0,
+                 mount_point=False,
+                 ttl=0,
+                 ttl_action='',
+                 ):
         self.block_ids = block_ids
         self.block_size_bytes = block_size_bytes
         self.cacheable = cacheable
@@ -321,7 +322,8 @@ class FileInfo(_Jsonable):
         info.cacheable = obj['cacheable']
         info.completed = obj['completed']
         info.creation_time_ms = obj['creationTimeMs']
-        info.file_block_infos = [FileBlockInfo.from_json(block) for block in obj['fileBlockInfos']]
+        info.file_block_infos = [FileBlockInfo.from_json(
+            block) for block in obj['fileBlockInfos']]
         info.file_id = obj['fileId']
         info.folder = obj['folder']
         info.group = obj['group']
@@ -344,9 +346,9 @@ class FileInfo(_Jsonable):
 
 class LoadMetadataType(_Jsonable):
     """The type of loading metadata.
-    
+
     This can be one of the followings, see their documentation for details:
-    
+
     * :data:`LOAD_METADATA_TYPE_NEVER`
     * :data:`LOAD_METADATA_TYPE_ONCE`
     * :data:`LOAD_METADATA_TYPE_ALWAYS`
@@ -409,7 +411,7 @@ class ReadType(_Jsonable):
     """Convenience modes for commonly used read types.
 
     This can be one of the followings, see their documentation for details:
-    
+
     * :data:`READ_TYPE_NO_CACHE`
     * :data:`READ_TYPE_CACHE`
     * :data:`READ_TYPE_CACHE_PROMOTE`
@@ -445,7 +447,7 @@ class TTLAction(_Jsonable):
     """Represent the file action to take when its TTL expires.
 
     This can be one of the followings, see their documentation for details:
-    
+
     * :data:`TTL_ACTION_DELETE`
     * :data:`TTL_ACTION_FREE`
 
@@ -474,7 +476,7 @@ class WriteType(_Jsonable):
     """Write types for creating a file.
 
     This can be one of the followings, see their documentation for details:
-    
+
     * :data:`WRITE_TYPE_MUST_CACHE`
     * :data:`WRITE_TYPE_CACHE_THROUGH`
     * :data:`WRITE_TYPE_THROUGH`

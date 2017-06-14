@@ -23,24 +23,24 @@ from . import wire
 
 
 def _check_response(r):
-        """Check the response of the REST API request.
+    """Check the response of the REST API request.
 
-        Args:
-            r (:class:`requests.Response`): The response of the REST API request.
+    Args:
+        r (:class:`requests.Response`): The response of the REST API request.
 
-        Raises:
-            requests.HTTPError: If the response status is not 200.
-        """
-            
-        if r.status_code != requests.codes.ok:
-            err_msg = 'Response status: %s (%d):\nResponse body:\n%s' % \
-                (r.reason, r.status_code, r.content)
-            raise requests.HTTPError(err_msg, response=r)
+    Raises:
+        requests.HTTPError: If the response status is not 200.
+    """
+
+    if r.status_code != requests.codes.ok:
+        err_msg = 'Response status: %s (%d):\nResponse body:\n%s' % \
+            (r.reason, r.status_code, r.content)
+        raise requests.HTTPError(err_msg, response=r)
 
 
 class Client(object):
     """Alluxio client.
-    
+
     Args:
         host (str): Alluxio proxy server's hostname.
         port (int): Alluxio proxy server's web port.
@@ -77,7 +77,7 @@ class Client(object):
         """
 
         return self._url('paths/%s/%s' % (path, action))
-    
+
     def _streams_url(self, file_id, action):
         """Create the URL for REST APIs under the 'streams' prefix.
 
@@ -91,8 +91,7 @@ class Client(object):
 
         return self._url('streams/%d/%s' % (file_id, action))
 
-
-    def _post(self, url, opt=None, params=None) :
+    def _post(self, url, opt=None, params=None):
         """Send a POST request to the REST API server.
 
         Args:
@@ -147,7 +146,7 @@ class Client(object):
 
         url = self._paths_url(path, 'create-directory')
         self._post(url, option.CreateDirectory(**kwargs))
-        
+
     def delete(self, path, **kwargs):
         """Delete a directory or file in Alluxio.
 
@@ -270,7 +269,7 @@ class Client(object):
         """Unmount an under storage that is mounted at path.
 
         Args:
-            path (str): The Alluxio mount point. 
+            path (str): The Alluxio mount point.
             **kwargs: The same optional parameters for creating :class:`alluxio.option.Unmount`.
 
         Raises:
@@ -396,7 +395,7 @@ class Client(object):
 
         Returns:
             Reader: The reader for reading the file as a stream.
-            
+
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
@@ -412,7 +411,7 @@ class Client(object):
 
         Returns:
             Reader: The reader for reading the file as a stream.
-            
+
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
@@ -438,7 +437,7 @@ class Client(object):
         Raises:
             ValueError: If mode is neither 'w' nor 'r'.
             requests.HTTPError: If the request fails or the response status is not 200.
-        
+
         Examples:
             Write a string to a file in Alluxio:
 
