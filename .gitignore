@@ -3,3 +3,5 @@
 *.iml
 *.pyc
 docs/_build
+tests/data/
+tests/logs/
