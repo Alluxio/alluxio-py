@@ -144,7 +144,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'create-directory')
-        self._post(url, option.CreateDirectory(kwargs))
+        self._post(url, option.CreateDirectory(**kwargs))
         
     def delete(self, path, **kwargs):
         """Delete a directory or file in Alluxio.
@@ -162,7 +162,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'delete')
-        self._post(url, option.Delete(kwargs))
+        self._post(url, option.Delete(**kwargs))
 
     def exists(self, path, **kwargs):
         """Check whether a path exists in Alluxio.
@@ -182,7 +182,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'exists')
-        return self._post(url, option.Exists(kwargs)).json()
+        return self._post(url, option.Exists(**kwargs)).json()
 
     def free(self, path, **kwargs):
         """Free a file or directory from Alluxio.
@@ -200,7 +200,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'free')
-        self._post(url, option.Free(kwargs))
+        self._post(url, option.Free(**kwargs))
 
     def get_status(self, path, **kwargs):
         """Get status of a file or directory.
@@ -217,7 +217,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'get-status')
-        info = self._post(url, option.GetStatus(kwargs)).json()
+        info = self._post(url, option.GetStatus(**kwargs)).json()
         return wire.FileInfo.from_json(info)
 
     def list_status(self, path, **kwargs):
@@ -240,7 +240,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'list-status')
-        result = self._post(url, option.ListStatus(kwargs)).json()
+        result = self._post(url, option.ListStatus(**kwargs)).json()
         file_infos = [wire.FileInfo.from_json(info) for info in result]
         file_infos.sort()
         return file_infos
@@ -262,7 +262,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'mount')
-        self._post(url, option.Mount(kwargs), {'src': src})
+        self._post(url, option.Mount(**kwargs), {'src': src})
 
     def unmount(self, path, **kwargs):
         """Unmount an under storage that is mounted at path.
@@ -276,7 +276,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'unmount')
-        self._post(url, option.Unmount(kwargs))
+        self._post(url, option.Unmount(**kwargs))
 
     def rename(self, path, dst, **kwargs):
         """Rename path to dst in Alluxio.
@@ -291,7 +291,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'rename')
-        self._post(url, option.Rename(kwargs), {'dst': dst})
+        self._post(url, option.Rename(**kwargs), {'dst': dst})
 
     def set_attribute(self, path, **kwargs):
         """Set attributes of a path in Alluxio.
@@ -305,7 +305,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'set-attribute')
-        self._post(url, option.SetAttribute(kwargs))
+        self._post(url, option.SetAttribute(**kwargs))
 
     def open_file(self, path, **kwargs):
         """Open a file in Alluxio for reading.
@@ -336,7 +336,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'open-file')
-        return self._post(url, option.OpenFile(kwargs)).json()
+        return self._post(url, option.OpenFile(**kwargs)).json()
 
     def create_file(self, path, **kwargs):
         """Create a file in Alluxio.
@@ -368,7 +368,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'create-file')
-        return self._post(url, option.CreateFile(kwargs)).json()
+        return self._post(url, option.CreateFile(**kwargs)).json()
 
     def close(self, file_id):
         """Close a file.
@@ -457,7 +457,7 @@ class Client(object):
         """
 
         if mode == 'r':
-            file_id = self.open_file(path, option.OpenFile(kwargs))
+            file_id = self.open_file(path, **kwargs)
             try:
                 reader = self.read(file_id)
                 yield reader
@@ -465,7 +465,7 @@ class Client(object):
                 reader and reader.close()
                 self.close(file_id)
         elif mode == 'w':
-            file_id = self.create_file(path, option.CreateFile(kwargs))
+            file_id = self.create_file(path, **kwargs)
             try:
                 writer = self.write(file_id)
                 yield writer
@@ -503,6 +503,12 @@ class Reader(object):
                 size is set in chunk_size. Defaults to None.
             chunk_size (int, optional): The chunk size in bytes to be used when
                 n is None. Defaults to 128.
+
+        Returns:
+            The data in bytes.
+
+        Raises:
+            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         if self.r is None:
@@ -514,8 +520,9 @@ class Reader(object):
     def close(self):
         """Close the reader.
 
-        If the request fails, this is a nop, otherwise, the underlying sockets
-        will be closed.
+        If the request fails, this is a nop, otherwise, release the connection
+        back to the pool. Once this method has been called, the :meth:`.write`
+        should not be called again.
         """
 
         self.r and self.r.close()
@@ -545,6 +552,12 @@ class Writer(object):
 
         Args:
             data: data is either a string or a file-like object in python.
+
+        Returns:
+            The number of bytes that have been written.
+
+        Raises:
+            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         self.r = requests.post(self.url, data=data, stream=True)
@@ -554,8 +567,9 @@ class Writer(object):
     def close(self):
         """Close the writer.
 
-        If the request fails, this is a nop, otherwise, the underlying sockets
-        will be closed.
+        If the request fails, this is a nop, otherwise, release the connection
+        back to the pool. Once this method has been called, the :meth:`.write`
+        should not be called again.
         """
 
         self.r and self.r.close()

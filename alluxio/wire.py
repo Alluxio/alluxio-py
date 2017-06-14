@@ -1,27 +1,37 @@
 # -*- coding: utf-8 -*-
+"""Classes in this module define the wire format of the data sent from the REST API server.
 
-import json
+All the classes in this module have the **json** method and the **from_json**
+static method. The **json** method converts the class instance to a python
+dictionary that can be encoded into a json string. The **from_json** method
+decodes a json string into a class instance.
+"""
+
+from .common import _Jsonable
 
 
-class Bits(object):
+class Bits(_Jsonable):
     """String representation of the access mode's bits.
 
     Args:
         name (str): The string representation of the access mode.
 
+    Examples:
+        The unix mode bits *wrx* can be represented as :data:`BITS_ALL`.
+
     Existing instances are:
     
-    * BITS_NONE
-    * BITS_EXECUTE
-    * BITS_WRITE
-    * BITS_WRITE_EXECUTE
-    * BITS_READ
-    * BITS_READ_EXECUTE
-    * BITS_READ_WRITE
-    * BITS_ALL
+    * :data:`BITS_NONE`
+    * :data:`BITS_EXECUTE`
+    * :data:`BITS_WRITE`
+    * :data:`BITS_WRITE_EXECUTE`
+    * :data:`BITS_READ`
+    * :data:`BITS_READ_EXECUTE`
+    * :data:`BITS_READ_WRITE`
+    * :data:`BITS_ALL`
     """
 
-    def __init__(self, name):
+    def __init__(self, name=''):
         self.name = name
 
     def json(self):
@@ -54,16 +64,17 @@ BITS_READ_WRITE = Bits('READ_WRITE')
 BITS_ALL = Bits('ALL')
 
 
-class BlockInfo(object):
-    """Alluxio file block's information.
+class BlockInfo(_Jsonable):
+    """A block's information.
 
     Args:
-        block_id (int): block ID.
-        length (int): block 
-    
+        block_id (int): Block ID.
+        length (int): Block size in bytes.
+        locations (list of :obj:`alluxio.wire.BlockLocation`): List of file
+            block locations.
     """
 
-    def __init__(self, block_id, length, locations):
+    def __init__(self, block_id=0, length=0, locations=[]):
         self.block_id = block_id
         self.length = length
         self.locations = locations
@@ -84,10 +95,52 @@ class BlockInfo(object):
         return BlockInfo(block_id, length, locations)
 
 
-class BlockLocation(object):
-    """BlockLocation represents a block's location."""
+class WorkerNetAddress(_Jsonable):
+    """Worker network address.
 
-    def __init__(self, worker_id, worker_address, tier_alias):
+    Args:
+        host (str): Worker's hostname.
+        rpc_port (int): Port of the worker's RPC server.
+        data_port (int): Port of the worker's data server.
+        web_port (int): Port of the worker's web server.
+    """
+
+    def __init__(self, host='', rpc_port=0, data_port=0, web_port=0):
+        self.host = host
+        self.rpc_port = rpc_port
+        self.data_port = data_port
+        self.web_port = web_port
+
+    def json(self):
+        return {
+            'host': self.host,
+            'rpcPort': self.rpc_port,
+            'dataPort': self.data_port,
+            'webPort': self.web_port,
+        }
+
+    @staticmethod
+    def from_json(obj):
+        addr = WorkerNetAddress()
+        addr.host = obj['host']
+        addr.rpc_port = obj['rpcPort']
+        addr.data_port = obj['dataPort']
+        addr.web_port = obj['webPort']
+        return addr
+
+
+class BlockLocation(_Jsonable):
+    """A block's location.
+    
+    Args:
+        worker_id (int): ID of the worker that contains the block.
+        worker_address (:obj:`alluxio.wire.WorkerNetAddress`): Address of the
+            worker that contains the block.
+        tier_alias (str): Alias of the Alluxio storage tier that contains the
+            block, for example, MEM, SSD, or HDD.
+    """
+
+    def __init__(self, worker_id=0, worker_address=WorkerNetAddress(), tier_alias=''):
         self.worker_id = worker_id
         self.worker_address = worker_address
         self.tier_alias = tier_alias
@@ -107,10 +160,16 @@ class BlockLocation(object):
         return BlockLocation(worker_id, worker_address, tier_alias)
 
 
-class FileBlockInfo(object):
-    """FileBlockInfo represents a file block's information."""
+class FileBlockInfo(_Jsonable):
+    """A file block's information.
+    
+    Args:
+        block_info (:obj:`alluxio.wire.BlockInfo`): The block's information.
+        offset (int): The block's offset in the file.
+        ufs_locations (list of str): The under storage locations that contain this block.
+    """
 
-    def __init__(self, block_info, offset, ufs_locations):
+    def __init__(self, block_info=BlockInfo(), offset=0, ufs_locations=[]):
         self.block_info = block_info
         self.offset = offset
         self.ufs_locations = ufs_locations
@@ -130,33 +189,93 @@ class FileBlockInfo(object):
         return FileBlockInfo(block_info, offset, ufs_locations)
 
 
-class FileInfo(object):
-    """FileInfo represents a file's information."""
+class FileInfo(_Jsonable):
+    """A file or directory's information.
 
-    def __init__(self):
-        self.block_ids = []
-        self.block_size_bytes = 0
-        self.cacheable = False
-        self.completed = False
-        self.creation_time_ms = 0
-        self.file_block_infos = []
-        self.file_id = 0
-        self.folder = False
-        self.group = ""
-        self.in_memory_percentage = 0
-        self.last_modification_time_ms = 0
-        self.length = 0
-        self.name = ""
-        self.path = ""
-        self.persisted = False
-        self.persistence_state = ""
-        self.pinned = False
-        self.mode = 0
-        self.mount_point = False
-        self.owner = ""
-        self.ttl = 0
-        self.ttl_action = ""
-        self.ufs_path = ""
+    Two :obj:`FileInfo` are comparable based on the attribute **name**. So a
+    list of :obj:`FileInfo` can be sorted by python's built-in **sort** function.
+    
+    Args:
+        block_ids (list of int): List of block IDs.
+        block_size_bytes (int): Block size in bytes.
+        cacheable (bool): Whether the file can be cached in Alluxio.
+        completed (bool): Whether the file has been marked as completed.
+        creation_time_ms (int): The epoch time the file was created.
+        last_modification_time_ms (int):  The epoch time the file was last modified.
+        file_block_infos (list of :obj:`alluxio.wire.FileBlockInfo`): List of file block information.
+        file_id (int): File ID.
+        folder (bool): Whether this is a directory.
+        owner (str): Owner of this file or directory.
+        group (str): Group of this file or directory.
+        in_memory_percentage (int): Percentage of the in memory data.
+        length (int): File size in bytes.
+        name (str): File name.
+        path (str): Absolute file path.
+        ufs_path (str): Under storage path of this file.
+        pinned (bool): Whether the file is pinned.
+        persisted (bool): Whether the file is persisted.
+        persistence_state (str): Persistence state, can be one of the following:
+            * NOT_PERSISTED: file not persisted in the under FS
+            * TO_BE_PERSISTED: the file is to be persisted in the under FS
+            * PERSISTED: the file is persisted in the under FS
+            * LOST: the file is lost but not persisted in the under FS
+        mode (:obj:`alluxio.wire.Mode`): Access mode of the file or directory.
+        mount_point (bool): Whether this is a mount point.
+        ttl (int): The TTL (time to live) value. It identifies duration
+            (in milliseconds) the created file should be kept around before it
+            is automatically deleted. -1 means no TTL value is set.
+        ttl_action (:obj:`alluxio.wire.TTLAction`): The file action to take when
+            its TTL expires.
+    """
+
+    def __init__(self,
+        block_ids=[],
+        block_size_bytes=0,
+        cacheable=False,
+        completed=False,
+        creation_time_ms=0,
+        last_modification_time_ms=0,
+        file_block_infos=[],
+        file_id=0,
+        folder=False,
+        owner='',
+        group='',
+        in_memory_percentage=0,
+        length=0,
+        name='',
+        path='',
+        ufs_path='',
+        pinned=False,
+        persisted=False,
+        persistence_state='',
+        mode=0,
+        mount_point=False,
+        ttl=0,
+        ttl_action='',
+    ):
+        self.block_ids = block_ids
+        self.block_size_bytes = block_size_bytes
+        self.cacheable = cacheable
+        self.completed = completed
+        self.creation_time_ms = creation_time_ms
+        self.file_block_infos = file_block_infos
+        self.file_id = file_id
+        self.folder = folder
+        self.group = group
+        self.in_memory_percentage = in_memory_percentage
+        self.last_modification_time_ms = last_modification_time_ms
+        self.length = length
+        self.name = name
+        self.path = path
+        self.persisted = persisted
+        self.persistence_state = persistence_state
+        self.pinned = pinned
+        self.mode = mode
+        self.mount_point = mount_point
+        self.owner = owner
+        self.ttl = ttl
+        self.ttl_action = ttl_action
+        self.ufs_path = ufs_path
 
     def __lt__(self, other):
         return self.name < other.name
@@ -223,10 +342,20 @@ class FileInfo(object):
         return info
 
 
-class LoadMetadataType(object):
-    """LoadMetadataType represents the load metadata type."""
+class LoadMetadataType(_Jsonable):
+    """The type of loading metadata.
+    
+    This can be one of the followings, see their documentation for details:
+    
+    * :data:`LOAD_METADATA_TYPE_NEVER`
+    * :data:`LOAD_METADATA_TYPE_ONCE`
+    * :data:`LOAD_METADATA_TYPE_ALWAYS`
 
-    def __init__(self, name):
+    Args:
+        name (str): The string representation of the type.
+    """
+
+    def __init__(self, name=''):
         self.name = name
 
     def json(self):
@@ -236,17 +365,24 @@ class LoadMetadataType(object):
     def from_json(obj):
         return LoadMetadataType(str(obj))
 
-load_metadata_type_never = LoadMetadataType('Never')
-load_metadata_type_once = LoadMetadataType('Once')
-load_metadata_type_always = LoadMetadataType('Always')
+#: Never load metadata.
+LOAD_METADATA_TYPE_NEVER = LoadMetadataType('Never')
+#: Load metadata only at the first time of listing status on a directory.
+LOAD_METADATA_TYPE_ONCE = LoadMetadataType('Once')
+#: Always load metadata when listing status on a directory.
+LOAD_METADATA_TYPE_ALWAYS = LoadMetadataType('Always')
 
 
-class Mode(object):
-    """Mode represents the file's access mode."""
+class Mode(_Jsonable):
+    """The file's access mode.
 
-    def __init__(self, owner, group, other):
-        if not (isinstance(owner, Bits) and isinstance(group, Bits) and isinstance(other, Bits)):
-            raise TypeError('owner, group, and other should be of type Bits')
+    Args:
+        owner_bits (:obj:`alluxio.wire.Bits`): Access mode of the file's owner.
+        group_bits (:obj:`alluxio.wire.Bits`): Access mode of the users in the file's group.
+        other_bits (:obj:`alluxio.wire.Bits`): Access mode of others who are neither the owner nor in the group.
+    """
+
+    def __init__(self, owner=Bits(), group=Bits(), other=Bits()):
         # owner_bits represents the owner access mode
         owner_bits = owner
         # group_bits represents the group access mode
@@ -269,10 +405,20 @@ class Mode(object):
         return Mode(owner, group, other)
 
 
-class ReadType(object):
-    """ReadType represents a read type."""
+class ReadType(_Jsonable):
+    """Convenience modes for commonly used read types.
 
-    def __init__(self, name):
+    This can be one of the followings, see their documentation for details:
+    
+    * :data:`READ_TYPE_NO_CACHE`
+    * :data:`READ_TYPE_CACHE`
+    * :data:`READ_TYPE_CACHE_PROMOTE`
+
+    Args:
+        name (str): The string representation of the read type.
+    """
+
+    def __init__(self, name=''):
         self.name = name
 
     def json(self):
@@ -282,15 +428,32 @@ class ReadType(object):
     def from_json(obj):
         return ReadType(str(obj))
 
-read_type_no_cache = ReadType('NO_CACHE')
-read_type_cache = ReadType('CACHE')
-read_type_cache_promote = ReadType('CACHE_PROMOTE')
+#: Read the file and skip Alluxio storage. This read type will not cause any
+#: data migration or eviction in Alluxio storage.
+READ_TYPE_NO_CACHE = ReadType('NO_CACHE')
+#: Read the file and cache it in the highest tier of a local worker.
+#: This read type will not move data between tiers of Alluxio Storage.
+#: Users should use :data:`READ_TYPE_CACHE_PROMOTE` for more optimized
+#: performance with tiered storage.
+READ_TYPE_CACHE = ReadType('CACHE')
+#: Read the file and cache it in a local worker. Additionally, if the file was
+#: in Alluxio storage, it will be promoted to the top storage layer.
+READ_TYPE_CACHE_PROMOTE = ReadType('CACHE_PROMOTE')
 
 
-class TTLAction(object):
-    """TTLAction represents a TTL action."""
+class TTLAction(_Jsonable):
+    """Represent the file action to take when its TTL expires.
 
-    def __init__(self, name):
+    This can be one of the followings, see their documentation for details:
+    
+    * :data:`TTL_ACTION_DELETE`
+    * :data:`TTL_ACTION_FREE`
+
+    Args:
+        name (str): The string representation of the read type.
+    """
+
+    def __init__(self, name=''):
         self.name = name
 
     def json(self):
@@ -300,39 +463,27 @@ class TTLAction(object):
     def from_json(obj):
         return TTLAction(str(obj))
 
-# ttl_action_delete represents the action of deleting a path.
-ttl_action_delete = TTLAction("DELETE")
-# ttl_action_free represents the action of freeing a path.
-ttl_action_free = TTLAction("FREE")
+
+#: Represents the action of deleting a path.
+TTL_ACTION_DELETE = TTLAction("DELETE")
+#: Represents the action of freeing a path.
+TTL_ACTION_FREE = TTLAction("FREE")
 
 
-class WorkerNetAddress(object):
-    def __init__(self):
-        self.host = ""
-        self.rpc_port = 0
-        self.data_port = 0
-        self.web_port = 0
+class WriteType(_Jsonable):
+    """Write types for creating a file.
 
-    def json(self):
-        return {
-            'host': self.host,
-            'rpcPort': self.rpc_port,
-            'dataPort': self.data_port,
-            'webPort': self.web_port,
-        }
+    This can be one of the followings, see their documentation for details:
+    
+    * :data:`WRITE_TYPE_MUST_CACHE`
+    * :data:`WRITE_TYPE_CACHE_THROUGH`
+    * :data:`WRITE_TYPE_THROUGH`
+    * :data:`WRITE_TYPE_ASYNC_THROUGH`
+    * :data:`WRITE_TYPE_NONE`
 
-    @staticmethod
-    def from_json(obj):
-        addr = WorkerNetAddress()
-        addr.host = obj['host']
-        addr.rpc_port = obj['rpcPort']
-        addr.data_port = obj['dataPort']
-        addr.web_port = obj['webPort']
-        return addr
-
-
-class WriteType(object):
-    """WriteType represents a write type"""
+    Args:
+        name (str): The string representation of the write type.
+    """
 
     def __init__(self, name):
         self.name = name
@@ -348,9 +499,9 @@ class WriteType(object):
 WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
 #: Data will be stored in Alluxio and synchronously written to UFS.
 WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
-# Data will be sychrounously written to UFS.
+#: Data will be sychrounously written to UFS.
 WRITE_TYPE_THROUGH = WriteType("THROUGH")
-# Data will be stored in Alluxio and asynchrounously written to UFS.
+#: Data will be stored in Alluxio and asynchrounously written to UFS.
 WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
-# Data will no be stored.
+#: Data will no be stored.
 WRITE_TYPE_NONE = WriteType("NONE")

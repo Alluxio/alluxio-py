@@ -4,8 +4,7 @@
 import json
 import sys
 
-from alluxio import client
-from alluxio import option
+import alluxio
 
 
 def colorize(code):
@@ -16,9 +15,7 @@ def colorize(code):
         return '\033[%sm%s\033[0m' % (c, text)
     return _
 
-red = colorize('31')
 green = colorize('32')
-yellow = colorize('33')
 
 def info(s):
     print green(s)
@@ -32,12 +29,10 @@ py_test_nested_dir = '/py-test-dir/nested'
 py_test = py_test_nested_dir + '/py-test'
 py_test_renamed = py_test_root_dir + '/py-test-renamed'
 
-client = client.Client('localhost', 39999)
+client = alluxio.Client('localhost', 39999)
 
 info("creating directory %s" % py_test_nested_dir)
-opt = option.CreateDirectory()
-opt.recursive = True
-client.create_directory(py_test_nested_dir, opt)
+client.create_directory(py_test_nested_dir, recursive=True)
 info("done")
 
 info("writing to %s" % py_test)
@@ -73,9 +68,7 @@ for stat in root_stats:
 info("done")
 
 info("deleting %s" % py_test_root_dir)
-opt = option.Delete()
-opt.recursive = True
-client.delete(py_test_root_dir, opt)
+client.delete(py_test_root_dir, recursive=True)
 info("done")
 
 info("asserting that %s is deleted" % py_test_root_dir)
