@@ -2,6 +2,9 @@
 .idea
 *.iml
 *.pyc
+alluxio.egg-info/
+build/
+dist/
 docs/_build
 tests/data/
 tests/logs/
