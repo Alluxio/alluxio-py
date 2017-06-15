@@ -465,10 +465,11 @@ class Client(object):
             >>> with open('/file', 'w') as f:
             >>>     f.write('data')
 
-            Copy a file in local filesystem to a file in Alluxio, note that the
-            second :func"`open` is python's built-in function:
+            Copy a file in local filesystem to a file in Alluxio and also persist
+            it into Alluxio's under storage, note that the second :func"`open`
+            is python's built-in function:
 
-            >>> with alluxio_client.open('/alluxio-file', 'w') as alluxio_file:
+            >>> with alluxio_client.open('/alluxio-file', 'w', write_type=wire.WRITE_TYPE_CACHE_THROUGH) as alluxio_file:
             >>>     with open('/local-file', 'rb') as local_file:
             >>>         alluxio_file.write(local_file)
 
