@@ -122,10 +122,12 @@ class Client(object):
     def create_directory(self, path, **kwargs):
         """Create a directory in Alluxio.
 
-        By default, the parent of path must already exist and the path must not
-        pre-exist. The directory's access mode bits are by default 'drwxr-xr-x'.
-        And the directory is only created in Alluxio, not in under storages. You
-        can change the behavior by setting optional parameters in kwargs.
+        By default, the create directory operation enforces that the parent of
+        the given path must exist and the path itself does not already exist.
+        The directory will be created with access mode bits 'drwxr-xr-x'.
+        The created directory will only exist in Alluxio and not in any of its
+        under storages. You can change the behavior by setting optional
+        parameters in kwargs.
 
         Args:
             path (str): The path of the directory to be created.
@@ -188,9 +190,9 @@ class Client(object):
     def free(self, path, **kwargs):
         """Free a file or directory from Alluxio.
 
-        By default, if the path is a directory, files or directories won't be
-        freed recursively. you can change the behavior by setting optional
-        parameters in kwargs.
+        By default, if the given path is a directory, its files and contained
+        directories won't be freed recursively. You can change the behavior by
+        setting optional parameters in kwargs.
 
         Args:
             path (str): The Alluxio path.
@@ -204,7 +206,7 @@ class Client(object):
         self._post(url, option.Free(**kwargs))
 
     def get_status(self, path, **kwargs):
-        """Get status of a file or directory.
+        """Get the status of a file or directory at the given path.
 
         Args:
             path (str): The Alluxio path.
@@ -222,7 +224,7 @@ class Client(object):
         return wire.FileInfo.from_json(info)
 
     def list_status(self, path, **kwargs):
-        """List statuses of files and directories under path.
+        """List the status of a file or directory at the given path.
 
         The default pattern for loading metadata from under storage when
         listing status under a directory can be changed by setting optional
@@ -249,9 +251,9 @@ class Client(object):
     def mount(self, path, src, **kwargs):
         """Mount an under storage specified by src to path in Alluxio.
 
-        Extra information, like AWS credentitials when mounting an S3 bucket,
-        or extra configurations like whether the under storage is mounted in
-        read only mode, can be set in optional parameters in kwargs.
+        Additional information or configuration, such as AWS credentials for
+        mounting a S3 bucket or mounting the under storage in read only mode,
+        can be provided by setting optional parameters in kwargs.
 
         Args:
             path (str): The Alluxio path to be mounted to.
@@ -313,8 +315,7 @@ class Client(object):
 
         The file must be closed by calling :meth:`alluxio.Client.close`.
 
-        A preferred way to read a file is to use :meth:`.open`,
-        it's more pythonic, see its documentation for details.
+        The preferred way to read a file is to use :meth:`.open`.
 
         Args:
             path (str): The Alluxio path.
@@ -342,7 +343,8 @@ class Client(object):
     def create_file(self, path, **kwargs):
         """Create a file in Alluxio.
 
-        The file must not pre-exist, and must be closed by calling :meth:`alluxio.Client.close`.
+        The file must not already exist and must be closed by calling
+        :meth:`alluxio.Client.close`.
 
         A preferred way to write to a file is to use :meth:`.open`,
         it's more pythonic, see its documentation for details.
@@ -374,8 +376,8 @@ class Client(object):
     def close(self, file_id):
         """Close a file.
 
-        When calling :meth:`.open` in a python with statement, this method is
-        automatically called when exiting from the with block.
+        When calling :meth:`.open` using a with statement, this method is
+        automatically invoked when exiting the with block.
 
         Args:
             file_id (int): The file ID returned by :meth:`.open_file` or :meth:`.create_file`.
@@ -388,7 +390,7 @@ class Client(object):
         self._post(url)
 
     def read(self, file_id):
-        """Creates a :class:`Reader` for reading the file.
+        """Creates a :class:`Reader` for reading a file.
 
         Args:
             file_id (int): The file ID returned by :meth:`.open_file`.
@@ -404,7 +406,7 @@ class Client(object):
         return Reader(url)
 
     def write(self, file_id):
-        """Creates a :class:`Writer` for writing the file.
+        """Creates a :class:`Writer` for writing a file.
 
         Args:
             file_id (int): The file ID returned by :meth:`.create_file`.
@@ -423,8 +425,8 @@ class Client(object):
     def open(self, path, mode, **kwargs):
         """Open a file for reading or writing.
 
-        It should be called in a with statement context so that the reader or
-        writer will be automatically closed.
+        It should be called using a with statement so that the reader or writer
+        will be automatically closed.
 
         Args:
             path (str): The Alluxio file to be read from or written to.
@@ -480,8 +482,8 @@ class Client(object):
 class Reader(object):
     """ Alluxio file reader.
 
-    The file is read as a stream, you cannot seek to a previously section that
-    has been read and read again. :meth:`alluxio.Reader.close` must be called after the reading
+    The file is read as a stream; you cannot seek to a previously read section.
+    :meth:`alluxio.Reader.close` must be called after the reading
     is done.
 
     This class is used by :meth:`.Client.open`, it is not intended to be created
@@ -522,9 +524,9 @@ class Reader(object):
     def close(self):
         """Close the reader.
 
-        If the request fails, this is a nop, otherwise, release the connection
-        back to the pool. Once this method has been called, the :meth:`.write`
-        should not be called again.
+        If the request fails, this is a no-op. Otherwise, the connection is
+        released back into the pool. Once this method has been called,
+        :meth:`.write` should not be called again.
         """
 
         self.r and self.r.close()

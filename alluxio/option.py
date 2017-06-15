@@ -23,10 +23,10 @@ class CreateDirectory(_Jsonable):
     """Options to be used in :meth:`alluxio.Client.create_directory`.
 
     Args:
-        allow_exists (bool): Whether the directory can pre-exist.
+        allow_exists (bool): Whether the directory can already exist.
         mode (:obj:`alluxio.wire.Mode`): The directory's access mode.
-        recursive (bool): Whether the directory will be created recursively,
-            if it is True, non-existing parent directories will be created too.
+        recursive (bool): If True, creates intermediate directories along the
+            path as necessary.
         write_type (:obj:`alluxio.wire.WriteType`): It can be used to decide
             where the directory will be created, like in Alluxio only, or in
             both Alluxio and under storage.
@@ -60,8 +60,8 @@ class CreateFile(_Jsonable):
             If this is not specified, Alluxio will use the default value of the
             property key **alluxio.user.file.write.location.policy.class**.
         mode (:obj:`alluxio.wire.Mode`): The file's access mode.
-        recursive (bool): Whether the file will be created recursively,
-            if it is True, non-existing parent directories will be created too.
+        recursive (bool): If True, creates intermediate directories along the
+            path as necessary.
         ttl (int): The TTL (time to live) value. It identifies duration
             (in milliseconds) the created file should be kept around before it
             is automatically deleted. -1 means no TTL value is set.
@@ -104,9 +104,8 @@ class Delete(_Jsonable):
     """Options to be used in :meth:`alluxio.Client.delete`.
 
     Args:
-        recursive (bool): When deleting a directory, if this is true, all
-            contents under the directory will be deleted, including contents in
-            the sub-directories.
+        recursive (bool): If set to true for a path to a directory, the
+            directory and its contents will be deleted.
     """
 
     def __init__(self, **kwargs):
@@ -132,9 +131,8 @@ class Free(_Jsonable):
     """Options to be used in :meth:`alluxio.Client.free`.
 
     Args:
-        recursive (bool): When freeing a directory, if this is true, all
-            contents under the directory will be freed, including contents in
-            the sub-directories.
+        recursive (bool): If set to true for a path to a directory, the
+            directory and its contents will be freed.
     """
 
     def __init__(self, **kwargs):
@@ -160,12 +158,13 @@ class ListStatus(_Jsonable):
     """Options to be used in :meth:`alluxio.Client.list_status`.
 
     Args:
-        load_metadata_type (:obj:`alluxio.wire.LoadMetadataType`): The type of
+        load_metadata_type (:class:`alluxio.wire.LoadMetadataType`): The type of
             loading metadata, can be one of
-            :obj:`alluxio.wire.LOAD_METADATA_TYPE_NEVER`,
-            :obj:`alluxio.wire.LOAD_METADATA_TYPE_ONCE`,
-            :obj:`alluxio.wire.LOAD_METADATA_TYPE_ALWAYS`, see their documentations
-            for more details.
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_NEVER`,
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_ONCE`,
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_ALWAYS`,
+            see documentation on :class:`alluxio.wire.LoadMetadataType` for more
+            details
     """
 
     def __init__(self, **kwargs):
