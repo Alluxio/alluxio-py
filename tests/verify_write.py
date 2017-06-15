@@ -42,4 +42,4 @@ def verify_file(file_id):
 pool = Pool(4)
 pool.map(verify_file, range(args.nfile))
 
-print 'Succeed!'
+print 'Success!'
