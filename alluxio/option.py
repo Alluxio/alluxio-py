@@ -70,6 +70,9 @@ class CreateFile(_Jsonable):
         write_type (:obj:`alluxio.wire.WriteType`): It can be used to decide
             where the file will be created, like in Alluxio only, or in
             both Alluxio and under storage.
+        replication_durable (int): The number of block replication for durable write.
+        replication_max (int): The maximum number of block replication.
+        replication_min (int): The minimum number of block replication.
     """
 
     def __init__(self, **kwargs):
@@ -80,6 +83,9 @@ class CreateFile(_Jsonable):
         self.ttl = kwargs.get('ttl')
         self.ttl_action = kwargs.get('ttl_action')
         self.write_type = kwargs.get('write_type')
+        self.replication_durable = kwargs.get('replication_durable')
+        self.replication_max = kwargs.get('replication_max')
+        self.replication_min = kwargs.get('replication_min')
 
     def json(self):
         obj = {}
@@ -97,6 +103,12 @@ class CreateFile(_Jsonable):
             obj['ttlAction'] = self.ttl_action.json()
         if self.write_type:
             obj['writeType'] = self.write_type.json()
+        if self.replication_durable:
+            obj['replicationDurable'] = self.replication_durable
+        if self.replication_max:
+            obj['replicationMax'] = self.replication_max
+        if self.replication_min:
+            obj['replicationMin'] = self.replication_min
         return obj
 
 
