@@ -15,9 +15,12 @@ This script should be run directly under its parent directory.
 import argparse
 from multiprocessing import Process
 import os
+import shutil
 import sys
 import time
 
+import syspath
+import alluxio
 from read import read
 
 
@@ -35,6 +38,8 @@ parser.add_argument('--port', type=int, default=39999,
                     help='Alluxio proxy server web port')
 parser.add_argument('--src', required=True,
                     help='path to the Alluxio file source')
+parser.add_argument('--iteration', type=int, default=1,
+                    help='number of iterations to repeat the concurrent reading')
 args = parser.parse_args()
 
 try:
@@ -51,14 +56,32 @@ def run_read(process_id):
     read(args.host, args.port, args.src, dst)
 
 
-start_time = time.time()
-processes = []
-for i in xrange(args.nprocess):
-    p = Process(target=run_read, args=(i,))
-    processes.append(p)
-    p.start()
-for p in processes:
-    p.join()
-elapsed_time = time.time() - start_time
+total_time = 0
+for iteration in xrange(args.iteration):
+    os.mkdir(args.root)
 
-print '%d seconds' % elapsed_time
+    start_time = time.time()
+    processes = []
+    for i in xrange(args.nprocess):
+        p = Process(target=run_read, args=(i,))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        p.join()
+    total_time += time.time() - start_time
+
+    if iteration < args.iteration - 1:
+        shutil.rmtree(args.root)
+
+
+client = alluxio.Client(args.host, args.port)
+src_bytes = client.get_status(args.src).length
+average_time = total_time / args.iteration
+average_throughput = src_bytes / average_time
+
+print 'Number of iterations: %d' % args.iteration
+print 'Number of processes per iteration: %d' % args.nprocess
+print 'File size: %d bytes' % src_bytes
+print 'Total time: %f seconds' % total_time
+print 'Average time for each iteration: %f seconds' % average_time
+print 'Average read throughput: %f bytes/second' % average_throughput

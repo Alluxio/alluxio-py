@@ -17,6 +17,8 @@ import os
 import sys
 import time
 
+import syspath
+import alluxio
 from write import write
 
 
@@ -34,6 +36,8 @@ parser.add_argument('--port', type=int, default=39999,
                     help='Alluxio proxy server web port')
 parser.add_argument('--src', default='data/5mb.txt',
                     help='path to the local file source')
+parser.add_argument('--iteration', type=int, default=1,
+                    help='number of iterations to repeat the concurrent writing')
 args = parser.parse_args()
 
 try:
@@ -50,14 +54,30 @@ def run_write(process_id):
     write(args.host, args.port, args.src, dst)
 
 
-start_time = time.time()
-processes = []
-for i in xrange(args.nprocess):
-    p = Process(target=run_write, args=(i,))
-    processes.append(p)
-    p.start()
-for p in processes:
-    p.join()
-elapsed_time = time.time() - start_time
+total_time = 0
+for iteration in xrange(args.iteration):
+    start_time = time.time()
+    processes = []
+    for process_id in xrange(args.nprocess):
+        p = Process(target=run_write, args=(process_id,))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        p.join()
+    total_time += time.time() - start_time
 
-print '%d seconds' % elapsed_time
+    if iteration < args.iteration - 1:
+        client = alluxio.Client(args.host, args.port)
+        client.delete(args.root, recursive=True)
+
+
+src_bytes = os.stat(args.src).st_size
+average_time = total_time / args.iteration
+average_throughput = src_bytes / average_time
+
+print 'Number of iterations: %d' % args.iteration
+print 'Number of processes per iteration: %d' % args.nprocess
+print 'File size: %d bytes' % src_bytes
+print 'Total time: %f seconds' % total_time
+print 'Average time for each iteration: %f seconds' % average_time
+print 'Average write throughput: %f bytes/second' % average_throughput

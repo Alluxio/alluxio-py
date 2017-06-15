@@ -8,19 +8,15 @@ The total time of reading the Alluxio file stream, and writing the file stream
 to local filesystem, is reported at the end of the script.
 """
 
-
-import sys
-sys.path.append('..')  # so that alluxio module can be found
-
 import argparse
 import time
 
+import syspath
 import alluxio
 
 
 def read(host, port, src, dst):
     c = alluxio.Client(host, port)
-    start_time = time.time()
     with c.open(src, 'r', recursive=True) as alluxio_file:
         with open(dst, 'w') as local_file:
             while True:
@@ -29,8 +25,6 @@ def read(host, port, src, dst):
                 if data == '':
                     break
                 local_file.write(data)
-    elapsed_time = time.time() - start_time
-    print '%d seconds' % elapsed_time
 
 
 if __name__ == '__main__':
