@@ -248,6 +248,25 @@ class Client(object):
         file_infos.sort()
         return file_infos
 
+    def ls(self, path, **kwargs):
+        """List the names of the files and directories under path.
+
+        To get more information of the files and directories under path, call
+        :meth:`.list_status`.
+
+        Args:
+            path (str): The Alluxio path, which should be a directory.
+            **kwargs: The same optional parameters for creating :class:`alluxio.option.ListStatus`.
+
+        Returns:
+            List of str: A list of names of the files and directories under path.
+
+        Raises:
+            requests.HTTPError: If the request fails or the response status is not 200.
+        """
+
+        return [status.name for status in self.list_status(path, **kwargs)]
+
     def mount(self, path, src, **kwargs):
         """Mount an under storage specified by src to path in Alluxio.
 
