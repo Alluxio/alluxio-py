@@ -1,4 +1,4 @@
-##!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import json
@@ -17,8 +17,10 @@ def colorize(code):
 
 green = colorize('32')
 
+
 def info(s):
     print green(s)
+
 
 def pretty_json(obj):
     return json.dumps(obj, indent=2)
@@ -74,4 +76,3 @@ info("done")
 info("asserting that %s is deleted" % py_test_root_dir)
 assert not client.exists(py_test_root_dir)
 info("done")
-

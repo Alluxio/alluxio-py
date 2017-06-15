@@ -12,40 +12,52 @@ This script should be run directly under its parent directory.
 """
 
 import argparse
+from multiprocessing import Process
 import os
-import subprocess
+import sys
 import time
 
+from write import write
 
-parser = argparse.ArgumentParser(description='Start multiple python processes to write local file to Alluxio in parallel')
-parser.add_argument('--nprocess', type=int, default=1, help='number of python processes, each process runs write.py')
-parser.add_argument('--root', default='/alluxio-py-test', help='root directory for all the data written to Alluxio')
-parser.add_argument('--host', default='localhost', help='Alluxio proxy server hostname')
-parser.add_argument('--port', type=int, default=39999, help='Alluxio proxy server web port')
-parser.add_argument('--src', default='data/5mb.txt', help='path to the local file source')
+
+script_start_time = '-'.join(time.ctime().split(' '))
+
+parser = argparse.ArgumentParser(
+    description='Start multiple python processes to write local file to Alluxio in parallel')
+parser.add_argument('--nprocess', type=int, default=1,
+                    help='number of python processes, each process runs write.py')
+parser.add_argument('--root', default='/alluxio-py-test',
+                    help='root directory for all the data written to Alluxio')
+parser.add_argument('--host', default='localhost',
+                    help='Alluxio proxy server hostname')
+parser.add_argument('--port', type=int, default=39999,
+                    help='Alluxio proxy server web port')
+parser.add_argument('--src', default='data/5mb.txt',
+                    help='path to the local file source')
 args = parser.parse_args()
 
 try:
-	os.mkdir('logs')
+    os.mkdir('logs')
 except OSError:
-	# logs already exists.
-	pass
+    # logs already exists.
+    pass
 
-start_time = '-'.join(time.ctime().split(' '))
 
+def run_write(process_id):
+    log = 'logs/%s-%d.txt' % (script_start_time, process_id)
+    dst = '%s/%d.txt' % (args.root, process_id)
+    sys.stdout = open(log, 'w')
+    write(args.host, args.port, args.src, dst)
+
+
+start_time = time.time()
+processes = []
 for i in xrange(args.nprocess):
-	cmd = 'nohup python write.py \
-		--host=%(host)s \
-		--port=%(port)d \
-		--src=%(src)s \
-		--dst="%(root)s/%(id)d.txt" \
-		&>logs/%(start_time)s-%(id)d.txt &' % \
-		{
-			'host': args.host,
-			'port': args.port,
-			'src': args.src,
-			'root': args.root,
-			'start_time': start_time,
-			'id': i,
-		}
-	subprocess.call(cmd, shell=True)
+    p = Process(target=run_write, args=(i,))
+    processes.append(p)
+    p.start()
+for p in processes:
+    p.join()
+elapsed_time = time.time() - start_time
+
+print '%d seconds' % elapsed_time
