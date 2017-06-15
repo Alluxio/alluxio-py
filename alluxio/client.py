@@ -506,7 +506,7 @@ class Reader(object):
                 n is None. Defaults to 128.
 
         Returns:
-            The data in bytes.
+            The data in bytes, if all data has been read, returns an empty string.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
