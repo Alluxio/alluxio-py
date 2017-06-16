@@ -29,6 +29,27 @@ def log(process_id):
     return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
 
 
+def write(host, port, src, dst):
+    """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
+
+    Args:
+        host: The Alluxio proxy's hostname.
+        port: The Alluxio proxy's web port.
+        src: The file in the local filesystem to be read from.
+        dst: The file to be written to Alluxio.
+
+    Returns:
+        The total time (seconds) used to read the local file and stream it to Alluxio.
+    """
+
+    start_time = time.time()
+    c = alluxio.Client(host, port)
+    with c.open(dst, 'w', recursive=True) as alluxio_file:
+        with open(src, 'r') as local_file:
+            alluxio_file.write(local_file)
+    return time.time() - start_time
+
+
 def run_write(args, process_id):
     dst = '%s/%d.txt' % (args.dst, process_id)
     write(args.host, args.port, args.src, dst)
