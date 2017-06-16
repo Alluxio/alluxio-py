@@ -1,13 +1,12 @@
-# !/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Read a file from Alluxio and write it to a local file.
 
 This script starts a single Python process for reading a file from Alluxio,
-and write the file stream to a local file.
-The total time of reading the Alluxio file stream, and writing the file stream
-to local filesystem, is reported at the end of the script.
+and streaming it to a local file.
 """
 
+from __future__ import print_function
 import argparse
 import time
 
@@ -16,6 +15,20 @@ import alluxio
 
 
 def read(host, port, src, dst):
+    """Read the {src} file from Alluxio and write it to the {dst} file in the local filesystem.
+
+    Args:
+        host: The Alluxio proxy's hostname.
+        port: The Alluxio proxy's web port.
+        src: The file in Alluxio to be read from.
+        dst: The file in the local filesystem to be written to.
+
+    Returns:
+        The total time (seconds) used to read the file from Alluxio and write it to the local filesystem.
+    """
+
+
+    start = time.time()
     c = alluxio.Client(host, port)
     with c.open(src, 'r', recursive=True) as alluxio_file:
         with open(dst, 'w') as local_file:
@@ -25,6 +38,12 @@ def read(host, port, src, dst):
                 if data == '':
                     break
                 local_file.write(data)
+    return time.time() - start
+
+
+def main(args):
+    total_time = read(args.host, args.port, args.src, args.dst)
+    print('%d seconds' % total_time)
 
 
 if __name__ == '__main__':
@@ -40,4 +59,4 @@ if __name__ == '__main__':
                         help='path to the local file destination')
     args = parser.parse_args()
 
-    read(args.host, args.port, args.src, args.dst)
+    main(args)

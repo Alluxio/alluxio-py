@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """Classes in this module define the wire format of the data sent from the REST API server.
 
-All the classes in this module have the **json** method and the **from_json**
+All the classes in this module have a **json** method and a **from_json**
 static method. The **json** method converts the class instance to a python
 dictionary that can be encoded into a json string. The **from_json** method
 decodes a json string into a class instance.
 """
 
-from .common import _Jsonable
+from .common import _JsonEncodable, _JsonDecodable, String
 
 
-class Bits(_Jsonable):
+class Bits(String):
     """String representation of the access mode's bits.
 
     Args:
@@ -31,20 +31,6 @@ class Bits(_Jsonable):
     * :data:`BITS_ALL`
     """
 
-    def __init__(self, name=''):
-        self.name = name
-
-    def json(self):
-        """Return the string representation which can be marshaled into json."""
-
-        return self.name
-
-    @staticmethod
-    def from_json(obj):
-        """Unmarshal the json encoded obj string into a Bits object."""
-
-        return Bits(str(obj))
-
 
 #: No access.
 BITS_NONE = Bits('NONE')
@@ -64,7 +50,7 @@ BITS_READ_WRITE = Bits('READ_WRITE')
 BITS_ALL = Bits('ALL')
 
 
-class BlockInfo(_Jsonable):
+class BlockInfo(_JsonEncodable, _JsonDecodable):
     """A block's information.
 
     Args:
@@ -86,17 +72,17 @@ class BlockInfo(_Jsonable):
             'locations': [location.json() for location in self.locations],
         }
 
-    @staticmethod
-    def from_json(obj):
+    @classmethod
+    def from_json(cls, obj):
         block_id = obj['blockId']
         length = obj['length']
         locations = obj['locations']
         locations = [BlockLocation.from_json(
             location) for location in locations]
-        return BlockInfo(block_id, length, locations)
+        return cls(block_id, length, locations)
 
 
-class WorkerNetAddress(_Jsonable):
+class WorkerNetAddress(_JsonEncodable, _JsonDecodable):
     """Worker network address.
 
     Args:
@@ -120,9 +106,9 @@ class WorkerNetAddress(_Jsonable):
             'webPort': self.web_port,
         }
 
-    @staticmethod
-    def from_json(obj):
-        addr = WorkerNetAddress()
+    @classmethod
+    def from_json(cls, obj):
+        addr = cls()
         addr.host = obj['host']
         addr.rpc_port = obj['rpcPort']
         addr.data_port = obj['dataPort']
@@ -130,7 +116,7 @@ class WorkerNetAddress(_Jsonable):
         return addr
 
 
-class BlockLocation(_Jsonable):
+class BlockLocation(_JsonEncodable, _JsonDecodable):
     """A block's location.
 
     Args:
@@ -153,15 +139,15 @@ class BlockLocation(_Jsonable):
             'tierAlias': self.tier_alias,
         }
 
-    @staticmethod
-    def from_json(obj):
+    @classmethod
+    def from_json(cls, obj):
         worker_id = obj['workerId']
         worker_address = WorkerNetAddress.from_json(obj['workerAddress'])
         tier_alias = obj['tierAlias']
-        return BlockLocation(worker_id, worker_address, tier_alias)
+        return cls(worker_id, worker_address, tier_alias)
 
 
-class FileBlockInfo(_Jsonable):
+class FileBlockInfo(_JsonEncodable, _JsonDecodable):
     """A file block's information.
 
     Args:
@@ -182,15 +168,15 @@ class FileBlockInfo(_Jsonable):
             'ufsLocations': self.ufs_locations,
         }
 
-    @staticmethod
-    def from_json(obj):
+    @classmethod
+    def from_json(cls, obj):
         block_info = BlockInfo.from_json(obj['blockInfo'])
         offset = obj['offset']
         ufs_locations = obj['ufsLocations']
-        return FileBlockInfo(block_info, offset, ufs_locations)
+        return cls(block_info, offset, ufs_locations)
 
 
-class FileInfo(_Jsonable):
+class FileInfo(_JsonEncodable, _JsonDecodable):
     """A file or directory's information.
 
     Two :obj:`FileInfo` are comparable based on the attribute **name**. So a
@@ -314,9 +300,9 @@ class FileInfo(_Jsonable):
             'ufsPath': self.ufs_path,
         }
 
-    @staticmethod
-    def from_json(obj):
-        info = FileInfo()
+    @classmethod
+    def from_json(cls, obj):
+        info = cls()
         info.block_ids = obj['blockIds']
         info.block_size_bytes = obj['blockSizeBytes']
         info.cacheable = obj['cacheable']
@@ -344,28 +330,19 @@ class FileInfo(_Jsonable):
         return info
 
 
-class LoadMetadataType(_Jsonable):
-    """The type of loading metadata.
+class LoadMetadataType(String):
+    """The way to load metadata.
 
-    This can be one of the followings, see their documentation for details:
+    This can be one of the following, see their documentation for details:
 
     * :data:`LOAD_METADATA_TYPE_NEVER`
     * :data:`LOAD_METADATA_TYPE_ONCE`
     * :data:`LOAD_METADATA_TYPE_ALWAYS`
 
     Args:
-        name (str): The string representation of the type.
+        name (str): The string representation of the way to load metadata.
     """
 
-    def __init__(self, name=''):
-        self.name = name
-
-    def json(self):
-        return self.name
-
-    @staticmethod
-    def from_json(obj):
-        return LoadMetadataType(str(obj))
 
 #: Never load metadata.
 LOAD_METADATA_TYPE_NEVER = LoadMetadataType('Never')
@@ -375,8 +352,8 @@ LOAD_METADATA_TYPE_ONCE = LoadMetadataType('Once')
 LOAD_METADATA_TYPE_ALWAYS = LoadMetadataType('Always')
 
 
-class Mode(_Jsonable):
-    """The file's access mode.
+class Mode(_JsonEncodable, _JsonDecodable):
+    """A file's access mode.
 
     Args:
         owner_bits (:obj:`alluxio.wire.Bits`): Access mode of the file's owner.
@@ -399,18 +376,18 @@ class Mode(_Jsonable):
             'otherBits': other_bits,
         }
 
-    @staticmethod
-    def from_json(obj):
+    @classmethod
+    def from_json(cls, obj):
         owner = obj['ownerBits']
         group = obj['groupBits']
         other = obj['otherBits']
-        return Mode(owner, group, other)
+        return cls(owner, group, other)
 
 
-class ReadType(_Jsonable):
+class ReadType(String):
     """Convenience modes for commonly used read types.
 
-    This can be one of the followings, see their documentation for details:
+    This can be one of the following, see their documentation for details:
 
     * :data:`READ_TYPE_NO_CACHE`
     * :data:`READ_TYPE_CACHE`
@@ -420,15 +397,6 @@ class ReadType(_Jsonable):
         name (str): The string representation of the read type.
     """
 
-    def __init__(self, name=''):
-        self.name = name
-
-    def json(self):
-        return self.name
-
-    @staticmethod
-    def from_json(obj):
-        return ReadType(str(obj))
 
 #: Read the file and skip Alluxio storage. This read type will not cause any
 #: data migration or eviction in Alluxio storage.
@@ -443,10 +411,10 @@ READ_TYPE_CACHE = ReadType('CACHE')
 READ_TYPE_CACHE_PROMOTE = ReadType('CACHE_PROMOTE')
 
 
-class TTLAction(_Jsonable):
+class TTLAction(String):
     """Represent the file action to take when its TTL expires.
 
-    This can be one of the followings, see their documentation for details:
+    This can be one of the following, see their documentation for details:
 
     * :data:`TTL_ACTION_DELETE`
     * :data:`TTL_ACTION_FREE`
@@ -455,16 +423,6 @@ class TTLAction(_Jsonable):
         name (str): The string representation of the read type.
     """
 
-    def __init__(self, name=''):
-        self.name = name
-
-    def json(self):
-        return self.name
-
-    @staticmethod
-    def from_json(obj):
-        return TTLAction(str(obj))
-
 
 #: Represents the action of deleting a path.
 TTL_ACTION_DELETE = TTLAction("DELETE")
@@ -472,10 +430,10 @@ TTL_ACTION_DELETE = TTLAction("DELETE")
 TTL_ACTION_FREE = TTLAction("FREE")
 
 
-class WriteType(_Jsonable):
+class WriteType(String):
     """Write types for creating a file.
 
-    This can be one of the followings, see their documentation for details:
+    This can be one of the following, see their documentation for details:
 
     * :data:`WRITE_TYPE_MUST_CACHE`
     * :data:`WRITE_TYPE_CACHE_THROUGH`
@@ -487,23 +445,14 @@ class WriteType(_Jsonable):
         name (str): The string representation of the write type.
     """
 
-    def __init__(self, name):
-        self.name = name
-
-    def json(self):
-        return self.name
-
-    @staticmethod
-    def from_json(obj):
-        return WriteType(str(obj))
 
 #: Data will be stored in Alluxio.
 WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
 #: Data will be stored in Alluxio and synchronously written to UFS.
 WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
-#: Data will be sychrounously written to UFS.
+#: Data will be synchronously written to UFS.
 WRITE_TYPE_THROUGH = WriteType("THROUGH")
-#: Data will be stored in Alluxio and asynchrounously written to UFS.
+#: Data will be stored in Alluxio and asynchronously written to UFS.
 WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
-#: Data will no be stored.
+#: Data will not be stored.
 WRITE_TYPE_NONE = WriteType("NONE")

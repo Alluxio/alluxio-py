@@ -3,33 +3,31 @@
 
 By convention, methods in :class:`alluxio.Client` have a **kwargs** field for
 setting optional parameters. For each method, there is a corresponding option
-class in this module, which defines the optional parameters that can be set in
+class in this module which defines the optional parameters that can be set in
 that method. You should not need to create these objects manually, they are
 automatically created by the methods in :class:`alluxio.Client`.
 
 Examples:
     For :meth:`alluxio.Client.create_directory`, the parameters that
-    can be set to **kwargs** are specified in :class:`alluxio.option.CreateDirectory`.
+    can be set in **kwargs** are specified in :class:`alluxio.option.CreateDirectory`.
 
 Notes:
     All classes in this module have a **json** method, which converts the class
     into a python dict that can be encoded into a json string.
 """
 
-from .common import _Jsonable
+from .common import _JsonEncodable
 
 
-class CreateDirectory(_Jsonable):
+class CreateDirectory(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.create_directory`.
 
     Args:
         allow_exists (bool): Whether the directory can already exist.
         mode (:obj:`alluxio.wire.Mode`): The directory's access mode.
-        recursive (bool): If True, creates intermediate directories along the
-            path as necessary.
-        write_type (:obj:`alluxio.wire.WriteType`): It can be used to decide
-            where the directory will be created, like in Alluxio only, or in
-            both Alluxio and under storage.
+        recursive (bool): Whether to create intermediate directories along the path as necessary.
+        write_type (:obj:`alluxio.wire.WriteType`): Where to create the directory,
+            e.g. in Alluxio only, in under storage only, or in both.
     """
 
     def __init__(self, **kwargs):
@@ -51,7 +49,7 @@ class CreateDirectory(_Jsonable):
         return obj
 
 
-class CreateFile(_Jsonable):
+class CreateFile(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.create_file`.
 
     Args:
@@ -112,7 +110,7 @@ class CreateFile(_Jsonable):
         return obj
 
 
-class Delete(_Jsonable):
+class Delete(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.delete`.
 
     Args:
@@ -130,7 +128,7 @@ class Delete(_Jsonable):
         return obj
 
 
-class Exists(_Jsonable):
+class Exists(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.exists`.
 
     Currently, it is an empty class, options may be added in future releases.
@@ -139,7 +137,7 @@ class Exists(_Jsonable):
     pass
 
 
-class Free(_Jsonable):
+class Free(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.free`.
 
     Args:
@@ -157,7 +155,7 @@ class Free(_Jsonable):
         return obj
 
 
-class GetStatus(_Jsonable):
+class GetStatus(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.get_status`.
 
     Currently, it is an empty class, options may be added in future releases.
@@ -166,7 +164,7 @@ class GetStatus(_Jsonable):
     pass
 
 
-class ListStatus(_Jsonable):
+class ListStatus(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.list_status`.
 
     Args:
@@ -189,7 +187,7 @@ class ListStatus(_Jsonable):
         return obj
 
 
-class Mount(_Jsonable):
+class Mount(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.mount`.
 
     Args:
@@ -214,7 +212,7 @@ class Mount(_Jsonable):
         return obj
 
 
-class OpenFile(_Jsonable):
+class OpenFile(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.open_file`.
 
     Args:
@@ -255,7 +253,7 @@ class OpenFile(_Jsonable):
         return obj
 
 
-class Rename(_Jsonable):
+class Rename(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.rename`.
 
     Currently, it is an empty class, options may be added in future releases.
@@ -264,7 +262,7 @@ class Rename(_Jsonable):
     pass
 
 
-class SetAttribute(_Jsonable):
+class SetAttribute(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.set_attribute`.
 
     Args:
@@ -310,7 +308,7 @@ class SetAttribute(_Jsonable):
         return obj
 
 
-class Unmount(_Jsonable):
+class Unmount(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.unmount`.
 
     Currently, it is an empty class, options may be added in future releases.
