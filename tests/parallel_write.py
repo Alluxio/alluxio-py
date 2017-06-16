@@ -56,6 +56,7 @@ def run_write(process_id):
 
 total_time = 0
 for iteration in xrange(args.iteration):
+    print 'Iteration %d' % iteration
     start_time = time.time()
     processes = []
     for process_id in xrange(args.nprocess):
