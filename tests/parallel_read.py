@@ -91,9 +91,9 @@ def main(args):
             p.start()
         for p in processes:
             p.join()
-        elapsted_time = time.time() - start_time
-        print('%d seconds' % elapsted_time)
-        total_time += elapsted_time
+        elapsed_time = time.time() - start_time
+        print('%d seconds' % elapsed_time)
+        total_time += elapsed_time
 
         if iteration < args.iteration - 1:
             shutil.rmtree(args.dst)

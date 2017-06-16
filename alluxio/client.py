@@ -347,7 +347,7 @@ class Client(object):
             requests.HTTPError: If the request fails or the response status is not 200.
 
         Examples:
-            Open a file, read all contents from it, and close it:
+            Open a file, read its contents, and close it:
 
             >>> file_id = open_file('/file')
             >>> reader = read(file_id)
@@ -366,7 +366,7 @@ class Client(object):
         :meth:`alluxio.Client.close`.
 
         A preferred way to write to a file is to use :meth:`.open`,
-        it's more pythonic, see its documentation for details.
+        see its documentation for details.
 
         Args:
             path (str): The Alluxio path.
@@ -572,7 +572,7 @@ class Writer(object):
     def write(self, data):
         """Write data as a stream to the file.
 
-        The consequent calls to write just append the data to the file.
+        The consequent calls to write will append data to the file.
 
         Args:
             data: data is either a string or a file-like object in python.

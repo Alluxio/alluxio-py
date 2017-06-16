@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-* Python 2.6 and later
+* Python 2.6 or later
 * requests
 
 ```bash
