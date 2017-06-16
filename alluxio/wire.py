@@ -454,5 +454,5 @@ WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
 WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
 #: Write the file synchronously to the under storage, skipping Alluxio storage.
 WRITE_TYPE_THROUGH = WriteType("THROUGH")
-#: [Experimental] Write the file asynchronously to the under storage.
+#: Write the file asynchronously to the under storage.
 WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
