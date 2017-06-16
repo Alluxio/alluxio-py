@@ -24,6 +24,7 @@ import alluxio
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
 
+
 def log(process_id):
     return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
 
@@ -52,7 +53,8 @@ def write(host, port, src, dst, write_type):
 
 def run_write(args, process_id):
     dst = '%s/%d.txt' % (args.dst, process_id)
-    write(args.host, args.port, args.src, dst, alluxio.wire.WriteType(args.write_type))
+    write(args.host, args.port, args.src, dst,
+          alluxio.wire.WriteType(args.write_type))
 
 
 def print_stats(args, total_time):

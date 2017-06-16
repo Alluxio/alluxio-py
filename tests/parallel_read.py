@@ -26,6 +26,7 @@ import alluxio
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
 
+
 def log(process_id):
     global script_start_time
     return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
@@ -43,7 +44,6 @@ def read(host, port, src, dst):
     Returns:
         The total time (seconds) used to read the file from Alluxio and write it to the local filesystem.
     """
-
 
     start = time.time()
     c = alluxio.Client(host, port)

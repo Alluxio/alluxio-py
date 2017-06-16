@@ -6,11 +6,11 @@ class _JsonEncodable(object):
     """Base class for all classes that can be encoded into json."""
 
     def json(self):
-    	"""Convert the object into a python dict which can be encoded into a json string."""
+        """Convert the object into a python dict which can be encoded into a json string."""
         pass
 
     def __repr__(self):
-    	"""Return the json string representation of this object."""
+        """Return the json string representation of this object."""
         return json.dumps(self.json())
 
 
@@ -19,19 +19,19 @@ class _JsonDecodable(object):
 
     @classmethod
     def from_json(cls, obj):
-    	"""Return an instance of cls decoded from the json string obj.
+        """Return an instance of cls decoded from the json string obj.
 
-    	The implementation of in this base class just returns cls(str(obj)).
+        The implementation of in this base class just returns cls(str(obj)).
 
-    	Args:
-    		cls: This class.
-    		obj: The json string to be decoded.
+        Args:
+            cls: This class.
+            obj: The json string to be decoded.
 
-    	Returns:
-    		An instance of cls decoded from obj.
-    	"""
+        Returns:
+                An instance of cls decoded from obj.
+        """
 
-    	return cls(str(obj))
+        return cls(str(obj))
 
 
 class String(_JsonEncodable, _JsonDecodable):
@@ -41,7 +41,7 @@ class String(_JsonEncodable, _JsonDecodable):
         name (str): The string alias of the object.
 
     Examples:
-    	see :class:`alluxio.wire.Bits`.
+        see :class:`alluxio.wire.Bits`.
     """
 
     def __init__(self, name=''):
