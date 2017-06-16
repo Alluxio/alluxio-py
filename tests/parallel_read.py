@@ -22,7 +22,6 @@ import time
 
 import syspath
 import alluxio
-from read import read
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))

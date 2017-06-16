@@ -20,7 +20,6 @@ import time
 
 import syspath
 import alluxio
-from write import write
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
@@ -29,14 +28,15 @@ def log(process_id):
     return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
 
 
-def write(host, port, src, dst):
+def write(host, port, src, dst, write_type):
     """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
 
     Args:
-        host: The Alluxio proxy's hostname.
-        port: The Alluxio proxy's web port.
-        src: The file in the local filesystem to be read from.
-        dst: The file to be written to Alluxio.
+        host (str): The Alluxio proxy's hostname.
+        port (int): The Alluxio proxy's web port.
+        src (str): The file in the local filesystem to be read from.
+        dst (str): The file to be written to Alluxio.
+        write_type (:class:`alluxio.wire.WriteType`): Write type for creating the file.
 
     Returns:
         The total time (seconds) used to read the local file and stream it to Alluxio.
@@ -44,7 +44,7 @@ def write(host, port, src, dst):
 
     start_time = time.time()
     c = alluxio.Client(host, port)
-    with c.open(dst, 'w', recursive=True) as alluxio_file:
+    with c.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
         with open(src, 'r') as local_file:
             alluxio_file.write(local_file)
     return time.time() - start_time
@@ -52,7 +52,7 @@ def write(host, port, src, dst):
 
 def run_write(args, process_id):
     dst = '%s/%d.txt' % (args.dst, process_id)
-    write(args.host, args.port, args.src, dst)
+    write(args.host, args.port, args.src, dst, alluxio.wire.WriteType(args.write_type))
 
 
 def print_stats(args, total_time):
@@ -106,6 +106,8 @@ if __name__ == '__main__':
                         help='path to the directory for all the data written to Alluxio')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent writing')
+    parser.add_argument('--write-type', default='MUST_CACHE',
+                        help='write type for creating the file, see alluxio.wire.WriteType')
     args = parser.parse_args()
 
     try:
