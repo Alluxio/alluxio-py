@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This script verifies that all files under the {dst} directory is the same as the {src} file.
+This script verifies that all files under the {dst} directory are the same as the {src} file.
 The file names are expected to be in the format {ID}.txt, where ID starts from 0 to {n}.
 It uses the Alluxio shell to cat the {src} file to a temporary lcoal file, and uses diff to
 compare it with the local files.
