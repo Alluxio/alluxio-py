@@ -439,7 +439,6 @@ class WriteType(String):
     * :data:`WRITE_TYPE_CACHE_THROUGH`
     * :data:`WRITE_TYPE_THROUGH`
     * :data:`WRITE_TYPE_ASYNC_THROUGH`
-    * :data:`WRITE_TYPE_NONE`
 
     Args:
         name (str): The string representation of the write type.
@@ -454,5 +453,3 @@ WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
 WRITE_TYPE_THROUGH = WriteType("THROUGH")
 #: Data will be stored in Alluxio and asynchronously written to UFS.
 WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
-#: Data will not be stored.
-WRITE_TYPE_NONE = WriteType("NONE")
