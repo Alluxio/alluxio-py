@@ -445,11 +445,14 @@ class WriteType(String):
     """
 
 
-#: Data will be stored in Alluxio.
+#: Write the file, guaranteeing the data is written to Alluxio storage or
+#: failing the operation. The data will be written to the highest tier in a
+#: worker's storage. Data will not be persisted to the under storage.
 WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
-#: Data will be stored in Alluxio and synchronously written to UFS.
+#: Write the file synchronously to the under storage, and also try to write to
+#: the highest tier in a worker's Alluxio storage.
 WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
-#: Data will be synchronously written to UFS.
+#: Write the file synchronously to the under storage, skipping Alluxio storage.
 WRITE_TYPE_THROUGH = WriteType("THROUGH")
-#: Data will be stored in Alluxio and asynchronously written to UFS.
+#: [Experimental] Write the file asynchronously to the under storage.
 WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
