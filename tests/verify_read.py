@@ -18,12 +18,7 @@ import os
 import subprocess
 import tempfile
 
-
-def source(file_id):
-    global args
-    if args.node:
-        return os.path.join(args.src, args.node, str(file_id))
-    return args.src
+from utils import *
 
 
 def verify_file(file_id):
@@ -31,14 +26,13 @@ def verify_file(file_id):
     # Cat the Alluxio source file to a temporary file.
     tmp = tempfile.mkstemp()[1]
     alluxio = os.path.join(args.home, 'bin', 'alluxio')
-    alluxio_file = source(file_id)
-    print(alluxio_file)
+    alluxio_file = alluxio_path(args.src, args.node, file_id) if args.node else args.src
     cat_cmd = '%s fs cat %s > %s' % (alluxio, alluxio_file, tmp)
     subprocess.check_call(cat_cmd, shell=True)
 
     # Diff between the file read from Alluxio and the source file in the local
     # filesystem.
-    local_file = os.path.join(args.dst, str(file_id))
+    local_file = local_path(args.dst, file_id)
     print('comparing Alluxio file %s to local file %s ... ' %
           (alluxio_file, local_file))
     diff_cmd = 'diff %s %s' % (tmp, local_file)

@@ -11,22 +11,22 @@ Alluxio or the files read from Alluxio are expected.
 
 There are multiple nodes, each node runs multiple python client processes,
 each process writes a file to Alluxio with the filename in the format
-`{dst}/{nid}/{cid}`.
+`{dst}/node_{node_id}/process_{process_id}`.
 `dst` is the root directory containing all written files, it should be the same
 for all python processes on all nodes.
-`nid` is short for node ID, each node has a unique ID specified by user through
-`--node` option.
-`cid` is short for client ID, on each node, each python client process is
-assigned a client ID, consecutively starting from 0 to {nprocess}.
-So a python client process can be uniquely identified as `(nid, cid)`, which
-means it runs on the node with ID nid, and it has client ID cid.
+`node_id` is the unique ID specified by user through `--node` option for each node.
+`process_id` is the consecutive ID from 0 to {nprocess} assigned to python
+processes on each node.
+So a python process can be uniquely identified as `(node_id, process_id)`, which
+means it runs on the node with ID node_id, and its process ID is process_id.
 
 Example:
 
 The following command runs 20 iterations of the parallel write task.
 In each iteration, 2 python processes are run concurrently.
-Process 0 writes the local file data/5mb.txt to /alluxio-py-test/1/0 in Alluxio.
-Process 1 writes the local file data/5mb.txt to /alluxio-py-test/1/1 in Alluxio.
+Process 0 writes the local file data/5mb.txt to /alluxio-py-test/node_1/process_0 in Alluxio.
+Process 1 writes the local file data/5mb.txt to /alluxio-py-test/node_1/process_1 in Alluxio.
+The final iteration leaves data behind so that it can be read by the parallel read test.
 
 ```bash
 ./parallel_write.py \
@@ -42,10 +42,11 @@ Process 1 writes the local file data/5mb.txt to /alluxio-py-test/1/1 in Alluxio.
 
 # Parallel Read
 
-There are two modes for testing parallel read. The first is to read the same
-file to stress testing the performance and stability of the file metadata
-server and data server. The second is to read different files from different
-nodes to stress testing data transfer over a conjested network.
+There are two modes for testing parallel read.
+The first mode reads the same file many times in parallel to stress test the
+performance and stability of the file metadata server and data server.
+The second mode reads files written by a different node to stress test data
+transfer over a congested network.
 
 ## Mode 1
 
@@ -59,8 +60,8 @@ The following command runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
 Each python process reads the same file /alluxio-py-test/test.txt from Alluxio,
 and writes the file to local directory /tmp/alluxio-py-test.
-Process 0 writes the file to /tmp/alluxio-py-test/0.
-Process 1 writes the file to /tmp/alluxio-py-test/1.
+Process 0 writes the file to /tmp/alluxio-py-test/process_0.
+Process 1 writes the file to /tmp/alluxio-py-test/process_1.
 
 ```bash
 ./parallel_read.py \
@@ -75,8 +76,8 @@ Process 1 writes the file to /tmp/alluxio-py-test/1.
 
 ## Mode 2
 
-Python process `(nid, cid)` reads the file written by python process `cid`
-on a node specified by `--node` which should be different from `nid`.
+Python process `(node_id, process_id)` reads the file written by python process
+process_id on a node specified by `--node` which should be different from node_id.
 So the python processes do not read the files written by themselves.
 
 Example:
@@ -84,10 +85,10 @@ Example:
 The following command is run on node 1.
 It runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
-Process 0 reads /alluxio-py-test/2/0 from Alluxio and writes it to the local
-file /tmp/aluxio-py-test/0.
-Process 1 reads /alluxio-py-test/2/1 from Alluxio and writes it to the local
-file /tmp/alluxio-py-test/1.
+Process 0 reads /alluxio-py-test/node_2/process_0 from Alluxio and writes it to the local
+file /tmp/aluxio-py-test/process_0.
+Process 1 reads /alluxio-py-test/node_2/process_1 from Alluxio and writes it to the local
+file /tmp/alluxio-py-test/process_1.
 
 ```bash
 ./parallel_read.py \
@@ -104,7 +105,7 @@ file /tmp/alluxio-py-test/1.
 # Verification
 
 For ease of verifying the correctness of the writes and reads, all files
-have the same content as a file in the local filesystem, by default, the file
+have the same content as a file in the local filesystem. By default, the file
 is data/5mb.txt which can be downloaded by `get_data.sh`.
 
 The reads and writes can be verified by `verify_read.py` and `verify_write.py`
@@ -112,27 +113,28 @@ respectively.
 
 Example:
 
-The following command verifies that the Alluxio files /alluxio-py-test/1/0 and
-/alluxio-py-test/1/1 are the same as the local file data/5mb.txt.
+The following command verifies that the Alluxio files
+/alluxio-py-test/node_1/process_0 and /alluxio-py-test/node_1/process_1
+are the same as the local file data/5mb.txt.
 
 ```bash
 ./verify_write.py \
 	--home=<alluxio installation directory> \
 	--src=data/5mb.txt \
 	--dst=/alluxio-py-test \
-	--nfile=2 \
+	--nfiles=2 \
 	--node=1
 ```
 
 The following command verifies that the local files /tmp/alluxio-py-test/0 and
-/tmp/alluxio-py-test/1 that are read from Alluxio are the same as the Alluxio
-files /alluxio-py-test/2/0 and /alluxio-py-test/2/1.
+/tmp/alluxio-py-test/process_1 that are read from Alluxio are the same as the Alluxio
+files /alluxio-py-test/node_2/process_0 and /alluxio-py-test/node_2/process_1.
 
 ```bash
 ./verify_read.py \
 	--home=<alluxio installation directory> \
 	--src=/alluxio-py-test \
 	--dst=/tmp/alluxio-py-test \
-	--nfile=2 \
+	--nfiles=2 \
 	--node=2
 ```

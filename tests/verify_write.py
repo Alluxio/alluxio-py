@@ -18,12 +18,14 @@ import os
 import subprocess
 import tempfile
 
+from utils import *
+
 
 def verify_file(file_id):
     global args
     local_file = tempfile.mkstemp()[1]
     alluxio = os.path.join(args.home, 'bin', 'alluxio')
-    alluxio_file = os.path.join(args.dst, args.node, str(file_id))
+    alluxio_file = alluxio_path(args.dst, args.node, file_id)
     cat_cmd = '%s fs cat %s > %s' % (alluxio, alluxio_file, local_file)
     subprocess.check_call(cat_cmd, shell=True)
     diff_cmd = 'diff %s %s' % (local_file, args.src)

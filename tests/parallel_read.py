@@ -21,6 +21,7 @@ import time
 
 import syspath
 import alluxio
+from utils import *
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
@@ -57,32 +58,23 @@ def read(host, port, src, dst):
     return time.time() - start
 
 
-def source(args, process_id):
-    if args.node:
-        return os.path.join(args.src, args.node, str(process_id))
-    return args.src
-
-
-def destination(args, process_id):
-    return '%s/%d' % (args.dst, process_id)
-
-
 def run_read(args, process_id):
-    src = source(args, process_id)
-    dst = destination(args, process_id)
+    src = alluxio_path(args.src, args.node, process_id) if args.node else args.src
+    dst = local_path(args.dst, process_id)
     read(args.host, args.port, src, dst)
 
 
 def print_stats(args, total_time):
     client = alluxio.Client(args.host, args.port)
     # assume all files have the same size.
-    src_bytes = client.get_status(source(args, 0)).length
+    alluxio_file = alluxio_path(args.src, args.node, 0) if args.node else args.src
+    src_bytes = client.get_status(alluxio_file).length
     average_time = total_time / args.iteration
     average_throughput = src_bytes / average_time
 
     print('Number of iterations: %d' % args.iteration)
     print('Number of processes per iteration: %d' % args.nprocess)
-    print("File size: %d bytes" % src_bytes)
+    print('File size: %d bytes' % src_bytes)
     print('Total time: %f seconds' % total_time)
     print('Average time for each iteration: %f seconds' % average_time)
     print('Average read throughput: %f bytes/second' % average_throughput)

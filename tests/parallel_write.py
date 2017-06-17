@@ -21,6 +21,7 @@ import time
 
 import syspath
 import alluxio
+from utils import alluxio_path
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
@@ -52,12 +53,8 @@ def write(host, port, src, dst, write_type):
     return time.time() - start_time
 
 
-def destination(args, process_id):
-    return os.path.join(args.dst, args.node, str(process_id))
-
-
 def run_write(args, process_id):
-    write(args.host, args.port, args.src, destination(args, process_id),
+    write(args.host, args.port, args.src, alluxio_path(args.dst, args.node, process_id),
           alluxio.wire.WriteType(args.write_type))
 
 
