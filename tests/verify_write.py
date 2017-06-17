@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This script verifies that all files under the {dst} directory is the same as the {src} file.
-The file names are {ID}, where ID starts from 0 to {n}.
-It uses the Alluxio shell to cat the file to a temporary lcoal file, and uses diff to compare it with the {src}.
-Multiple files may be verified in parallel, depending on the machine's CPU cores.
+This script verifies that all files under the {dst} directory in Alluxio are
+the same as the {src} file in the local filesystem.
+It uses the Alluxio shell to cat each file to a temporary lcoal file, and uses
+diff to compare it with the local file {src}.
+The file names under {dst} are expected to be consecutive numbers from 0 to
+{nfiles}.
+Multiple files may be verified in parallel, depending on the number of the
+machine's CPU cores.
 """
 
 from __future__ import print_function
@@ -16,6 +20,7 @@ import tempfile
 
 
 def verify_file(file_id):
+    global args
     local_file = tempfile.mkstemp()[1]
     alluxio = os.path.join(args.home, 'bin', 'alluxio')
     alluxio_file = os.path.join(args.dst, args.node, str(file_id))
@@ -24,12 +29,13 @@ def verify_file(file_id):
     diff_cmd = 'diff %s %s' % (local_file, args.src)
     print('comparing Alluxio file %s to local file %s ... ' % (alluxio_file, args.src))
     subprocess.check_output(diff_cmd, shell=True)
-    print('verified that %s is written correctly' % alluxio_file)
+    print('verified that %s was written correctly' % alluxio_file)
 
 
-def main(args):
+def main():
+    global args
     pool = Pool(4)
-    pool.map(verify_file, range(args.nfile))
+    pool.map(verify_file, range(args.nfiles))
     print('Success!')
 
 
@@ -41,11 +47,11 @@ if __name__ == '__main__':
     parser.add_argument('--src', default='data/5mb.txt',
                         help='path to the local file source')
     parser.add_argument('--dst', default='/alluxio-py-test',
-                        help='path to the root directory for all written file')
+                        help='path to the root directory for all written files')
     parser.add_argument('--node', required=True,
                         help='a unique identification of this node')
-    parser.add_argument('--nfile', type=int, required=True,
-                        help='number of expected files')
+    parser.add_argument('--nfiles', type=int, required=True,
+                        help='number of files to verify')
     args = parser.parse_args()
 
-    main(args)
+    main()

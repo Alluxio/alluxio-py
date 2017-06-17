@@ -17,7 +17,6 @@ import argparse
 from multiprocessing import Process
 import os
 import shutil
-import sys
 import time
 
 import syspath

@@ -4,7 +4,8 @@
 This script starts {nprocess} python processes in parallel, each process runs
 write.py to write a local file stream into Alluxio.
 
-By default, each python process has an ID, starting from 0.
+By default, each python process has an ID consecutively starting from 0 to
+{nprocess}.
 For each process, the local file data/5mb.txt is written to Alluxio /{dst} or
 /{dst}/{node}/{ID}, depending on whether --node is specified.
 The log of each python process is logs/{start time of this script}-{ID}.txt.
@@ -16,7 +17,6 @@ from __future__ import print_function
 import argparse
 from multiprocessing import Process
 import os
-import sys
 import time
 
 import syspath
