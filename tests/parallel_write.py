@@ -108,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--dst', default='/alluxio-py-test',
                         help='path to the root directory for all written file')
     parser.add_argument('--node', required=True,
-                        help='a unique identification of this node')
+                        help='a unique identifier of this node')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent writing')
     parser.add_argument('--write-type', default='MUST_CACHE',

@@ -120,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--dst', required=True,
                         help='the local filesystem directory to store the files read from Alluxio')
     parser.add_argument(
-        '--node', help='a unique identification of this node, if this not set, --src must be a path to an Alluxio file')
+        '--node', help='a unique identifier to another node to read data from, if this not set, --src must be a path to an Alluxio file')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()

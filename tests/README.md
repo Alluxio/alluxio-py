@@ -1,24 +1,22 @@
 # Overview
 
-The test scripts in this directory are for stress testing of the Alluxio python
-client API. The scripts can be run on multiple nodes, on each node, multiple
-python processes can be run concurrently to write files to or read files from
-Alluxio in parallel. There are also scripts to verify that the files written to
-Alluxio or the files read from Alluxio are expected.
+The test scripts in this directory stress tests the Alluxio python client API.
+The scripts can be run on multiple nodes where each node will launch multiple
+processes to concurrently read from or write to Alluxio. Verification scripts
+are provided to validate the operations performed.
 
 
 # Parallel Write
 
 There are multiple nodes, each node runs multiple python client processes,
-each process writes a file to Alluxio with the filename in the format
+each process launched will write a file to Alluxio with filename
 `{dst}/node_{node_id}/process_{process_id}`.
-`dst` is the root directory containing all written files, it should be the same
-for all python processes on all nodes.
-`node_id` is the unique ID specified by user through `--node` option for each node.
-`process_id` is the consecutive ID from 0 to {nprocess} assigned to python
+`dst` is the root directory containing all written files; this should be set to
+the same value for each client on all nodes.
+`node_id` is the unique ID specified by the user through `--node` option for
+each node.
+`process_id` is the consecutive ID from 0 to `{nprocess}` assigned to python
 processes on each node.
-So a python process can be uniquely identified as `(node_id, process_id)`, which
-means it runs on the node with ID node_id, and its process ID is process_id.
 
 Example:
 
@@ -42,17 +40,17 @@ The final iteration leaves data behind so that it can be read by the parallel re
 
 # Parallel Read
 
-There are two modes for testing parallel read.
-The first mode reads the same file many times in parallel to stress test the
+There are two modes for testing parallel read: local and remote.
+Local mode reads the same file multiple times in parallel to stress test the
 performance and stability of the file metadata server and data server.
-The second mode reads files written by a different node to stress test data
-transfer over a congested network.
+Remote mode reads files written by a different node to stress test data transfer
+over a congested network.
 
-## Mode 1
+## Local Mode
 
 All python processes on the same node read the same file from Alluxio.
-In this mode, do not specify `--node`, specify `--src` to the file you want
-to read.
+In this mode, specify `--src` as the file to read and do not specify `--node`.
+
 
 Example:
 
@@ -74,11 +72,10 @@ Process 1 writes the file to /tmp/alluxio-py-test/process_1.
 ```
 
 
-## Mode 2
+## Remote Mode
 
-Python process `(node_id, process_id)` reads the file written by python process
-process_id on a node specified by `--node` which should be different from node_id.
-So the python processes do not read the files written by themselves.
+Each python process on the same node reads the file written by the corresponding
+process on a separate node, specified by `--node`.
 
 Example:
 

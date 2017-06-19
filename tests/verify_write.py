@@ -3,7 +3,7 @@
 """
 This script verifies that all files under the {dst} directory in Alluxio are
 the same as the {src} file in the local filesystem.
-It uses the Alluxio shell to cat each file to a temporary lcoal file, and uses
+It uses the Alluxio shell to cat each file to a temporary local file, and uses
 diff to compare it with the local file {src}.
 The file names under {dst} are expected to be consecutive numbers from 0 to
 {nfiles}.
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--dst', default='/alluxio-py-test',
                         help='path to the root directory for all written files')
     parser.add_argument('--node', required=True,
-                        help='a unique identification of this node')
+                        help='a unique identifier of this node')
     parser.add_argument('--nfiles', type=int, required=True,
                         help='number of files to verify')
     args = parser.parse_args()
