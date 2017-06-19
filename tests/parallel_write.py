@@ -4,8 +4,10 @@
 This script starts {nprocess} python processes in parallel, each process runs
 write.py to write a local file stream into Alluxio.
 
-By default, each python process has an ID, starting from 0.
-For each process, the local file data/5mb.txt is written to Alluxio /{dst}/{ID}.txt.
+By default, each python process has an ID consecutively starting from 0 to
+{nprocess}.
+For each process, the local file data/5mb.txt is written to Alluxio /{dst} or
+/{dst}/{node}/{ID}, depending on whether --node is specified.
 The log of each python process is logs/{start time of this script}-{ID}.txt.
 
 This script should be run from its parent directory.
@@ -15,11 +17,11 @@ from __future__ import print_function
 import argparse
 from multiprocessing import Process
 import os
-import sys
 import time
 
 import syspath
 import alluxio
+from utils import alluxio_path
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
@@ -52,8 +54,7 @@ def write(host, port, src, dst, write_type):
 
 
 def run_write(args, process_id):
-    dst = '%s/%d.txt' % (args.dst, process_id)
-    write(args.host, args.port, args.src, dst,
+    write(args.host, args.port, args.src, alluxio_path(args.dst, args.node, process_id),
           alluxio.wire.WriteType(args.write_type))
 
 
@@ -64,10 +65,10 @@ def print_stats(args, total_time):
 
     print('Number of iterations: %d' % args.iteration)
     print('Number of processes per iteration: %d' % args.nprocess)
-    print('File size: %d bytes' % src_bytes)
+    print("File size: %d bytes" % src_bytes)
     print('Total time: %f seconds' % total_time)
     print('Average time for each iteration: %f seconds' % average_time)
-    print('Average write throughput: %f bytes/second' % average_throughput)
+    print('Average write throughput per python client: %f bytes/second' % average_throughput)
 
 
 def main(args):
@@ -105,7 +106,9 @@ if __name__ == '__main__':
     parser.add_argument('--src', default='data/5mb.txt',
                         help='path to the local file source')
     parser.add_argument('--dst', default='/alluxio-py-test',
-                        help='path to the directory for all the data written to Alluxio')
+                        help='path to the root directory for all written file')
+    parser.add_argument('--node', required=True,
+                        help='a unique identifier of this node')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent writing')
     parser.add_argument('--write-type', default='MUST_CACHE',

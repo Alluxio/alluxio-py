@@ -6,7 +6,7 @@ read.py to read a file stream from Alluxio and write it to a local file unique f
 each process.
 
 By default, each python process has an ID, starting from 0.
-For each process, the Alluxio file is written to local filesystem {dst}/{ID}.txt.
+For each process, the Alluxio file is written to local filesystem {dst}/{ID}.
 The log of each python process is logs/{start time of this script}-{ID}.txt.
 
 This script should be run from its parent directory.
@@ -17,11 +17,11 @@ import argparse
 from multiprocessing import Process
 import os
 import shutil
-import sys
 import time
 
 import syspath
 import alluxio
+from utils import *
 
 
 LOG_PREFIX = '-'.join(time.ctime().split(' '))
@@ -59,13 +59,16 @@ def read(host, port, src, dst):
 
 
 def run_read(args, process_id):
-    dst = '%s/%d.txt' % (args.dst, process_id)
-    read(args.host, args.port, args.src, dst)
+    src = alluxio_path(args.src, args.node, process_id) if args.node else args.src
+    dst = local_path(args.dst, process_id)
+    read(args.host, args.port, src, dst)
 
 
 def print_stats(args, total_time):
     client = alluxio.Client(args.host, args.port)
-    src_bytes = client.get_status(args.src).length
+    # assume all files have the same size.
+    alluxio_file = alluxio_path(args.src, args.node, 0) if args.node else args.src
+    src_bytes = client.get_status(alluxio_file).length
     average_time = total_time / args.iteration
     average_throughput = src_bytes / average_time
 
@@ -111,9 +114,13 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=39999,
                         help='Alluxio proxy server web port')
     parser.add_argument('--src', required=True,
-                        help='path to the Alluxio file source')
+                        help='path to the Alluxio file to be read from or the Alluxio directory \
+                        containing all data written by parallel_write.py, \
+                        if this a file, --node must not be set')
     parser.add_argument('--dst', required=True,
                         help='the local filesystem directory to store the files read from Alluxio')
+    parser.add_argument(
+        '--node', help='a unique identifier to another node to read data from, if this not set, --src must be a path to an Alluxio file')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()
