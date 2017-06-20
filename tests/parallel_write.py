@@ -8,7 +8,6 @@ By default, each python process has an ID consecutively starting from 0 to
 {nprocess}.
 For each process, the local file data/5mb.txt is written to Alluxio /{dst} or
 /{dst}/{node}/{ID}, depending on whether --node is specified.
-The log of each python process is logs/{start time of this script}-{ID}.txt.
 
 This script should be run from its parent directory.
 """
@@ -22,13 +21,6 @@ import time
 import syspath
 import alluxio
 from utils import alluxio_path
-
-
-LOG_PREFIX = '-'.join(time.ctime().split(' '))
-
-
-def log(process_id):
-    return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
 
 
 def write(host, port, src, dst, write_type):

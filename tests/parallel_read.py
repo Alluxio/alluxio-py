@@ -7,7 +7,6 @@ each process.
 
 By default, each python process has an ID, starting from 0.
 For each process, the Alluxio file is written to local filesystem {dst}/{ID}.
-The log of each python process is logs/{start time of this script}-{ID}.txt.
 
 This script should be run from its parent directory.
 """
@@ -22,14 +21,6 @@ import time
 import syspath
 import alluxio
 from utils import *
-
-
-LOG_PREFIX = '-'.join(time.ctime().split(' '))
-
-
-def log(process_id):
-    global script_start_time
-    return 'logs/%s-%d.txt' % (LOG_PREFIX, process_id)
 
 
 def read(host, port, src, dst):
