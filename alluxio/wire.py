@@ -201,11 +201,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         ufs_path (str): Under storage path of this file.
         pinned (bool): Whether the file is pinned.
         persisted (bool): Whether the file is persisted.
-        persistence_state (str): Persistence state, can be one of the following:
-            * NOT_PERSISTED: file not persisted in the under FS
-            * TO_BE_PERSISTED: the file is to be persisted in the under FS
-            * PERSISTED: the file is persisted in the under FS
-            * LOST: the file is lost but not persisted in the under FS
+        persistence_state (:obj:`alluxio.wire.PersistenceState`): Persistence state.
         mode (:obj:`alluxio.wire.Mode`): Access mode of the file or directory.
         mount_point (bool): Whether this is a mount point.
         ttl (int): The TTL (time to live) value. It identifies duration
@@ -245,24 +241,24 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         self.cacheable = cacheable
         self.completed = completed
         self.creation_time_ms = creation_time_ms
+        self.last_modification_time_ms = last_modification_time_ms
         self.file_block_infos = file_block_infos
         self.file_id = file_id
         self.folder = folder
+        self.owner = owner
         self.group = group
         self.in_memory_percentage = in_memory_percentage
-        self.last_modification_time_ms = last_modification_time_ms
         self.length = length
         self.name = name
         self.path = path
+        self.ufs_path = ufs_path
+        self.pinned = pinned
         self.persisted = persisted
         self.persistence_state = persistence_state
-        self.pinned = pinned
         self.mode = mode
         self.mount_point = mount_point
-        self.owner = owner
         self.ttl = ttl
         self.ttl_action = ttl_action
-        self.ufs_path = ufs_path
 
     def __lt__(self, other):
         return self.name < other.name
@@ -280,24 +276,24 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
             'cacheable': self.cacheable,
             'completed': self.completed,
             'creationTimeMs': self.creation_time_ms,
+            'lastModificationTimeMs': self.last_modification_time_ms,
             'fileBlockInfos': [info.json() for info in self.file_block_infos],
             'fileId': self.file_id,
             'folder': self.folder,
+            'owner': self.owner,
             'group': self.group,
             'inMemoryPercentage': self.in_memory_percentage,
-            'lastModificationTimeMs': self.last_modification_time_ms,
             'length': self.length,
             'name': self.name,
             'path': self.path,
-            'persisted': self.persisted,
-            'persistenceState': self.persistence_state,
+            'ufsPath': self.ufs_path,
             'pinned': self.pinned,
+            'persisted': self.persisted,
+            'persistenceState': self.persistence_state.json(),
             'mode': self.mode,
             'mountPoint': self.mount_point,
-            'owner': self.owner,
             'ttl': self.ttl,
-            'ttlAction': self.ttl_action,
-            'ufsPath': self.ufs_path,
+            'ttlAction': self.ttl_action.json(),
         }
 
     @classmethod
@@ -308,25 +304,25 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         info.cacheable = obj['cacheable']
         info.completed = obj['completed']
         info.creation_time_ms = obj['creationTimeMs']
+        info.last_modification_time_ms = obj['lastModificationTimeMs']
         info.file_block_infos = [FileBlockInfo.from_json(
             block) for block in obj['fileBlockInfos']]
         info.file_id = obj['fileId']
         info.folder = obj['folder']
+        info.owner = obj['owner']
         info.group = obj['group']
         info.in_memory_percentage = obj['inMemoryPercentage']
-        info.last_modification_time_ms = obj['lastModificationTimeMs']
         info.length = obj['length']
         info.name = obj['name']
         info.path = obj['path']
-        info.persisted = obj['persisted']
-        info.persistence_state = obj['persistenceState']
+        info.ufs_path = obj['ufsPath']
         info.pinned = obj['pinned']
+        info.persisted = obj['persisted']
+        info.persistence_state = PersistenceState(obj['persistenceState'])
         info.mode = obj['mode']
         info.mount_point = obj['mountPoint']
-        info.owner = obj['owner']
         info.ttl = obj['ttl']
-        info.ttl_action = obj['ttlAction']
-        info.ufs_path = obj['ufsPath']
+        info.ttl_action = TTLAction(obj['ttlAction'])
         return info
 
 
@@ -361,27 +357,27 @@ class Mode(_JsonEncodable, _JsonDecodable):
         other_bits (:obj:`alluxio.wire.Bits`): Access mode of others who are neither the owner nor in the group.
     """
 
-    def __init__(self, owner=Bits(), group=Bits(), other=Bits()):
+    def __init__(self, owner_bits=Bits(), group_bits=Bits(), other_bits=Bits()):
         # owner_bits represents the owner access mode
-        owner_bits = owner
+        self.owner_bits = owner_bits
         # group_bits represents the group access mode
-        group_bits = group
+        self.group_bits = group_bits
         # other_bits represents the other access mode
-        other_bits = other
+        self.other_bits = other_bits
 
     def json(self):
         return {
-            'ownerBits': owner_bits,
-            'groupBits': group_bits,
-            'otherBits': other_bits,
+            'ownerBits': self.owner_bits.json(),
+            'groupBits': self.group_bits.json(),
+            'otherBits': self.other_bits.json(),
         }
 
     @classmethod
     def from_json(cls, obj):
-        owner = obj['ownerBits']
-        group = obj['groupBits']
-        other = obj['otherBits']
-        return cls(owner, group, other)
+        owner = Bits(obj['ownerBits'])
+        group = Bits(obj['groupBits'])
+        other = Bits(obj['otherBits'])
+        return cls(owner_bits=owner, group_bits=group, other_bits=other)
 
 
 class ReadType(String):
@@ -448,11 +444,36 @@ class WriteType(String):
 #: Write the file, guaranteeing the data is written to Alluxio storage or
 #: failing the operation. The data will be written to the highest tier in a
 #: worker's storage. Data will not be persisted to the under storage.
-WRITE_TYPE_MUST_CACHE = WriteType("MUST_CACHE")
+WRITE_TYPE_MUST_CACHE = WriteType('MUST_CACHE')
 #: Write the file synchronously to the under storage, and also try to write to
 #: the highest tier in a worker's Alluxio storage.
-WRITE_TYPE_CACHE_THROUGH = WriteType("CACHE_THROUGH")
+WRITE_TYPE_CACHE_THROUGH = WriteType('CACHE_THROUGH')
 #: Write the file synchronously to the under storage, skipping Alluxio storage.
-WRITE_TYPE_THROUGH = WriteType("THROUGH")
+WRITE_TYPE_THROUGH = WriteType('THROUGH')
 #: Write the file asynchronously to the under storage.
-WRITE_TYPE_ASYNC_THROUGH = WriteType("ASYNC_THROUGH")
+WRITE_TYPE_ASYNC_THROUGH = WriteType('ASYNC_THROUGH')
+
+
+class PersistenceState(String):
+    """Persistence state of a file.
+
+    This can be one of the following, see their documentation for details:
+
+    * :data:`PERSISTENCE_STATE_NOT_PERSISTED`
+    * :data:`PERSISTENCE_STATE_TO_BE_PERSISTED`
+    * :data:`PERSISTENCE_STATE_PERSISTED`
+    * :data:`PERSISTENCE_STATE_LOST`
+
+    Args:
+        name (str): The string representation of the persistence state.
+    """
+
+
+#: File not persisted in the under FS.
+PERSISTENCE_STATE_NOT_PERSISTED = PersistenceState('NOT_PERSISTED')
+#: File is to be persisted in the under FS.
+PERSISTENCE_STATE_TO_BE_PERSISTED = PersistenceState('TO_BE_PERSISTED')
+#: File is persisted in the under FS.
+PERSISTENCE_STATE_PERSISTED = PersistenceState('PERSISTED')
+#: File is lost but not persisted in the under FS.
+PERSISTENCE_STATE_LOST = PersistenceState('LOST')

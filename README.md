@@ -4,6 +4,7 @@
 
 * Python 2.6 or later
 * requests
+* pytest
 
 ```bash
 pip install -r requirements.txt
@@ -26,4 +27,10 @@ pip install 'sphinx<1.4' # the latest sphinx has some format issue in the genera
 cd docs
 make html
 # open docs/_build/html/index.html in your browser
+```
+
+## Unit Tests
+
+```bash
+pytest
 ```
