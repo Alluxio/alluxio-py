@@ -280,14 +280,14 @@ class SetAttribute(_JsonEncodable):
             its TTL expires.
     """
 
-    def __init__(self):
-        self.owner = None
-        self.group = None
-        self.mode = None
-        self.pinned = None
-        self.recursive = None
-        self.ttl = None
-        self.ttl_action = None
+    def __init__(self, **kwargs):
+        self.owner = kwargs.get('owner')
+        self.group = kwargs.get('group')
+        self.mode = kwargs.get('mode')
+        self.pinned = kwargs.get('pinned')
+        self.recursive = kwargs.get('recursive')
+        self.ttl = kwargs.get('ttl')
+        self.ttl_action = kwargs.get('ttl_action')
 
     def json(self):
         obj = {}
