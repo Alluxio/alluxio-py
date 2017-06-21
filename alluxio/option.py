@@ -38,13 +38,13 @@ class CreateDirectory(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.allow_exists:
+        if self.allow_exists is not None:
             obj['allowExists'] = self.allow_exists
-        if self.mode:
+        if self.mode is not None:
             obj['mode'] = self.mode.json()
-        if self.recursive:
+        if self.recursive is not None:
             obj['recursive'] = self.recursive
-        if self.write_type:
+        if self.write_type is not None:
             obj['writeType'] = self.write_type.json()
         return obj
 
@@ -87,25 +87,25 @@ class CreateFile(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.block_size_bytes:
+        if self.block_size_bytes is not None:
             obj['blockSizeBytes'] = self.block_size_bytes
-        if self.location_policy_class:
+        if self.location_policy_class is not None:
             obj['locationPolicyClass'] = self.location_policy_class
-        if self.mode:
+        if self.mode is not None:
             obj['mode'] = self.mode.json()
-        if self.recursive:
+        if self.recursive is not None:
             obj['recursive'] = self.recursive
-        if self.ttl:
+        if self.ttl is not None:
             obj['ttl'] = self.ttl
-        if self.ttl_action:
+        if self.ttl_action is not None:
             obj['ttlAction'] = self.ttl_action.json()
-        if self.write_type:
+        if self.write_type is not None:
             obj['writeType'] = self.write_type.json()
-        if self.replication_durable:
+        if self.replication_durable is not None:
             obj['replicationDurable'] = self.replication_durable
-        if self.replication_max:
+        if self.replication_max is not None:
             obj['replicationMax'] = self.replication_max
-        if self.replication_min:
+        if self.replication_min is not None:
             obj['replicationMin'] = self.replication_min
         return obj
 
@@ -123,7 +123,7 @@ class Delete(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.recursive:
+        if self.recursive is not None:
             obj['recursive'] = self.recursive
         return obj
 
@@ -150,7 +150,7 @@ class Free(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.recursive:
+        if self.recursive is not None:
             obj['recursive'] = self.recursive
         return obj
 
@@ -182,7 +182,7 @@ class ListStatus(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.load_metadata_type:
+        if self.load_metadata_type is not None:
             obj['loadMetadataType'] = self.load_metadata_type.json()
         return obj
 
@@ -203,11 +203,11 @@ class Mount(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.properties:
+        if self.properties is not None:
             obj['properties'] = self.properties
-        if self.read_only:
+        if self.read_only is not None:
             obj['readOnly'] = self.read_only
-        if self.shared:
+        if self.shared is not None:
             obj['shared'] = self.shared
         return obj
 
@@ -242,13 +242,13 @@ class OpenFile(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.cache_location_policy_class:
+        if self.cache_location_policy_class is not None:
             obj['cacheLocationPolicyClass'] = self.cache_location_policy_class
-        if self.max_ufs_read_concurrency:
+        if self.max_ufs_read_concurrency is not None:
             obj['maxUfsReadConcurrency'] = self.max_ufs_read_concurrency
-        if self.read_type:
+        if self.read_type is not None:
             obj['readType'] = self.read_type.json()
-        if self.ufs_read_location_policy_class:
+        if self.ufs_read_location_policy_class is not None:
             obj['ufsReadLocationPolicyClass'] = self.ufs_read_location_policy_class
         return obj
 
@@ -291,19 +291,19 @@ class SetAttribute(_JsonEncodable):
 
     def json(self):
         obj = {}
-        if self.owner:
+        if self.owner is not None:
             obj['owner'] = self.owner
-        if self.group:
+        if self.group is not None:
             obj['group'] = self.group
-        if self.mode:
+        if self.mode is not None:
             obj['mode'] = self.mode.json()
-        if self.pinned:
+        if self.pinned is not None:
             obj['pinned'] = self.pinned
-        if self.recursive:
+        if self.recursive is not None:
             obj['recursive'] = self.recursive
-        if self.ttl:
+        if self.ttl is not None:
             obj['ttl'] = self.ttl
-        if self.ttl_action:
+        if self.ttl_action is not None:
             obj['ttlAction'] = self.ttl_action.json()
         return obj
 

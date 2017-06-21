@@ -26,7 +26,7 @@ def random_bool():
 def random_str():
     result, length = "", random.randint(1, 128)
     for _ in range(length):
-        result += chr(random.randint(33, 128))
+        result += chr(random.randint(65, 122))
     return result
 
 
