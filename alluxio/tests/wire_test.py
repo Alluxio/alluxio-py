@@ -1,6 +1,7 @@
 from alluxio import wire
 
 from util import assert_json_decode, assert_json_encode, assert_string_subclass
+from random_wire import *
 
 
 def test_bits():
@@ -39,8 +40,7 @@ def test_write_type():
 
 
 def test_worker_net_address():
-    addr = wire.WorkerNetAddress(
-        host='localhost', rpc_port=1000, data_port=1001, web_port=1002)
+    addr = random_worker_net_address()
     json = dict(host=addr.host, rpcPort=addr.rpc_port,
                 dataPort=addr.data_port, webPort=addr.web_port)
     assert_json_encode(addr, json)
@@ -48,58 +48,33 @@ def test_worker_net_address():
 
 
 def test_block_location():
-    addr = wire.WorkerNetAddress(
-        host='localhost', rpc_port=1000, data_port=1001, web_port=1002)
-    location = wire.BlockLocation(
-        worker_id=1001, worker_address=addr, tier_alias='MEM')
-    json = dict(workerId=location.worker_id, workerAddress=location.worker_address.json(
-    ), tierAlias=location.tier_alias)
+    location = random_block_location()
+    json = dict(workerId=location.worker_id,
+                workerAddress=location.worker_address.json(),
+                tierAlias=location.tier_alias)
     assert_json_encode(location, json)
     assert_json_decode(location, json)
 
 
-def create_block_info():
-    locations = []
-    for i in range(10):
-        addr = wire.WorkerNetAddress(host='worker{}'.format(
-            i), rpc_port=1000, data_port=1001, web_port=1002)
-        mod = i % 3
-        if mod == 0:
-            tier = 'MEM'
-        elif mod == 1:
-            tier = 'SSD'
-        else:
-            tier = 'HDD'
-        location = wire.BlockLocation(
-            worker_id=i, worker_address=addr, tier_alias=tier)
-        locations.append(location)
-    return wire.BlockInfo(block_id=12345, length=678, locations=locations)
-
-
 def test_block_info():
-    block = create_block_info()
+    block = random_block_info()
     json = dict(blockId=block.block_id, length=block.length,
                 locations=[location.json() for location in block.locations])
     assert_json_encode(block, json)
     assert_json_decode(block, json)
 
 
-def create_file_block_info():
-    block = create_block_info()
-    return wire.FileBlockInfo(block_info=block, offset=100, ufs_locations=['localhost', '192.168.1.1'])
-
-
 def test_file_block_info():
-    file_block_info = create_file_block_info()
-    json = dict(blockInfo=file_block_info.block_info.json(
-    ), offset=file_block_info.offset, ufsLocations=file_block_info.ufs_locations)
+    file_block_info = random_file_block_info()
+    json = dict(blockInfo=file_block_info.block_info.json(),
+                offset=file_block_info.offset,
+                ufsLocations=file_block_info.ufs_locations)
     assert_json_encode(file_block_info, json)
     assert_json_decode(file_block_info, json)
 
 
 def test_mode():
-    mode = wire.Mode(owner_bits=wire.BITS_ALL,
-                     group_bits=wire.BITS_READ, other_bits=wire.BITS_NONE)
+    mode = random_mode()
     json = dict(ownerBits=mode.owner_bits.json(),
                 groupBits=mode.group_bits.json(), otherBits=mode.other_bits.json())
     assert_json_encode(mode, json)
@@ -116,32 +91,7 @@ def test_persistence_state():
 
 
 def test_file_info():
-    mode = wire.Mode(owner_bits=wire.BITS_ALL,
-                     group_bits=wire.BITS_READ, other_bits=wire.BITS_NONE)
-    info = wire.FileInfo(
-        block_ids=[1, 2, 3],
-        block_size_bytes=1,
-        cacheable=True,
-        completed=True,
-        creation_time_ms=3,
-        last_modification_time_ms=1,
-        file_block_infos=[create_file_block_info()],
-        file_id=1000,
-        folder=False,
-        owner='alluxion',
-        group='alluxio',
-        in_memory_percentage=100,
-        length=100,
-        name='alluxiofile',
-        path='/alluxio/alluxiofile',
-        ufs_path='s3a://alluxio/alluxiofile',
-        pinned=True,
-        persisted=True,
-        persistence_state=wire.PERSISTENCE_STATE_PERSISTED,
-        mode=mode,
-        mount_point=True,
-        ttl=100,
-        ttl_action=wire.TTL_ACTION_DELETE)
+    info = random_file_info()
     json = dict(
         blockIds=info.block_ids,
         blockSizeBytes=info.block_size_bytes,
