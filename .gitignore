@@ -1,7 +1,9 @@
+.cache
 .git
 .idea
 *.iml
 *.pyc
+__pycache__
 alluxio.egg-info/
 build/
 dist/
