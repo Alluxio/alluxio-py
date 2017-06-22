@@ -7,6 +7,7 @@ from threading import Thread
 import json
 import random
 import urllib
+from urlparse import urlparse
 
 import alluxio
 
@@ -35,32 +36,37 @@ def setup_client(handler):
     return client, lambda: server.shutdown
 
 
+def handle_paths_request(request, path, action, params=None, input=None, output=None):
+    # Assert that URL path is expected.
+    expected_path = alluxio.client._paths_url_path(path, action)
+    if params is not None:
+        expected_path += '?'
+        for i, (k, v) in enumerate(params.items()):
+            if i != 0:
+                expected_path += '&'
+            expected_path += '{}={}'.format(k,
+                                            urllib.quote(v, safe=''))
+    assert request.path == expected_path
+
+    if input is not None:
+        # Assert that request body is expected.
+        content_len = int(request.headers.getheader('content-length', 0))
+        body = request.rfile.read(content_len)
+        assert json.loads(body) == input.json()
+
+    # Respond.
+    request.send_response(200)
+    if output is not None:
+        request.send_header('Content-Type', 'application/json')
+        request.end_headers()
+        request.wfile.write(json.dumps(output))
+
+
 def paths_handler(path, action, params=None, input=None, output=None):
     class _(BaseHTTPRequestHandler):
         def do_POST(self):
-            # Assert that URL path is expected.
-            expected_path = alluxio.client._paths_url_path(path, action)
-            if params is not None:
-                expected_path += '?'
-                for i, (k, v) in enumerate(params.items()):
-                    if i != 0:
-                        expected_path += '&'
-                    expected_path += '{}={}'.format(k,
-                                                    urllib.quote(v, safe=''))
-            assert self.path == expected_path
-
-            if input is not None:
-                # Assert that request body is expected.
-                content_len = int(self.headers.getheader('content-length', 0))
-                body = self.rfile.read(content_len)
-                assert json.loads(body) == input.json()
-
-            # Respond.
-            self.send_response(200)
-            if output is not None:
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(output))
+            handle_paths_request(self, path, action,
+                                 params=params, input=input, output=output)
 
     return _
 
@@ -184,3 +190,113 @@ def test_unmount():
     client, cleanup = setup_client(paths_handler(path, 'unmount'))
     client.unmount(path)
     cleanup()
+
+
+def handle_streams_request(request, file_id, action, input=None, output=None):
+    # Assert that URL path is expected.
+    expected_path = alluxio.client._streams_url_path(file_id, action)
+    assert request.path == expected_path
+
+    content_len = 0
+    if input is not None:
+        # Assert that request body is expected.
+        content_len = int(request.headers.getheader('content-length', 0))
+        body = request.rfile.read(content_len)
+        assert body == input
+
+    # Respond.
+    request.send_response(200)
+    if output is not None:
+        request.send_header('Content-Type', 'application/octet-stream')
+        request.end_headers()
+        request.wfile.write(output)
+    else:
+        request.send_header('Content-Type', 'application/json')
+        request.end_headers()
+        request.wfile.write(json.dumps(content_len))
+
+
+def streams_handler(file_id, action, input=None, output=None):
+    class _(BaseHTTPRequestHandler):
+        def do_POST(self):
+            handle_streams_request(self, file_id, action,
+                                   input=input, output=output)
+
+    return _
+
+
+def test_close():
+    file_id = random_int()
+    client, cleanup = setup_client(streams_handler(file_id, 'close'))
+    client.close(file_id)
+    cleanup()
+
+
+def test_read():
+    file_id = random_int()
+    message = random_str()
+    client, cleanup = setup_client(
+        streams_handler(file_id, 'read', output=message))
+    reader = client.read(file_id)
+    got = reader.read()
+    reader.close()
+    assert got == message
+
+
+def test_write():
+    file_id = random_int()
+    message = random_str()
+    client, cleanup = setup_client(
+        streams_handler(file_id, 'write', input=message))
+    writer = client.write(file_id)
+    length = writer.write(message)
+    writer.close()
+    assert length == len(message)
+
+
+def combined_handler(path, path_action, file_id, stream_action, path_input=None, path_output=None, stream_input=None, stream_output=None):
+    class _(BaseHTTPRequestHandler):
+        def do_POST(self):
+            request_path = urlparse(self.path).path
+            paths_path = alluxio.client._paths_url_path(path, path_action)
+            streams_path = alluxio.client._streams_url_path(
+                file_id, stream_action)
+            close_path = alluxio.client._streams_url_path(file_id, 'close')
+            if request_path == paths_path:
+                handle_paths_request(
+                    self, path, path_action, input=path_input, output=path_output)
+            elif request_path == streams_path:
+                handle_streams_request(
+                    self, file_id, stream_action, input=stream_input, output=stream_output)
+            elif request_path == close_path:
+                self.send_response(200)
+
+    return _
+
+
+def test_open_read():
+    path = '/foo'
+    file_id = random_int()
+    message = random_str()
+    handler = combined_handler(
+        path, 'open-file', file_id, 'read', path_output=file_id, stream_output=message)
+    client, cleanup = setup_client(handler)
+    got = None
+    with client.open(path, 'r') as f:
+        got = f.read()
+    cleanup()
+    assert got == message
+
+
+def test_open_write():
+    path = '/foo'
+    file_id = random_int()
+    message = random_str()
+    handler = combined_handler(path, 'create-file', file_id, 'write',
+                               path_output=file_id, stream_input=message, stream_output=len(message))
+    client, cleanup = setup_client(handler)
+    written_len = None
+    with client.open(path, 'w') as f:
+        written_len = f.write(message)
+    cleanup()
+    assert written_len == len(message)
