@@ -22,6 +22,19 @@ from . import option
 from . import wire
 
 
+_API_PREFIX = "/api/v1"
+_PATHS_PREFIX = "paths"
+_STREAMS_PREFIX = "streams"
+
+
+def _paths_url_path(path, action):
+    return '%s/%s/%s/%s' % (_API_PREFIX, _PATHS_PREFIX, path, action)
+
+
+def _streams_url_path(file_id, action):
+    return '%s/%s/%d/%s' % (_API_PREFIX, _STREAMS_PREFIX, file_id, action)
+
+
 def _check_response(r):
     """Check the response of the REST API request.
 
@@ -53,17 +66,17 @@ class Client(object):
         self.port = port
         self.timeout = timeout
 
-    def _url(self, endpoint):
+    def _url(self, url_path):
         """Create the REST API URL.
 
         Args:
-            endpoint (str): The endpoint path without the API prefix.
+            url_path (str): The URL path.
 
         Returns:
             The REST API URL.
         """
 
-        return 'http://%s:%s/api/v1/%s' % (self.host, self.port, endpoint)
+        return 'http://%s:%s%s' % (self.host, self.port, url_path)
 
     def _paths_url(self, path, action):
         """Create the URL for REST APIs under the 'paths' prefix.
@@ -76,7 +89,7 @@ class Client(object):
             The REST API URL.
         """
 
-        return self._url('paths/%s/%s' % (path, action))
+        return self._url(_paths_url_path(path, action))
 
     def _streams_url(self, file_id, action):
         """Create the URL for REST APIs under the 'streams' prefix.
@@ -89,7 +102,7 @@ class Client(object):
             The REST API URL.
         """
 
-        return self._url('streams/%d/%s' % (file_id, action))
+        return self._url(_streams_url_path(file_id, action))
 
     def _post(self, url, opt=None, params=None):
         """Send a POST request to the REST API server.

@@ -231,7 +231,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
                  pinned=False,
                  persisted=False,
                  persistence_state='',
-                 mode=0,
+                 mode='',
                  mount_point=False,
                  ttl=0,
                  ttl_action='',
@@ -290,7 +290,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
             'pinned': self.pinned,
             'persisted': self.persisted,
             'persistenceState': self.persistence_state.json(),
-            'mode': self.mode,
+            'mode': self.mode.json(),
             'mountPoint': self.mount_point,
             'ttl': self.ttl,
             'ttlAction': self.ttl_action.json(),
@@ -318,11 +318,11 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         info.ufs_path = obj['ufsPath']
         info.pinned = obj['pinned']
         info.persisted = obj['persisted']
-        info.persistence_state = PersistenceState(obj['persistenceState'])
-        info.mode = obj['mode']
+        info.persistence_state = PersistenceState.from_json(obj['persistenceState'])
+        info.mode = Mode.from_json(obj['mode'])
         info.mount_point = obj['mountPoint']
         info.ttl = obj['ttl']
-        info.ttl_action = TTLAction(obj['ttlAction'])
+        info.ttl_action = TTLAction.from_json(obj['ttlAction'])
         return info
 
 
@@ -374,9 +374,9 @@ class Mode(_JsonEncodable, _JsonDecodable):
 
     @classmethod
     def from_json(cls, obj):
-        owner = Bits(obj['ownerBits'])
-        group = Bits(obj['groupBits'])
-        other = Bits(obj['otherBits'])
+        owner = Bits.from_json(obj['ownerBits'])
+        group = Bits.from_json(obj['groupBits'])
+        other = Bits.from_json(obj['otherBits'])
         return cls(owner_bits=owner, group_bits=group, other_bits=other)
 
 
