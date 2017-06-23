@@ -43,6 +43,12 @@ Unit tests are in `alluxio/tests` directory, they can be run under the `alluxio-
 pytest
 ```
 
+See the test coverage report by
+
+```bash
+pytest --cov .
+```
+
 ## Integration Tests
 
 Integration tests are under the `tests` directory, see `tests/README.md` for more details.

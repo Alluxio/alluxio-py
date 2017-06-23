@@ -15,5 +15,5 @@ setup(
     author='Alluxio, Inc',
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=['requests'],
-    tests_require=['pytest']
+    tests_require=['pytest', 'pytest-cov']
 )

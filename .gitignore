@@ -1,4 +1,5 @@
 .cache
+.coverage
 .git
 .idea
 *.iml
