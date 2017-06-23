@@ -68,4 +68,3 @@ Client Wire Objects
 .. autodata:: alluxio.wire.WRITE_TYPE_CACHE_THROUGH
 .. autodata:: alluxio.wire.WRITE_TYPE_THROUGH
 .. autodata:: alluxio.wire.WRITE_TYPE_ASYNC_THROUGH
-.. autodata:: alluxio.wire.WRITE_TYPE_NONE
