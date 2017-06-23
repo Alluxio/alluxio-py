@@ -559,7 +559,7 @@ class Reader(object):
 
         If the request fails, this is a no-op. Otherwise, the connection is
         released back into the pool. Once this method has been called,
-        :meth:`.write` should not be called again.
+        :meth:`.read` should not be called again.
         """
 
         self.r and self.r.close()
