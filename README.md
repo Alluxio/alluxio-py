@@ -10,6 +10,12 @@
 pip install -r requirements.txt
 ```
 
+## Install for Development
+
+```bash
+pip install -e .
+```
+
 ## Code Style
 
 Follow [pep8](https://www.python.org/dev/peps/pep-0008/) for source code style,
@@ -31,6 +37,12 @@ make html
 
 ## Unit Tests
 
+Unit tests are in `alluxio/tests` directory, they can be run under the `alluxio-py` directory by
+
 ```bash
 pytest
 ```
+
+## Integration Tests
+
+Integration tests are under the `tests` directory, see `tests/README.md` for more details.
