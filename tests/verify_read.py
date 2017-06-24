@@ -5,8 +5,8 @@ This script verifies that all files under the {dst} directory are the same as
 the {src} file in Alluxio.
 It uses the Alluxio shell to cat the {src} file to a temporary local file, and
 uses diff to compare it with the local files under the {dst} directory.
-The file names under {dst} are expected to be consecutive numbers from 0 to
-{nfiles}.
+The file names under {dst} are expected to be of format
+{dst}/iteration_{iteration_id}/process_{process_id}.
 Multiple files will be verified in parallel depending on the number of the
 machine's CPU cores.
 """
@@ -21,18 +21,22 @@ import tempfile
 from utils import *
 
 
-def verify_file(file_id):
+def verify_file(iteration_process_pair):
     global args
+    iteration_id, process_id = iteration_process_pair
     # Cat the Alluxio source file to a temporary file.
     tmp = tempfile.mkstemp()[1]
     alluxio = os.path.join(args.home, 'bin', 'alluxio')
-    alluxio_file = alluxio_path(args.src, args.node, file_id) if args.node else args.src
+    if args.node:
+        alluxio_file = alluxio_path(args.src, iteration_id, args.node, process_id)
+    else:
+        alluxio_file = args.src
     cat_cmd = '%s fs cat %s > %s' % (alluxio, alluxio_file, tmp)
     subprocess.check_call(cat_cmd, shell=True)
 
     # Diff between the file read from Alluxio and the source file in the local
     # filesystem.
-    local_file = local_path(args.dst, file_id)
+    local_file = local_path(args.dst, iteration_id, process_id)
     print('comparing Alluxio file %s to local file %s ... ' %
           (alluxio_file, local_file))
     diff_cmd = 'diff %s %s' % (tmp, local_file)
@@ -42,8 +46,11 @@ def verify_file(file_id):
 
 def main():
     global args
+    iteration_process_pairs = [(iteration, process) for iteration in range(args.iteration)
+                               for process in range(args.nprocess)]
+
     pool = Pool(4)
-    pool.map(verify_file, range(args.nfiles))
+    pool.map(verify_file, iteration_process_pairs)
     print('Success!')
 
 
@@ -60,8 +67,10 @@ if __name__ == '__main__':
         all the data written to the local filesystem')
     parser.add_argument('--node', help='a unique identifier of this node, if this is not set, \
                         --src must be a path to an Alluxio file')
-    parser.add_argument('--nfiles', type=int, required=True,
-                        help='number of files to verify')
+    parser.add_argument('--iteration', type=int, required=True,
+                        help='number of iterations of the read task to be verified')
+    parser.add_argument('--nprocess', type=int, required=True,
+                        help='number of processes of the read task to be verified')
     args = parser.parse_args()
 
     main()

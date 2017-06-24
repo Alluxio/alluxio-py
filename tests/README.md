@@ -10,9 +10,10 @@ are provided to validate the operations performed.
 
 There are multiple nodes, each node runs multiple python client processes,
 each process launched will write a file to Alluxio with filename
-`{dst}/node_{node_id}/process_{process_id}`.
+`{dst}/iteration_{iteration_id}/node_{node_id}/process_{process_id}`.
 `dst` is the root directory containing all written files; this should be set to
 the same value for each client on all nodes.
+`iteration_id` is the number of iteration of running the parallel write.
 `node_id` is the unique ID specified by the user through `--node` option for
 each node.
 `process_id` is the consecutive ID from 0 to `{nprocess}` assigned to python
@@ -22,9 +23,9 @@ Example:
 
 The following command runs 20 iterations of the parallel write task.
 In each iteration, 2 python processes are run concurrently.
-Process 0 writes the local file data/5mb.txt to /alluxio-py-test/node_1/process_0 in Alluxio.
-Process 1 writes the local file data/5mb.txt to /alluxio-py-test/node_1/process_1 in Alluxio.
-The final iteration leaves data behind so that it can be read by the parallel read test.
+For example, during the first iteration,
+process 0 writes the local file data/5mb.txt to /alluxio-py-test/iteration_0/node_1/process_0 in Alluxio;
+process 1 writes the local file data/5mb.txt to /alluxio-py-test/iteration_0/node_1/process_1 in Alluxio.
 
 ```bash
 ./parallel_write.py \
@@ -58,8 +59,9 @@ The following command runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
 Each python process reads the same file /alluxio-py-test/test.txt from Alluxio,
 and writes the file to local directory /tmp/alluxio-py-test.
-Process 0 writes the file to /tmp/alluxio-py-test/process_0.
-Process 1 writes the file to /tmp/alluxio-py-test/process_1.
+For example, during the first iteration,
+process 0 writes the file to /tmp/alluxio-py-test/iteration_0/process_0;
+process 1 writes the file to /tmp/alluxio-py-test/iteration_0/process_1.
 
 ```bash
 ./parallel_read.py \
@@ -82,10 +84,11 @@ Example:
 The following command is run on node 1.
 It runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
-Process 0 reads /alluxio-py-test/node_2/process_0 from Alluxio and writes it to the local
-file /tmp/aluxio-py-test/process_0.
-Process 1 reads /alluxio-py-test/node_2/process_1 from Alluxio and writes it to the local
-file /tmp/alluxio-py-test/process_1.
+For example, during the first iteration,
+process 0 reads /alluxio-py-test/iteration_0/node_2/process_0 from Alluxio and writes it to the local
+file /tmp/aluxio-py-test/iteration_0/process_0;
+process 1 reads /alluxio-py-test/iteration_0/node_2/process_1 from Alluxio and writes it to the local
+file /tmp/alluxio-py-test/iteration_0/process_1.
 
 ```bash
 ./parallel_read.py \
@@ -111,27 +114,31 @@ respectively.
 Example:
 
 The following command verifies that the Alluxio files
-/alluxio-py-test/node_1/process_0 and /alluxio-py-test/node_1/process_1
-are the same as the local file data/5mb.txt.
+/alluxio-py-test/iteration_{0..19}/node_1/process_{0..1} are the same as the local file data/5mb.txt
+({a..b} should be expanded to the consequent numbers between a and b, including both side).
 
 ```bash
 ./verify_write.py \
 	--home=<alluxio installation directory> \
 	--src=data/5mb.txt \
 	--dst=/alluxio-py-test \
-	--nfiles=2 \
+	--iteration=20 \
+	--nprocess=2 \
 	--node=1
 ```
 
-The following command verifies that the local files /tmp/alluxio-py-test/0 and
-/tmp/alluxio-py-test/process_1 that are read from Alluxio are the same as the Alluxio
-files /alluxio-py-test/node_2/process_0 and /alluxio-py-test/node_2/process_1.
+The following command verifies that the local files
+/tmp/alluxio-py-test/iteration_{0..19}/process_{0..1}
+({a..b} should be expanded to the consequent numbers between a and b, including both side)
+that are read from Alluxio are the same as the Alluxio
+files /alluxio-py-test/iteration_{0..19}/node_2/process_{0..1}.
 
 ```bash
 ./verify_read.py \
 	--home=<alluxio installation directory> \
 	--src=/alluxio-py-test \
 	--dst=/tmp/alluxio-py-test \
-	--nfiles=2 \
+	--iteration=20 \
+	--nprocess=2 \
 	--node=2
 ```

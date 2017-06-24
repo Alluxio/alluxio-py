@@ -112,7 +112,7 @@ def test_file_info():
         pinned=info.pinned,
         persisted=info.persisted,
         persistenceState=info.persistence_state.json(),
-        mode=info.mode.json(),
+        mode=info.mode,
         mountPoint=info.mount_point,
         ttl=info.ttl,
         ttlAction=info.ttl_action.json())

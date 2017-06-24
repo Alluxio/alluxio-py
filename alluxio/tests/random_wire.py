@@ -112,7 +112,7 @@ def random_file_info():
                          folder=random_bool(), group=random_str(),
                          in_memory_percentage=random_int(),
                          last_modification_time_ms=random_int(),
-                         length=random_int(), mode=random_mode(),
+                         length=random_int(), mode=random_int(),
                          mount_point=random_bool(), name=random_str(),
                          owner=random_str(), path=random_str(),
                          persisted=random_bool(),

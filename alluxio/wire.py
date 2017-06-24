@@ -202,7 +202,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         pinned (bool): Whether the file is pinned.
         persisted (bool): Whether the file is persisted.
         persistence_state (:obj:`alluxio.wire.PersistenceState`): Persistence state.
-        mode (:obj:`alluxio.wire.Mode`): Access mode of the file or directory.
+        mode (int): Access mode of the file or directory.
         mount_point (bool): Whether this is a mount point.
         ttl (int): The TTL (time to live) value. It identifies duration
             (in milliseconds) the created file should be kept around before it
@@ -231,7 +231,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
                  pinned=False,
                  persisted=False,
                  persistence_state='',
-                 mode='',
+                 mode=0,
                  mount_point=False,
                  ttl=0,
                  ttl_action='',
@@ -290,7 +290,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
             'pinned': self.pinned,
             'persisted': self.persisted,
             'persistenceState': self.persistence_state.json(),
-            'mode': self.mode.json(),
+            'mode': self.mode,
             'mountPoint': self.mount_point,
             'ttl': self.ttl,
             'ttlAction': self.ttl_action.json(),
@@ -319,7 +319,7 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
         info.pinned = obj['pinned']
         info.persisted = obj['persisted']
         info.persistence_state = PersistenceState.from_json(obj['persistenceState'])
-        info.mode = Mode.from_json(obj['mode'])
+        info.mode = obj['mode']
         info.mount_point = obj['mountPoint']
         info.ttl = obj['ttl']
         info.ttl_action = TTLAction.from_json(obj['ttlAction'])

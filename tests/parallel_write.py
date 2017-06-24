@@ -6,8 +6,8 @@ write.py to write a local file stream into Alluxio.
 
 By default, each python process has an ID consecutively starting from 0 to
 {nprocess}.
-For each process, the local file data/5mb.txt is written to Alluxio /{dst} or
-/{dst}/{node}/{ID}, depending on whether --node is specified.
+For each process, the local file data/5mb.txt is written to Alluxio file
+/{dst}/iteration_{iteration_id}/node_{node_id}/process_{ID}.
 
 This script should be run from its parent directory.
 """
@@ -20,7 +20,7 @@ import time
 
 import syspath
 import alluxio
-from utils import alluxio_path
+from utils import alluxio_path, mkdir_p
 
 
 def write(host, port, src, dst, write_type):
@@ -45,9 +45,10 @@ def write(host, port, src, dst, write_type):
     return time.time() - start_time
 
 
-def run_write(args, process_id):
-    write(args.host, args.port, args.src, alluxio_path(args.dst, args.node, process_id),
-          alluxio.wire.WriteType(args.write_type))
+def run_write(args, iteration_id, process_id):
+    dst = alluxio_path(args.dst, iteration_id, args.node, process_id)
+    write_type = alluxio.wire.WriteType(args.write_type)
+    write(args.host, args.port, args.src, dst, write_type)
 
 
 def print_stats(args, total_time):
@@ -65,12 +66,12 @@ def print_stats(args, total_time):
 
 def main(args):
     total_time = 0
-    for iteration in xrange(args.iteration):
+    for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
         start_time = time.time()
         processes = []
-        for process_id in xrange(args.nprocess):
-            p = Process(target=run_write, args=(args, process_id))
+        for process_id in range(args.nprocess):
+            p = Process(target=run_write, args=(args, iteration, process_id))
             processes.append(p)
             p.start()
         for p in processes:
@@ -78,11 +79,6 @@ def main(args):
         elapsed_time = time.time() - start_time
         print('%d seconds' % elapsed_time)
         total_time += elapsed_time
-
-        if iteration < args.iteration - 1:
-            client = alluxio.Client(args.host, args.port)
-            client.delete(args.dst, recursive=True)
-
     print_stats(args, total_time)
 
 
@@ -107,10 +103,6 @@ if __name__ == '__main__':
                         help='write type for creating the file, see alluxio.wire.WriteType')
     args = parser.parse_args()
 
-    try:
-        os.mkdir('logs')
-    except OSError:
-        # logs already exists.
-        pass
+    mkdir_p('logs')
 
     main(args)

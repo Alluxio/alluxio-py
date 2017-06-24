@@ -5,8 +5,8 @@ This script verifies that all files under the {dst} directory in Alluxio are
 the same as the {src} file in the local filesystem.
 It uses the Alluxio shell to cat each file to a temporary local file, and uses
 diff to compare it with the local file {src}.
-The file names under {dst} are expected to be consecutive numbers from 0 to
-{nfiles}.
+The file names under {dst} are expected to be of format
+{dst}/iteration_{iteration_id}/node_{node_id}/process_{process_id}.
 Multiple files may be verified in parallel, depending on the number of the
 machine's CPU cores.
 """
@@ -21,11 +21,10 @@ import tempfile
 from utils import *
 
 
-def verify_file(file_id):
+def verify_file(alluxio_file):
     global args
     local_file = tempfile.mkstemp()[1]
     alluxio = os.path.join(args.home, 'bin', 'alluxio')
-    alluxio_file = alluxio_path(args.dst, args.node, file_id)
     cat_cmd = '%s fs cat %s > %s' % (alluxio, alluxio_file, local_file)
     subprocess.check_call(cat_cmd, shell=True)
     diff_cmd = 'diff %s %s' % (local_file, args.src)
@@ -36,8 +35,14 @@ def verify_file(file_id):
 
 def main():
     global args
+    alluxio_files = []
+    for iteration in range(args.iteration):
+        for process in range(args.nprocess):
+            file = alluxio_path(args.dst, iteration, args.node, process)
+            alluxio_files.append(file)
+
     pool = Pool(4)
-    pool.map(verify_file, range(args.nfiles))
+    pool.map(verify_file, alluxio_files)
     print('Success!')
 
 
@@ -52,8 +57,10 @@ if __name__ == '__main__':
                         help='path to the root directory for all written files')
     parser.add_argument('--node', required=True,
                         help='a unique identifier of this node')
-    parser.add_argument('--nfiles', type=int, required=True,
-                        help='number of files to verify')
+    parser.add_argument('--iteration', type=int, required=True,
+                        help='number of iterations of the write task to be verified')
+    parser.add_argument('--nprocess', type=int, required=True,
+                        help='number of processes of the write task to be verified')
     args = parser.parse_args()
 
     main()

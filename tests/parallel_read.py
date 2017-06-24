@@ -6,7 +6,8 @@ read.py to read a file stream from Alluxio and write it to a local file unique f
 each process.
 
 By default, each python process has an ID, starting from 0.
-For each process, the Alluxio file is written to local filesystem {dst}/{ID}.
+For each process, the Alluxio file is written to local filesystem
+{dst}/iteration_{iteration_id}/process_{ID}.
 
 This script should be run from its parent directory.
 """
@@ -15,7 +16,6 @@ from __future__ import print_function
 import argparse
 from multiprocessing import Process
 import os
-import shutil
 import time
 
 import syspath
@@ -36,6 +36,7 @@ def read(host, port, src, dst):
         The total time (seconds) used to read the file from Alluxio and write it to the local filesystem.
     """
 
+    mkdir_p(os.path.dirname(dst))
     start = time.time()
     c = alluxio.Client(host, port)
     with c.open(src, 'r', recursive=True) as alluxio_file:
@@ -49,16 +50,16 @@ def read(host, port, src, dst):
     return time.time() - start
 
 
-def run_read(args, process_id):
-    src = alluxio_path(args.src, args.node, process_id) if args.node else args.src
-    dst = local_path(args.dst, process_id)
+def run_read(args, iteration_id, process_id):
+    src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
+    dst = local_path(args.dst, iteration_id, process_id)
     read(args.host, args.port, src, dst)
 
 
 def print_stats(args, total_time):
     client = alluxio.Client(args.host, args.port)
     # assume all files have the same size.
-    alluxio_file = alluxio_path(args.src, args.node, 0) if args.node else args.src
+    alluxio_file = alluxio_path(args.src, 0, args.node, 0) if args.node else args.src
     src_bytes = client.get_status(alluxio_file).length
     average_time = total_time / args.iteration
     average_throughput = src_bytes / average_time
@@ -73,14 +74,13 @@ def print_stats(args, total_time):
 
 def main(args):
     total_time = 0
-    for iteration in xrange(args.iteration):
+    os.mkdir(args.dst)
+    for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
-        os.mkdir(args.dst)
-
         start_time = time.time()
         processes = []
-        for process_id in xrange(args.nprocess):
-            p = Process(target=run_read, args=(args, process_id))
+        for process_id in range(args.nprocess):
+            p = Process(target=run_read, args=(args, iteration, process_id))
             processes.append(p)
             p.start()
         for p in processes:
@@ -88,10 +88,6 @@ def main(args):
         elapsed_time = time.time() - start_time
         print('%d seconds' % elapsed_time)
         total_time += elapsed_time
-
-        if iteration < args.iteration - 1:
-            shutil.rmtree(args.dst)
-
     print_stats(args, total_time)
 
 
@@ -116,10 +112,6 @@ if __name__ == '__main__':
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()
 
-    try:
-        os.mkdir('logs')
-    except OSError:
-        # logs already exists.
-        pass
+    mkdir_p('logs')
 
     main(args)
