@@ -31,6 +31,7 @@ def verify_file(alluxio_file):
     print('comparing Alluxio file %s to local file %s ... ' % (alluxio_file, args.src))
     subprocess.check_output(diff_cmd, shell=True)
     print('verified that %s was written correctly' % alluxio_file)
+    os.remove(local_file)
 
 
 def main():
