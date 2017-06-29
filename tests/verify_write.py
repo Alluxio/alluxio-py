@@ -41,7 +41,7 @@ def main():
             file = alluxio_path(args.dst, iteration, args.node, process)
             alluxio_files.append(file)
 
-    pool = Pool(4)
+    pool = Pool(args.process_pool_size)
     pool.map(verify_file, alluxio_files)
     print('Success!')
 
@@ -61,6 +61,8 @@ if __name__ == '__main__':
                         help='number of iterations of the write task to be verified')
     parser.add_argument('--nprocess', type=int, required=True,
                         help='number of processes of the write task to be verified')
+    parser.add_argument('--process-pool-size', type=int, default=4,
+                        help='number of concurrent processes for verifying the files')
     args = parser.parse_args()
 
     main()

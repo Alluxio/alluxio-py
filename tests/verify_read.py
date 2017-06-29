@@ -49,7 +49,7 @@ def main():
     iteration_process_pairs = [(iteration, process) for iteration in range(args.iteration)
                                for process in range(args.nprocess)]
 
-    pool = Pool(4)
+    pool = Pool(args.process_pool_size)
     pool.map(verify_file, iteration_process_pairs)
     print('Success!')
 
@@ -71,6 +71,8 @@ if __name__ == '__main__':
                         help='number of iterations of the read task to be verified')
     parser.add_argument('--nprocess', type=int, required=True,
                         help='number of processes of the read task to be verified')
+    parser.add_argument('--process-pool-size', type=int, default=4,
+                        help='number of concurrent processes for verifying files')
     args = parser.parse_args()
 
     main()
