@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This script starts {nprocess} python processes in parallel, each process runs
-read.py to read a file stream from Alluxio and write it to a local file unique for
+This script starts {nprocess} python processes in parallel, each process reads a file stream from Alluxio and write it to a local file unique for
 each process.
 
 By default, each python process has an ID, starting from 0.

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This script starts {nprocess} python processes in parallel, each process runs
-write.py to write a local file stream into Alluxio.
+This script starts {nprocess} python processes in parallel, each process writes a local file stream into Alluxio.
 
 By default, each python process has an ID consecutively starting from 0 to
 {nprocess}.
