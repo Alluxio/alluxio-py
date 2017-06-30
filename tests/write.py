@@ -13,6 +13,7 @@ import time
 
 import syspath
 import alluxio
+from utils import alluxio_path
 
 
 def print_stats(args, total_time):
@@ -32,7 +33,7 @@ def main(args):
     total_time = 0
     c = alluxio.Client(args.host, args.port)
     for iteration in range(args.iteration):
-        dst = os.path.join(args.dst, 'iteration_{}'.format(iteration))
+        dst = alluxio_path(args.dst, iteration, 0, 0):
         write_type = alluxio.wire.WriteType(args.write_type)
         print('Iteration %d ... ' % iteration, end='')
         start_time = time.time()
