@@ -24,7 +24,7 @@ def print_stats(args, total_time):
     print('Number of iterations: %d' % args.iteration)
     print("Total file size: %d bytes" % total_file_size)
     print('Total time: %f seconds' % total_time)
-    print('Write throughput : %f bytes/second' % throughput)
+    print('Write throughput: %f bytes/second' % throughput)
 
 
 def main(args):
