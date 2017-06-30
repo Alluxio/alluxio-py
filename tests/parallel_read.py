@@ -105,7 +105,4 @@ if __name__ == '__main__':
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()
-
-    mkdir_p('logs')
-
     main(args)

@@ -104,7 +104,4 @@ if __name__ == '__main__':
     parser.add_argument('--write-type', default='MUST_CACHE',
                         help='write type for creating the file, see alluxio.wire.WriteType')
     args = parser.parse_args()
-
-    mkdir_p('logs')
-
     main(args)
