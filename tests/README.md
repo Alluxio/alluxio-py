@@ -58,10 +58,7 @@ Example:
 The following command runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
 Each python process reads the same file /alluxio-py-test/test.txt from Alluxio,
-and writes the file to local directory /tmp/alluxio-py-test.
-For example, during the first iteration,
-process 0 writes the file to /tmp/alluxio-py-test/iteration_0/process_0;
-process 1 writes the file to /tmp/alluxio-py-test/iteration_0/process_1.
+and verifies the file against a local file specified by --expected.
 
 ```bash
 ./parallel_read.py \
@@ -70,7 +67,7 @@ process 1 writes the file to /tmp/alluxio-py-test/iteration_0/process_1.
 	--host=<Alluxio proxy server's hostname> \
 	--port=<Alluxio proxy server's web port> \
 	--src=/alluxio-py-test/test.txt \
-	--dst=/tmp/alluxio-py-test
+	--expected=data/5mb.txt
 ```
 
 
@@ -85,10 +82,9 @@ The following command is run on node 1.
 It runs 20 iterations of the parallel read task.
 In each iteration, 2 python processes are run concurrently.
 For example, during the first iteration,
-process 0 reads /alluxio-py-test/iteration_0/node_2/process_0 from Alluxio and writes it to the local
-file /tmp/aluxio-py-test/iteration_0/process_0;
-process 1 reads /alluxio-py-test/iteration_0/node_2/process_1 from Alluxio and writes it to the local
-file /tmp/alluxio-py-test/iteration_0/process_1.
+process 0 reads /alluxio-py-test/iteration_0/node_2/process_0 from Alluxio;
+process 1 reads /alluxio-py-test/iteration_0/node_2/process_1 from Alluxio.
+Each process verifies the read file against the local file specified by --expected.
 
 ```bash
 ./parallel_read.py \
@@ -97,19 +93,18 @@ file /tmp/alluxio-py-test/iteration_0/process_1.
 	--host=<Alluxio proxy server's hostname> \
 	--port=<Alluxio proxy server's web port> \
 	--src=/alluxio-py-test \
-	--dst=/tmp/alluxio-py-test
+	--expected=data/5mb.txt
 	--node=2
 ```
 
 
 # Verification
 
-For ease of verifying the correctness of the writes and reads, all files
+For ease of verifying the correctness of the writes, all files
 have the same content as a file in the local filesystem. By default, the file
 is data/5mb.txt which can be downloaded by `get_data.sh`.
 
-The reads and writes can be verified by `verify_read.py` and `verify_write.py`
-respectively.
+The writes can be verified by `verify_write.py`.
 
 Example:
 
@@ -127,18 +122,3 @@ The following command verifies that the Alluxio files
 	--node=1
 ```
 
-The following command verifies that the local files
-/tmp/alluxio-py-test/iteration_{0..19}/process_{0..1}
-({a..b} should be expanded to the consequent numbers between a and b, including both side)
-that are read from Alluxio are the same as the Alluxio
-files /alluxio-py-test/iteration_{0..19}/node_2/process_{0..1}.
-
-```bash
-./verify_read.py \
-	--home=<alluxio installation directory> \
-	--src=/alluxio-py-test \
-	--dst=/tmp/alluxio-py-test \
-	--iteration=20 \
-	--nprocess=2 \
-	--node=2
-```

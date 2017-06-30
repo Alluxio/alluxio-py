@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This script starts {nprocess} python processes in parallel, each process reads a file stream from Alluxio and write it to a local file unique for
-each process.
-
-By default, each python process has an ID, starting from 0.
-For each process, the Alluxio file is written to local filesystem
-{dst}/iteration_{iteration_id}/process_{ID}.
+This script starts {nprocess} python processes in parallel, each process reads
+a file stream from Alluxio and compares it against a local file.
 
 This script should be run from its parent directory.
 """
 
 from __future__ import print_function
 import argparse
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import os
 import time
 
@@ -22,37 +18,31 @@ import alluxio
 from utils import *
 
 
-def read(host, port, src, dst):
-    """Read the {src} file from Alluxio and write it to the {dst} file in the local filesystem.
+def read(host, port, src, expected, queue):
+    """Read the {src} file from Alluxio and compare it to the {expected} file in the local filesystem.
+
+    If the Alluxio file is different from the expected file, an AssertionError will be raised.
 
     Args:
         host: The Alluxio proxy's hostname.
         port: The Alluxio proxy's web port.
         src: The file in Alluxio to be read from.
-        dst: The file in the local filesystem to be written to.
-
-    Returns:
-        The total time (seconds) used to read the file from Alluxio and write it to the local filesystem.
+        expected: The expected content of the file read from Alluxio.
+        queue: The queue shared by multiple processes.
     """
 
-    mkdir_p(os.path.dirname(dst))
-    start = time.time()
     c = alluxio.Client(host, port)
-    with c.open(src, 'r', recursive=True) as alluxio_file:
-        with open(dst, 'w') as local_file:
-            while True:
-                chunk_size = 4 * 1024  # 4KB
-                data = alluxio_file.read(chunk_size)
-                if data == '':
-                    break
-                local_file.write(data)
-    return time.time() - start
+    start = time.time()
+    with c.open(src, 'r') as alluxio_file:
+        data = alluxio_file.read()
+    alluxio_read_time = time.time() - start
+    assert data == expected
+    queue.put(alluxio_read_time)
 
 
-def run_read(args, iteration_id, process_id):
+def run_read(args, expected, iteration_id, process_id, queue):
     src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
-    dst = local_path(args.dst, iteration_id, process_id)
-    read(args.host, args.port, src, dst)
+    read(args.host, args.port, src, expected, queue)
 
 
 def print_stats(args, total_time):
@@ -72,21 +62,23 @@ def print_stats(args, total_time):
 
 
 def main(args):
-    total_time = 0
-    os.mkdir(args.dst)
+    with open(args.expected, 'r') as f:
+        expected = f.read()
+
+    queue = Queue()
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
-        start_time = time.time()
         processes = []
         for process_id in range(args.nprocess):
-            p = Process(target=run_read, args=(args, iteration, process_id))
-            processes.append(p)
+            p = Process(target=run_read, args=(args, expected, iteration, process_id, queue))
             p.start()
+            processes.append(p)
         for p in processes:
             p.join()
-        elapsed_time = time.time() - start_time
-        print('%d seconds' % elapsed_time)
-        total_time += elapsed_time
+        print('done')
+    total_time = 0
+    for _ in processes:
+        total_time += queue.get()
     print_stats(args, total_time)
 
 
@@ -103,8 +95,8 @@ if __name__ == '__main__':
                         help='path to the Alluxio file to be read from or the Alluxio directory \
                         containing all data written by parallel_write.py, \
                         if this a file, --node must not be set')
-    parser.add_argument('--dst', required=True,
-                        help='the local filesystem directory to store the files read from Alluxio')
+    parser.add_argument('--expected', default='data/5mb.txt',
+                        help='the path to a file in local filesystem whose content is expected to be the same as those files read from Alluxio')
     parser.add_argument(
         '--node', help='a unique identifier to another node to read data from, if this not set, --src must be a path to an Alluxio file')
     parser.add_argument('--iteration', type=int, default=1,

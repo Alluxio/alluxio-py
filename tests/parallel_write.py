@@ -22,13 +22,13 @@ import alluxio
 from utils import alluxio_path, mkdir_p
 
 
-def write(host, port, src, dst, write_type):
+def write(host, port, data, dst, write_type):
     """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
 
     Args:
         host (str): The Alluxio proxy's hostname.
         port (int): The Alluxio proxy's web port.
-        src (str): The file in the local filesystem to be read from.
+        data (str): The file content of the source.
         dst (str): The file to be written to Alluxio.
         write_type (:class:`alluxio.wire.WriteType`): Write type for creating the file.
 
@@ -39,15 +39,14 @@ def write(host, port, src, dst, write_type):
     start_time = time.time()
     c = alluxio.Client(host, port)
     with c.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
-        with open(src, 'r') as local_file:
-            alluxio_file.write(local_file)
+        alluxio_file.write(data)
     return time.time() - start_time
 
 
-def run_write(args, iteration_id, process_id):
+def run_write(args, data, iteration_id, process_id):
     dst = alluxio_path(args.dst, iteration_id, args.node, process_id)
     write_type = alluxio.wire.WriteType(args.write_type)
-    write(args.host, args.port, args.src, dst, write_type)
+    write(args.host, args.port, data, dst, write_type)
 
 
 def print_stats(args, total_time):
@@ -64,20 +63,24 @@ def print_stats(args, total_time):
 
 
 def main(args):
+    with open(args.src, 'r') as f:
+        data = f.read()
+
     total_time = 0
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
-        start_time = time.time()
         processes = []
         for process_id in range(args.nprocess):
-            p = Process(target=run_write, args=(args, iteration, process_id))
+            p = Process(target=run_write, args=(args, data, iteration, process_id))
             processes.append(p)
+        start_time = time.time()
+        for p in processes:
             p.start()
         for p in processes:
             p.join()
         elapsed_time = time.time() - start_time
-        print('%d seconds' % elapsed_time)
         total_time += elapsed_time
+        print('done')
     print_stats(args, total_time)
 
 
