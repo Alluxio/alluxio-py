@@ -19,7 +19,7 @@ import time
 
 import syspath
 import alluxio
-from utils import alluxio_path 
+from utils import alluxio_path
 
 
 def write(host, port, data, dst, write_type):
