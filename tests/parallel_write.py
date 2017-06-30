@@ -80,7 +80,7 @@ def main(args):
             p.join()
         elapsed_time = time.time() - start_time
         total_time += elapsed_time
-        print('done')
+        print('{} seconds'.format(elapsed_time))
     print_stats(args, total_time)
 
 

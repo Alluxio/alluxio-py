@@ -71,11 +71,14 @@ def main(args):
         processes = []
         for process_id in range(args.nprocess):
             p = Process(target=run_read, args=(args, expected, iteration, process_id, queue))
-            p.start()
             processes.append(p)
+        start_time = time.time()
+        for p in processes:
+            p.start()
         for p in processes:
             p.join()
-        print('done')
+        elapsed_time = time.time() - start_time
+        print('{} seconds'.format(elapsed_time))
     total_time = 0
     for _ in processes:
         total_time += queue.get()
