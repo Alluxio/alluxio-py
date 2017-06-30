@@ -2,8 +2,7 @@
 
 The test scripts in this directory stress tests the Alluxio python client API.
 The scripts can be run on multiple nodes where each node will launch multiple
-processes to concurrently read from or write to Alluxio. Verification scripts
-are provided to validate the operations performed.
+processes to concurrently read from or write to Alluxio.
 
 
 # Parallel Write
@@ -96,29 +95,3 @@ Each process verifies the read file against the local file specified by --expect
 	--expected=data/5mb.txt
 	--node=2
 ```
-
-
-# Verification
-
-For ease of verifying the correctness of the writes, all files
-have the same content as a file in the local filesystem. By default, the file
-is data/5mb.txt which can be downloaded by `get_data.sh`.
-
-The writes can be verified by `verify_write.py`.
-
-Example:
-
-The following command verifies that the Alluxio files
-/alluxio-py-test/iteration_{0..19}/node_1/process_{0..1} are the same as the local file data/5mb.txt
-({a..b} should be expanded to the consequent numbers between a and b, including both side).
-
-```bash
-./verify_write.py \
-	--home=<alluxio installation directory> \
-	--src=data/5mb.txt \
-	--dst=/alluxio-py-test \
-	--iteration=20 \
-	--nprocess=2 \
-	--node=1
-```
-
