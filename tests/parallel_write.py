@@ -13,7 +13,7 @@ This script should be run from its parent directory.
 
 from __future__ import print_function
 import argparse
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import os
 import time
 
@@ -22,7 +22,7 @@ import alluxio
 from utils import alluxio_path
 
 
-def write(host, port, data, dst, write_type):
+def write(host, port, data, dst, write_type, queue):
     """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
 
     Args:
@@ -31,22 +31,19 @@ def write(host, port, data, dst, write_type):
         data (str): The file content of the source.
         dst (str): The file to be written to Alluxio.
         write_type (:class:`alluxio.wire.WriteType`): Write type for creating the file.
-
-    Returns:
-        The total time (seconds) used to read the local file and stream it to Alluxio.
     """
 
-    start_time = time.time()
     c = alluxio.Client(host, port)
+    start_time = time.time()
     with c.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
         alluxio_file.write(data)
-    return time.time() - start_time
+    queue.put(time.time() - start_time)
 
 
-def run_write(args, data, iteration_id, process_id):
+def run_write(args, data, iteration_id, process_id, queue):
     dst = alluxio_path(args.dst, iteration_id, args.node, process_id)
     write_type = alluxio.wire.WriteType(args.write_type)
-    write(args.host, args.port, data, dst, write_type)
+    write(args.host, args.port, data, dst, write_type, queue)
 
 
 def print_stats(args, total_time):
@@ -66,12 +63,13 @@ def main(args):
     with open(args.src, 'r') as f:
         data = f.read()
 
-    total_time = 0
+
+    queue = Queue()
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
         processes = []
         for process_id in range(args.nprocess):
-            p = Process(target=run_write, args=(args, data, iteration, process_id))
+            p = Process(target=run_write, args=(args, data, iteration, process_id, queue))
             processes.append(p)
         start_time = time.time()
         for p in processes:
@@ -79,8 +77,10 @@ def main(args):
         for p in processes:
             p.join()
         elapsed_time = time.time() - start_time
-        total_time += elapsed_time
         print('{} seconds'.format(elapsed_time))
+    total_time = 0
+    for _ in processes:
+        total_time += queue.get()
     print_stats(args, total_time)
 
 
