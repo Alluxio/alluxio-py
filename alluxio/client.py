@@ -520,6 +520,9 @@ class Reader(object):
     :meth:`alluxio.Reader.close` must be called after the reading
     is done.
 
+    The reader can be used as an iterator where response stream is read as chunks
+    of bytes.
+
     This class is used by :meth:`.Client.open`, it is not intended to be created
     by users directly.
 
@@ -533,16 +536,23 @@ class Reader(object):
         self.url = url
         self.r = None
 
-    def read(self, n=None, chunk_size=None):
+    def _init_r(self):
+        self.r = self.session.post(self.url, stream=True)
+        _check_response(self.r)
+
+    def __iter__(self):
+        """Make it able to use Reader as an iterator."""
+
+        if self.r is None:
+            self._init_r()
+        return self.r.iter_content(4096)
+
+    def read(self, n=None):
         """Read the file stream.
 
         Args:
             n (int, optional): The bytes to read from the stream, if n is None,
-                it means read the whole data stream chunk by chunk, the chunk
-                size is set in chunk_size. Defaults to None.
-            chunk_size (int, optional): Size of the chunk to be read into memory.
-                A value of None means reading data as it arrives in whatever
-                size the chunks are received. Defaults to None.
+                it means read the whole data stream.
 
         Returns:
             The data in bytes, if all data has been read, returns an empty string.
@@ -552,10 +562,9 @@ class Reader(object):
         """
 
         if self.r is None:
-            self.r = self.session.post(self.url, stream=True)
-            _check_response(self.r)
+            self._init_r()
         if n is None:
-            return ''.join([chunk for chunk in self.r.iter_content(chunk_size=chunk_size)])
+            return self.r.content
         return self.r.raw.read(n)
 
     def close(self):
