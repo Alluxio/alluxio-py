@@ -13,8 +13,9 @@ This script should be run from its parent directory.
 
 from __future__ import print_function
 import argparse
-from multiprocessing import Process, Value, Queue
+from multiprocessing import Process, Value
 import os
+import sys
 import time
 
 import syspath
@@ -32,6 +33,9 @@ def write(host, port, data, dst, write_type, timer):
         dst (str): The file to be written to Alluxio.
         write_type (:class:`alluxio.wire.WriteType`): Write type for creating the file.
         timer (:class:`multiprocessing.Value`): Timer for summing up the total time for writing the files.
+
+    Returns:
+        float: writing time
     """
 
     c = alluxio.Client(host, port)
@@ -41,13 +45,17 @@ def write(host, port, data, dst, write_type, timer):
     elapsed_time = time.time() - start_time
     with timer.get_lock():
         timer.value += elapsed_time
+    return elapsed_time
 
 
 def run_write(args, data, process_id, timer):
     for iteration in range(args.iteration):
+        print('process {}, iteration {} ... '.format(process_id, iteration), end='')
         dst = alluxio_path(args.dst, iteration, args.node, process_id)
         write_type = alluxio.wire.WriteType(args.write_type)
-        write(args.host, args.port, data, dst, write_type, timer)
+        t = write(args.host, args.port, data, dst, write_type, timer)
+        print('{} seconds'.format(t))
+        sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
 
 
 def print_stats(args, total_time):
