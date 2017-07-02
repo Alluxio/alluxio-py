@@ -23,12 +23,11 @@ import alluxio
 from utils import alluxio_path
 
 
-def write(host, port, data, dst, write_type, timer):
+def write(client, data, dst, write_type, timer):
     """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
 
     Args:
-        host (str): The Alluxio proxy's hostname.
-        port (int): The Alluxio proxy's web port.
+        client (:class:`alluxio.Client`): Alluxio client.
         data (str): The file content of the source.
         dst (str): The file to be written to Alluxio.
         write_type (:class:`alluxio.wire.WriteType`): Write type for creating the file.
@@ -38,9 +37,8 @@ def write(host, port, data, dst, write_type, timer):
         float: writing time
     """
 
-    c = alluxio.Client(host, port)
     start_time = time.time()
-    with c.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
+    with client.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
         alluxio_file.write(data)
     elapsed_time = time.time() - start_time
     with timer.get_lock():
@@ -49,11 +47,12 @@ def write(host, port, data, dst, write_type, timer):
 
 
 def run_write(args, data, process_id, timer):
+    client = alluxio.Client(args.host, args.port)
     for iteration in range(args.iteration):
         print('process {}, iteration {} ... '.format(process_id, iteration), end='')
         dst = alluxio_path(args.dst, iteration, args.node, process_id)
         write_type = alluxio.wire.WriteType(args.write_type)
-        t = write(args.host, args.port, data, dst, write_type, timer)
+        t = write(client, data, dst, write_type, timer)
         print('{} seconds'.format(t))
         sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
 

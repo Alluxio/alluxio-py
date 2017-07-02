@@ -19,14 +19,13 @@ import alluxio
 from utils import *
 
 
-def read(host, port, src, expected, timer):
+def read(client, src, expected, timer):
     """Read the {src} file from Alluxio and compare it to the {expected} file in the local filesystem.
 
     If the Alluxio file is different from the expected file, an AssertionError will be raised.
 
     Args:
-        host: The Alluxio proxy's hostname.
-        port: The Alluxio proxy's web port.
+        client: Alluxio client.
         src: The file in Alluxio to be read from.
         expected: The expected content of the file read from Alluxio.
         timer: Timer for summing up the total time for reading the files.
@@ -35,9 +34,8 @@ def read(host, port, src, expected, timer):
         int: Reading time.
     """
 
-    c = alluxio.Client(host, port)
     start = time.time()
-    with c.open(src, 'r') as alluxio_file:
+    with client.open(src, 'r') as alluxio_file:
         data = alluxio_file.read()
     alluxio_read_time = time.time() - start
     assert data == expected
@@ -47,10 +45,11 @@ def read(host, port, src, expected, timer):
 
 
 def run_read(args, expected, iteration_id, process_id, timer):
+    client = alluxio.Client(args.host, args.port)
     for iteration in range(args.iteration):
         print('process {}, iteration {} ... '.format(process_id, iteration), end='')
         src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
-        t = read(args.host, args.port, src, expected, timer)
+        t = read(client, src, expected, timer)
         print('{} seconds'.format(t))
         sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
 
