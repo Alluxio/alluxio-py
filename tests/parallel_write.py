@@ -22,7 +22,7 @@ import alluxio
 from utils import alluxio_path
 
 
-def write(host, port, data, dst, write_type, timer, times):
+def write(host, port, data, dst, write_type, timer):
     """Write the {src} file in the local filesystem to the {dst} file in Alluxio.
 
     Args:
@@ -41,13 +41,12 @@ def write(host, port, data, dst, write_type, timer, times):
     elapsed_time = time.time() - start_time
     with timer.get_lock():
         timer.value += elapsed_time
-    times.put(elapsed_time)
 
 
-def run_write(args, data, iteration_id, process_id, timer, times):
+def run_write(args, data, iteration_id, process_id, timer):
     dst = alluxio_path(args.dst, iteration_id, args.node, process_id)
     write_type = alluxio.wire.WriteType(args.write_type)
-    write(args.host, args.port, data, dst, write_type, timer, times)
+    write(args.host, args.port, data, dst, write_type, timer)
 
 
 def print_stats(args, total_time):
@@ -67,14 +66,12 @@ def main(args):
     with open(args.src, 'r') as f:
         data = f.read()
 
-
     timer = Value('d', 0)
-    times = Queue()
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
         processes = []
         for process_id in range(args.nprocess):
-            p = Process(target=run_write, args=(args, data, iteration, process_id, timer, times))
+            p = Process(target=run_write, args=(args, data, iteration, process_id, timer))
             processes.append(p)
         start_time = time.time()
         for p in processes:
@@ -84,10 +81,6 @@ def main(args):
         elapsed_time = time.time() - start_time
         print('{} seconds'.format(elapsed_time))
     print_stats(args, timer.value)
-    total_time = 0
-    for _ in range(args.iteration * args.nprocess):
-        total_time += times.get()
-    print_stats(args, total_time)
 
 
 if __name__ == '__main__':
