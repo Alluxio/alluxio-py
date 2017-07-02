@@ -44,11 +44,11 @@ def read(client, src, expected, timer):
     return alluxio_read_time
 
 
-def run_read(args, expected, iteration_id, process_id, timer):
+def run_read(args, expected, process_id, timer):
     client = alluxio.Client(args.host, args.port)
     for iteration in range(args.iteration):
         print('process {}, iteration {} ... '.format(process_id, iteration), end='')
-        src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
+        src = alluxio_path(args.src, iteration, args.node, process_id) if args.node else args.src
         t = read(client, src, expected, timer)
         print('{} seconds'.format(t))
         sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
@@ -79,7 +79,7 @@ def main(args):
     timer = Value('d', 0)
     processes = []
     for process_id in range(args.nprocess):
-        p = Process(target=run_read, args=(args, expected, iteration, process_id, timer))
+        p = Process(target=run_read, args=(args, expected, process_id, timer))
         processes.append(p)
     start_time = time.time()
     for p in processes:
