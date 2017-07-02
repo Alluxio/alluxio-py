@@ -61,6 +61,7 @@ def print_stats(args, average_time_per_process):
     src_bytes = client.get_status(alluxio_file).length
     average_time_per_iteration_per_process = average_time_per_process / args.iteration
     average_throughput_per_client = src_bytes / average_time_per_iteration_per_process
+    average_throughput_per_node = src_bytes * args.nprocess * args.iteration / average_time_per_process
 
     print('Number of iterations: %d' % args.iteration)
     print('Number of processes per iteration: %d' % args.nprocess)
@@ -68,6 +69,7 @@ def print_stats(args, average_time_per_process):
     print('Average time for each process: %f seconds' % average_time_per_process)
     print('Average time for each iteration of a process: %f seconds' % average_time_per_iteration_per_process)
     print('Average read throughput of each client: %f bytes/second' % average_throughput_per_client)
+    print('Average read throughput per node: %f bytes/second' % average_throughput_per_node)
 
 
 def main(args):
