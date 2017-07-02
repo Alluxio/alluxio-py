@@ -11,6 +11,7 @@ from __future__ import print_function
 import argparse
 from multiprocessing import Process, Value
 import os
+import sys
 import time
 
 import syspath
@@ -29,6 +30,9 @@ def read(host, port, src, expected, timer):
         src: The file in Alluxio to be read from.
         expected: The expected content of the file read from Alluxio.
         timer: Timer for summing up the total time for reading the files.
+
+    Returns:
+        int: Reading time.
     """
 
     c = alluxio.Client(host, port)
@@ -39,11 +43,16 @@ def read(host, port, src, expected, timer):
     assert data == expected
     with timer.get_lock():
         timer.value += alluxio_read_time
+    return alluxio_read_time
 
 
 def run_read(args, expected, iteration_id, process_id, timer):
-    src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
-    read(args.host, args.port, src, expected, timer)
+    for iteration in range(args.iteration):
+        print('process {}, iteration {} ... '.format(process_id, iteration), end='')
+        src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
+        t = read(args.host, args.port, src, expected, timer)
+        print('{} seconds'.format(t))
+        sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
 
 
 def print_stats(args, total_time):
@@ -67,19 +76,15 @@ def main(args):
         expected = f.read()
 
     timer = Value('d', 0)
-    for iteration in range(args.iteration):
-        print('Iteration %d ... ' % iteration, end='')
-        processes = []
-        for process_id in range(args.nprocess):
-            p = Process(target=run_read, args=(args, expected, iteration, process_id, timer))
-            processes.append(p)
-        start_time = time.time()
-        for p in processes:
-            p.start()
-        for p in processes:
-            p.join()
-        elapsed_time = time.time() - start_time
-        print('{} seconds'.format(elapsed_time))
+    processes = []
+    for process_id in range(args.nprocess):
+        p = Process(target=run_read, args=(args, expected, iteration, process_id, timer))
+        processes.append(p)
+    start_time = time.time()
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
     print_stats(args, timer.value)
 
 
