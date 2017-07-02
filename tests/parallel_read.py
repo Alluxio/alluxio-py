@@ -55,10 +55,7 @@ def run_read(args, expected, process_id, timer):
 
 
 def print_stats(args, average_time_per_process):
-    client = alluxio.Client(args.host, args.port)
-    # assume all files have the same size.
-    alluxio_file = alluxio_path(args.src, 0, args.node, 0) if args.node else args.src
-    src_bytes = client.get_status(alluxio_file).length
+    src_bytes = os.stat(args.expected).st_size
     average_time_per_iteration_per_process = average_time_per_process / args.iteration
     average_throughput_per_client = src_bytes / average_time_per_iteration_per_process
     average_throughput_per_node = src_bytes * args.nprocess * args.iteration / average_time_per_process
