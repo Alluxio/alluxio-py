@@ -62,6 +62,7 @@ class Client(object):
     """
 
     def __init__(self, host, port, timeout=1800):
+        self.session = requests.Session()
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -123,9 +124,9 @@ class Client(object):
         """
 
         if opt is not None:
-            r = requests.post(url, params=params, json=opt.json())
+            r = self.session.post(url, params=params, json=opt.json(), timeout=self.timeout)
         else:
-            r = requests.post(url, params=params)
+            r = self.session.post(url, params=params, timeout=self.timeout)
         _check_response(r)
         return r
 
