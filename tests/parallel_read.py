@@ -99,7 +99,7 @@ if __name__ == '__main__':
                         help='Alluxio proxy server hostname')
     parser.add_argument('--port', type=int, default=39999,
                         help='Alluxio proxy server web port')
-    parser.add_argument('--src', required=True,
+    parser.add_argument('--src', default='/alluxio-py-test',
                         help='path to the Alluxio file to be read from or the Alluxio directory \
                         containing all data written by parallel_write.py, \
                         if this a file, --node must not be set')
