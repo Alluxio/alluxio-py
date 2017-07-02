@@ -533,7 +533,7 @@ class Reader(object):
         self.url = url
         self.r = None
 
-    def read(self, n=None, chunk_size=128):
+    def read(self, n=None, chunk_size=4096):
         """Read the file stream.
 
         Args:
@@ -554,7 +554,7 @@ class Reader(object):
             self.r = self.session.post(self.url, stream=True)
             _check_response(self.r)
         if n is None:
-            return ''.join([chunk for chunk in self.r.iter_content(chunk_size=128)])
+            return ''.join([chunk for chunk in self.r.iter_content(chunk_size=chunk_size)])
         return self.r.raw.read(n)
 
     def close(self):
