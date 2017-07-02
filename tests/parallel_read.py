@@ -9,7 +9,7 @@ This script should be run from its parent directory.
 
 from __future__ import print_function
 import argparse
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Value
 import os
 import time
 
@@ -18,7 +18,7 @@ import alluxio
 from utils import *
 
 
-def read(host, port, src, expected, queue):
+def read(host, port, src, expected, timer):
     """Read the {src} file from Alluxio and compare it to the {expected} file in the local filesystem.
 
     If the Alluxio file is different from the expected file, an AssertionError will be raised.
@@ -28,7 +28,7 @@ def read(host, port, src, expected, queue):
         port: The Alluxio proxy's web port.
         src: The file in Alluxio to be read from.
         expected: The expected content of the file read from Alluxio.
-        queue: The queue shared by multiple processes.
+        timer: Timer for summing up the total time for reading the files.
     """
 
     c = alluxio.Client(host, port)
@@ -37,12 +37,13 @@ def read(host, port, src, expected, queue):
         data = alluxio_file.read()
     alluxio_read_time = time.time() - start
     assert data == expected
-    queue.put(alluxio_read_time)
+    with timer.get_lock():
+        timer.value += alluxio_read_time
 
 
-def run_read(args, expected, iteration_id, process_id, queue):
+def run_read(args, expected, iteration_id, process_id, timer):
     src = alluxio_path(args.src, iteration_id, args.node, process_id) if args.node else args.src
-    read(args.host, args.port, src, expected, queue)
+    read(args.host, args.port, src, expected, timer)
 
 
 def print_stats(args, total_time):
@@ -65,12 +66,12 @@ def main(args):
     with open(args.expected, 'r') as f:
         expected = f.read()
 
-    queue = Queue()
+    timer = Value()
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
         processes = []
         for process_id in range(args.nprocess):
-            p = Process(target=run_read, args=(args, expected, iteration, process_id, queue))
+            p = Process(target=run_read, args=(args, expected, iteration, process_id, timer))
             processes.append(p)
         start_time = time.time()
         for p in processes:
@@ -79,10 +80,7 @@ def main(args):
             p.join()
         elapsed_time = time.time() - start_time
         print('{} seconds'.format(elapsed_time))
-    total_time = 0
-    for _ in processes:
-        total_time += queue.get()
-    print_stats(args, total_time)
+    print_stats(args, timer.value)
 
 
 if __name__ == '__main__':
