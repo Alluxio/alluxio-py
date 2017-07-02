@@ -55,20 +55,20 @@ def run_read(args, expected, iteration_id, process_id, timer):
         sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
 
 
-def print_stats(args, total_time):
+def print_stats(args, average_time_per_process):
     client = alluxio.Client(args.host, args.port)
     # assume all files have the same size.
     alluxio_file = alluxio_path(args.src, 0, args.node, 0) if args.node else args.src
     src_bytes = client.get_status(alluxio_file).length
-    average_time = total_time / args.iteration
-    average_throughput = src_bytes / average_time
+    average_time_per_iteration_per_process = average_time_per_process / args.iteration
+    average_throughput_per_client = src_bytes / average_time_per_iteration_per_process
 
     print('Number of iterations: %d' % args.iteration)
     print('Number of processes per iteration: %d' % args.nprocess)
     print('File size: %d bytes' % src_bytes)
-    print('Total time: %f seconds' % total_time)
-    print('Average time for each iteration: %f seconds' % average_time)
-    print('Average read throughput: %f bytes/second' % average_throughput)
+    print('Average time for each process: %f seconds' % average_time_per_process)
+    print('Average time for each iteration of a process: %f seconds' % average_time_per_iteration_per_process)
+    print('Average read throughput of each client: %f bytes/second' % average_throughput_per_client)
 
 
 def main(args):
@@ -85,7 +85,8 @@ def main(args):
         p.start()
     for p in processes:
         p.join()
-    print_stats(args, timer.value)
+    average_time_per_process = timer.value / len(processes)
+    print_stats(args, average_time_per_process)
 
 
 if __name__ == '__main__':
