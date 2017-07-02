@@ -436,7 +436,7 @@ class Client(object):
         """
 
         url = self._streams_url(file_id, 'read')
-        return Reader(url)
+        return Reader(self.session, url)
 
     def write(self, file_id):
         """Creates a :class:`Writer` for writing a file.
@@ -452,7 +452,7 @@ class Client(object):
         """
 
         url = self._streams_url(file_id, 'write')
-        return Writer(url)
+        return Writer(self.session, url)
 
     @contextmanager
     def open(self, path, mode, **kwargs):
@@ -524,10 +524,12 @@ class Reader(object):
     by users directly.
 
     Args:
+        session (:class:`requests.Session`) The requests session.
         url (str): The Alluxio REST URL for reading a file.
     """
 
-    def __init__(self, url):
+    def __init__(self, session, url):
+        self.session = session
         self.url = url
         self.r = None
 
@@ -549,7 +551,7 @@ class Reader(object):
         """
 
         if self.r is None:
-            self.r = requests.post(self.url, stream=True)
+            self.r = self.session.post(self.url, stream=True)
             _check_response(self.r)
         if n is None:
             return ''.join([chunk for chunk in self.r.iter_content(chunk_size=128)])
@@ -576,10 +578,12 @@ class Writer(object):
     by users directly.
 
     Args:
+        session (:class:`requests.Session`) The requests session.
         url (str): The Alluxio REST URL for writing a file.
     """
 
-    def __init__(self, url):
+    def __init__(self, session, url):
+        self.session = session
         self.url = url
         self.r = None
 
@@ -598,7 +602,7 @@ class Writer(object):
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
-        self.r = requests.post(self.url, data=data, stream=True)
+        self.r = self.session.post(self.url, data=data, stream=True)
         _check_response(self.r)
         bytes_written = self.r.json()
         return bytes_written
