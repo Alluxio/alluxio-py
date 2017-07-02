@@ -533,15 +533,16 @@ class Reader(object):
         self.url = url
         self.r = None
 
-    def read(self, n=None, chunk_size=4096):
+    def read(self, n=None, chunk_size=None):
         """Read the file stream.
 
         Args:
             n (int, optional): The bytes to read from the stream, if n is None,
                 it means read the whole data stream chunk by chunk, the chunk
                 size is set in chunk_size. Defaults to None.
-            chunk_size (int, optional): The chunk size in bytes to be used when
-                n is None. Defaults to 128.
+            chunk_size (int, optional): Size of the chunk to be read into memory.
+                A value of None means reading data as it arrives in whatever
+                size the chunks are received. Defaults to None.
 
         Returns:
             The data in bytes, if all data has been read, returns an empty string.
