@@ -37,8 +37,9 @@ def main(args):
         print('Iteration %d ... ' % iteration, end='')
         start_time = time.time()
         with c.open(src, 'r') as f:
-            f.read()
+            data = f.read()
         elapsed_time = time.time() - start_time
+        assert expected == data
         print('{} seconds'.format(elapsed_time))
         total_time += elapsed_time
     print_stats(args, total_time)
