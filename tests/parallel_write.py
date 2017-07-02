@@ -67,7 +67,7 @@ def main(args):
         data = f.read()
 
 
-    timer = Value('i', 0)
+    timer = Value('d', 0)
     for iteration in range(args.iteration):
         print('Iteration %d ... ' % iteration, end='')
         processes = []
