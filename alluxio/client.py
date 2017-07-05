@@ -133,7 +133,7 @@ class Client(object):
     def __repr__(self):
         return 'alluxio.Client(host=%s, port=%d, timeout=%d)' % (self.host, self.port, self.timeout)
 
-    def create_directory(self, path, **kwargs):
+    def create_directory(self, path, opt=None):
         """Create a directory in Alluxio.
 
         By default, the create directory operation enforces that the parent of
@@ -145,7 +145,7 @@ class Client(object):
 
         Args:
             path (str): The path of the directory to be created.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.CreateDirectory`.
+            opt (:class:`alluxio.option.CreateDirectory`): Options to be used when creating a directory.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
@@ -153,17 +153,19 @@ class Client(object):
         Examples:
             Create a directory recursively:
 
-            >>> create_directory('/parent/child/', recursive=True)
+            >>> opt = alluxio.option.CreateDirectory(recursive=True)
+            >>> create_directory('/parent/child/', opt)
 
             Create a directory recursively and persist to under storage:
 
-            >>> create_directory('/parent/child/', recursive=True, write_type=wire.WRITE_TYPE_CACHE_THROUGH)
+            >>> opt = alluxio.option.CreateDirectory(recursive=True, write_type=wire.WRITE_TYPE_CACHE_THROUGH)
+            >>> create_directory('/parent/child/', opt)
         """
 
         url = self._paths_url(path, 'create-directory')
-        self._post(url, option.CreateDirectory(**kwargs))
+        self._post(url, opt)
 
-    def delete(self, path, **kwargs):
+    def delete(self, path, opt=None):
         """Delete a directory or file in Alluxio.
 
         By default, if path is a directory which contains files or directories,
@@ -172,24 +174,21 @@ class Client(object):
 
         Args:
             path (str): The path of the directory or file to be deleted.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Delete`.
+            opt (:class:`alluxio.option.Delete`): Options to be used when deleting a path.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'delete')
-        self._post(url, option.Delete(**kwargs))
+        self._post(url, opt)
 
-    def exists(self, path, **kwargs):
+    def exists(self, path, opt=None):
         """Check whether a path exists in Alluxio.
-
-        If a path exists in Alluxio's under storage, but not in Alluxio, this
-        will return False.
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Exists`.
+            opt (:class:`alluxio.option.Exists`): Options to be used when checking whether a path exists.
 
         Returns:
             bool: True if the path exists, False otherwise.
@@ -199,9 +198,9 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'exists')
-        return self._post(url, option.Exists(**kwargs)).json()
+        return self._post(url, opt).json()
 
-    def free(self, path, **kwargs):
+    def free(self, path, opt=None):
         """Free a file or directory from Alluxio.
 
         By default, if the given path is a directory, its files and contained
@@ -210,21 +209,21 @@ class Client(object):
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Free`.
+            opt (:class:`alluxio.option.Free`): Options to be used when freeing a path.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'free')
-        self._post(url, option.Free(**kwargs))
+        self._post(url, opt)
 
-    def get_status(self, path, **kwargs):
+    def get_status(self, path, opt=None):
         """Get the status of a file or directory at the given path.
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.GetStatus`.
+            opt (:class:`alluxio.option.GetStatus`): Options to be used when getting the status of a path.
 
         Returns:
             alluxio.wire.FileInfo: The information of the file or directory.
@@ -234,19 +233,15 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'get-status')
-        info = self._post(url, option.GetStatus(**kwargs)).json()
+        info = self._post(url, opt).json()
         return wire.FileInfo.from_json(info)
 
-    def list_status(self, path, **kwargs):
+    def list_status(self, path, opt=None):
         """List the status of a file or directory at the given path.
-
-        The default pattern for loading metadata from under storage when
-        listing status under a directory can be changed by setting optional
-        parameters in kwargs.
 
         Args:
             path (str): The Alluxio path, which should be a directory.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.ListStatus`.
+            opt (:class:`alluxio.option.ListStatus`): Options to be used when listing status.
 
         Returns:
             List of :class:`alluxio.wire.FileInfo`: List of information of
@@ -257,12 +252,12 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'list-status')
-        result = self._post(url, option.ListStatus(**kwargs)).json()
+        result = self._post(url, opt).json()
         file_infos = [wire.FileInfo.from_json(info) for info in result]
         file_infos.sort()
         return file_infos
 
-    def ls(self, path, **kwargs):
+    def ls(self, path, opt=None):
         """List the names of the files and directories under path.
 
         To get more information of the files and directories under path, call
@@ -270,7 +265,7 @@ class Client(object):
 
         Args:
             path (str): The Alluxio path, which should be a directory.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.ListStatus`.
+            opt (:class:`alluxio.option.ListStatus`): Options to be used when listing status.
 
         Returns:
             List of str: A list of names of the files and directories under path.
@@ -279,9 +274,9 @@ class Client(object):
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
-        return [status.name for status in self.list_status(path, **kwargs)]
+        return [status.name for status in self.list_status(path, opt)]
 
-    def mount(self, path, src, **kwargs):
+    def mount(self, path, src, opt=None):
         """Mount an under storage specified by src to path in Alluxio.
 
         Additional information or configuration, such as AWS credentials for
@@ -291,59 +286,59 @@ class Client(object):
         Args:
             path (str): The Alluxio path to be mounted to.
             src (str): The under storage endpoint to mount.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Mount`.
+            opt (:class:`alluxio.option.Mount`): Options to be used when mounting an under storage.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'mount')
-        self._post(url, option.Mount(**kwargs), {'src': src})
+        self._post(url, opt, {'src': src})
 
-    def unmount(self, path, **kwargs):
+    def unmount(self, path, opt=None):
         """Unmount an under storage that is mounted at path.
 
         Args:
             path (str): The Alluxio mount point.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Unmount`.
+            opt (:class:`alluxio.option.Unmount`): Options to be used when unmounting an under storage.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'unmount')
-        self._post(url, option.Unmount(**kwargs))
+        self._post(url, opt)
 
-    def rename(self, path, dst, **kwargs):
+    def rename(self, path, dst, opt=None):
         """Rename path to dst in Alluxio.
 
         Args:
             path (str): The Alluxio path to be renamed.
             dst (str): The Alluxio path to be renamed to.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.Rename`.
+            opt (:class:`alluxio.option.Rename`): Options to be used when renaming a path.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'rename')
-        self._post(url, option.Rename(**kwargs), {'dst': dst})
+        self._post(url, opt, {'dst': dst})
 
-    def set_attribute(self, path, **kwargs):
+    def set_attribute(self, path, opt=None):
         """Set attributes of a path in Alluxio.
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.SetAttribute`.
+            opt (:class:`alluxio.option.SetAttribute`): Options to be used when setting attribute.
 
         Raises:
             requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._paths_url(path, 'set-attribute')
-        self._post(url, option.SetAttribute(**kwargs))
+        self._post(url, opt)
 
-    def open_file(self, path, **kwargs):
+    def open_file(self, path, opt=None):
         """Open a file in Alluxio for reading.
 
         The file must be closed by calling :meth:`alluxio.Client.close`.
@@ -352,7 +347,7 @@ class Client(object):
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.OpenFile`.
+            opt (:class:`alluxio.option.OpenFile`): Options to be used when opening a file.
 
         Returns:
             int: The file ID, which can be passed to :meth:`alluxio.Client.read` and :meth:`alluxio.Client.close`.
@@ -371,9 +366,9 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'open-file')
-        return self._post(url, option.OpenFile(**kwargs)).json()
+        return self._post(url, opt).json()
 
-    def create_file(self, path, **kwargs):
+    def create_file(self, path, opt=None):
         """Create a file in Alluxio.
 
         The file must not already exist and must be closed by calling
@@ -384,7 +379,7 @@ class Client(object):
 
         Args:
             path (str): The Alluxio path.
-            **kwargs: The same optional parameters for creating :class:`alluxio.option.CreateFile`.
+            opt (:class:`alluxio.option.CreateFile`): Options to be used when creating a file.
 
         Returns:
             int: The file ID, which can be passed to :meth:`alluxio.Client.write` and :meth:`alluxio.Client.close`.
@@ -396,7 +391,8 @@ class Client(object):
             Create a file and write a string to it both in Alluxio and the under storage,
             finally close it:
 
-            >>> file_id = create_file('/file', write_type=wire.WRITE_TYPE_CACHE_THROUGH)
+            >>> opt = alluxio.option.CreateFile(write_type=wire.WRITE_TYPE_CACHE_THROUGH)
+            >>> file_id = create_file('/file', opt)
             >>> writer = write(file_id)
             >>> writer.write('data')
             >>> writer.close()
@@ -404,7 +400,7 @@ class Client(object):
         """
 
         url = self._paths_url(path, 'create-file')
-        return self._post(url, option.CreateFile(**kwargs)).json()
+        return self._post(url, opt).json()
 
     def close(self, file_id):
         """Close a file.
@@ -455,7 +451,7 @@ class Client(object):
         return Writer(self.session, url)
 
     @contextmanager
-    def open(self, path, mode, **kwargs):
+    def open(self, path, mode, opt=None):
         """Open a file for reading or writing.
 
         It should be called using a with statement so that the reader or writer
@@ -464,9 +460,7 @@ class Client(object):
         Args:
             path (str): The Alluxio file to be read from or written to.
             mode (str): Either 'r' for reading or 'w' for writing.
-            **kwargs: For reading, it is the same optional parameters for
-                creating :class:`alluxio.option.OpenFile`, for writing, it is
-                the same optional parameters for creating
+            opt: For reading, it is :class:`alluxio.option.OpenFile`, for writing, it is
                 :class:`alluxio.option.CreateFile`.
 
         Raises:
@@ -483,7 +477,8 @@ class Client(object):
             it into Alluxio's under storage, note that the second :func"`open`
             is python's built-in function:
 
-            >>> with alluxio_client.open('/alluxio-file', 'w', write_type=wire.WRITE_TYPE_CACHE_THROUGH) as alluxio_file:
+            >>> opt = alluxio.option.CreateFile(write_type=wire.WRITE_TYPE_CACHE_THROUGH)
+            >>> with alluxio_client.open('/alluxio-file', 'w', opt) as alluxio_file:
             >>>     with open('/local-file', 'rb') as local_file:
             >>>         alluxio_file.write(local_file)
 
@@ -494,7 +489,7 @@ class Client(object):
         """
 
         if mode == 'r':
-            file_id = self.open_file(path, **kwargs)
+            file_id = self.open_file(path, opt)
             try:
                 reader = self.read(file_id)
                 yield reader
@@ -502,7 +497,7 @@ class Client(object):
                 reader and reader.close()
                 self.close(file_id)
         elif mode == 'w':
-            file_id = self.create_file(path, **kwargs)
+            file_id = self.create_file(path, opt)
             try:
                 writer = self.write(file_id)
                 yield writer
