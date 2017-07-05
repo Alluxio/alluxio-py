@@ -76,7 +76,7 @@ def test_create_directory():
     option = random_create_directory()
     client, cleanup = setup_client(paths_handler(
         path, 'create-directory', input=option))
-    client.create_directory(path, **option.__dict__)
+    client.create_directory(path, option)
     cleanup()
 
 
@@ -86,7 +86,7 @@ def test_create_file():
     expected_file_id = 1
     client, cleanup = setup_client(paths_handler(
         path, 'create-file', input=option, output=expected_file_id))
-    file_id = client.create_file(path, **option.__dict__)
+    file_id = client.create_file(path, option)
     cleanup()
     assert file_id == expected_file_id
 
@@ -95,7 +95,7 @@ def test_delete():
     path = '/foo'
     option = random_delete()
     client, cleanup = setup_client(paths_handler(path, 'delete', input=option))
-    client.delete(path, **option.__dict__)
+    client.delete(path, option)
     cleanup()
 
 
@@ -113,7 +113,7 @@ def test_free():
     path = '/foo'
     option = random_free()
     client, cleanup = setup_client(paths_handler(path, 'free', input=option))
-    client.free(path, **option.__dict__)
+    client.free(path, option)
     cleanup()
 
 
@@ -137,8 +137,8 @@ def test_list_status():
     expected_names = [info.name for info in expected_file_infos]
     client, cleanup = setup_client(paths_handler(
         path, 'list-status', input=option, output=expected_output))
-    infos = client.list_status(path, **option.__dict__)
-    names = client.ls(path, **option.__dict__)
+    infos = client.list_status(path, option)
+    names = client.ls(path, option)
     cleanup()
     expected_file_infos.sort()
     assert infos == expected_file_infos
@@ -152,7 +152,7 @@ def test_mount():
     option = random_mount()
     client, cleanup = setup_client(paths_handler(
         path, 'mount', params={'src': src}, input=option))
-    client.mount(path, src, **option.__dict__)
+    client.mount(path, src, option)
     cleanup()
 
 
@@ -162,7 +162,7 @@ def test_open_file():
     option = random_open_file()
     client, cleanup = setup_client(paths_handler(
         path, 'open-file', input=option, output=expected_file_id))
-    file_id = client.open_file(path, **option.__dict__)
+    file_id = client.open_file(path, option)
     cleanup()
     assert file_id == expected_file_id
 
@@ -181,7 +181,7 @@ def test_set_attribute():
     path = '/foo'
     client, cleanup = setup_client(
         paths_handler(path, 'set-attribute', input=option))
-    client.set_attribute(path, **option.__dict__)
+    client.set_attribute(path, option)
     cleanup()
 
 
