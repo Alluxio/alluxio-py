@@ -33,7 +33,7 @@ Client Options
 .. autoclass:: alluxio.option.SetAttribute
 
 Client Wire Objects
-----------------------------------------------------
+-------------------
 
 .. automodule:: alluxio.wire
 
@@ -68,3 +68,30 @@ Client Wire Objects
 .. autodata:: alluxio.wire.WRITE_TYPE_CACHE_THROUGH
 .. autodata:: alluxio.wire.WRITE_TYPE_THROUGH
 .. autodata:: alluxio.wire.WRITE_TYPE_ASYNC_THROUGH
+
+Client Exceptions
+-----------------
+
+.. automodule:: alluxio.exceptions
+
+.. autoclass:: alluxio.exceptions.Status
+.. autoexception:: alluxio.exceptions.AlluxioError
+.. autoexception:: alluxio.exceptions.AbortedError
+.. autoexception:: alluxio.exceptions.AlreadyExistsError
+.. autoexception:: alluxio.exceptions.CanceledError
+.. autoexception:: alluxio.exceptions.DataLossError
+.. autoexception:: alluxio.exceptions.DeadlineExceededError
+.. autoexception:: alluxio.exceptions.FailedPreconditionError
+.. autoexception:: alluxio.exceptions.InternalError
+.. autoexception:: alluxio.exceptions.InvalidArgumentError
+.. autoexception:: alluxio.exceptions.NotFoundError
+.. autoexception:: alluxio.exceptions.OutOfRangeError
+.. autoexception:: alluxio.exceptions.PermissionDeniedError
+.. autoexception:: alluxio.exceptions.ResourceExhaustedError
+.. autoexception:: alluxio.exceptions.UnauthenticatedError
+.. autoexception:: alluxio.exceptions.UnavailableError
+.. autoexception:: alluxio.exceptions.UnimplementedError
+.. autoexception:: alluxio.exceptions.UnknownError
+.. autofunction:: alluxio.exceptions.new_alluxio_exception
+
+.. autoexception:: alluxio.exceptions.HTTPError

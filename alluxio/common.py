@@ -1,5 +1,8 @@
 #! -*- coding: utf-8 -*-
 import json
+import sys
+
+from six import reraise
 
 
 class _JsonEncodable(object):
@@ -53,3 +56,10 @@ class String(_JsonEncodable, _JsonDecodable):
     @classmethod
     def from_json(cls, obj):
         return cls(str(obj))
+
+
+def raise_with_traceback(error_type, message):
+    """Raise a new error with the most recent traceback."""
+
+    traceback = sys.exc_info()[2]
+    reraise(error_type, message, traceback)

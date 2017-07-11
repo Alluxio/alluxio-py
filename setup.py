@@ -14,6 +14,6 @@ setup(
     url='https://github.com/TachyonNexus/alluxio-py',
     author='Alluxio, Inc',
     packages=find_packages(exclude=['docs', 'tests']),
-    install_requires=['requests'],
+    install_requires=['six', 'requests'],
     tests_require=['pytest', 'pytest-cov']
 )

@@ -18,8 +18,9 @@ from contextlib import contextmanager
 
 import requests
 
-from . import option
+from . import exceptions
 from . import wire
+from .common import raise_with_traceback
 
 
 _API_PREFIX = "/api/v1"
@@ -42,13 +43,15 @@ def _check_response(r):
         r (:class:`requests.Response`): The response of the REST API request.
 
     Raises:
-        requests.HTTPError: If the response status is not 200.
+        alluxio.exceptions.AlluxioError or its subclasses: If the response status is not 200.
     """
 
-    if r.status_code != requests.codes.ok:
-        err_msg = 'Response status: %s (%d):\nResponse body:\n%s' % \
-            (r.reason, r.status_code, r.content)
-        raise requests.HTTPError(err_msg, response=r)
+    if r.status_code == requests.codes.ok:
+        return
+    error = r.json()
+    status = error['status']
+    message = error['message']
+    raise exceptions.new_alluxio_exception(status, message)
 
 
 class Client(object):
@@ -120,13 +123,17 @@ class Client(object):
             requests.Response: The response of the REST API request.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.AlluxioError or its subclasses: If the response status code is not 200.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
-        if opt is not None:
-            r = self.session.post(url, params=params, json=opt.json(), timeout=self.timeout)
-        else:
-            r = self.session.post(url, params=params, timeout=self.timeout)
+        try:
+            if opt is not None:
+                r = self.session.post(url, params=params, json=opt.json(), timeout=self.timeout)
+            else:
+                r = self.session.post(url, params=params, timeout=self.timeout)
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(url))
         _check_response(r)
         return r
 
@@ -148,7 +155,10 @@ class Client(object):
             opt (:class:`alluxio.option.CreateDirectory`): Options to be used when creating a directory.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.AlreadyExistsError: If there is already a file or directory at the given path.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
 
         Examples:
             Create a directory recursively:
@@ -177,7 +187,10 @@ class Client(object):
             opt (:class:`alluxio.option.Delete`): Options to be used when deleting a path.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'delete')
@@ -194,7 +207,10 @@ class Client(object):
             bool: True if the path exists, False otherwise.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.InvalidArgumentError: If the path is invalid.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'exists')
@@ -212,7 +228,10 @@ class Client(object):
             opt (:class:`alluxio.option.Free`): Options to be used when freeing a path.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'free')
@@ -229,7 +248,10 @@ class Client(object):
             alluxio.wire.FileInfo: The information of the file or directory.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'get-status')
@@ -248,7 +270,10 @@ class Client(object):
             files and direcotries under path.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'list-status')
@@ -271,7 +296,10 @@ class Client(object):
             List of str: A list of names of the files and directories under path.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         return [status.name for status in self.list_status(path, opt)]
@@ -289,7 +317,9 @@ class Client(object):
             opt (:class:`alluxio.option.Mount`): Options to be used when mounting an under storage.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'mount')
@@ -303,7 +333,9 @@ class Client(object):
             opt (:class:`alluxio.option.Unmount`): Options to be used when unmounting an under storage.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'unmount')
@@ -318,7 +350,10 @@ class Client(object):
             opt (:class:`alluxio.option.Rename`): Options to be used when renaming a path.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'rename')
@@ -332,7 +367,10 @@ class Client(object):
             opt (:class:`alluxio.option.SetAttribute`): Options to be used when setting attribute.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._paths_url(path, 'set-attribute')
@@ -353,7 +391,10 @@ class Client(object):
             int: The file ID, which can be passed to :meth:`alluxio.Client.read` and :meth:`alluxio.Client.close`.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
 
         Examples:
             Open a file, read its contents, and close it:
@@ -385,7 +426,11 @@ class Client(object):
             int: The file ID, which can be passed to :meth:`alluxio.Client.write` and :meth:`alluxio.Client.close`.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.AlreadyExistsError: If there is already a file or directory at the given path.
+            alluxio.exceptions.InvalidArgumentError: If the path is invalid.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
 
         Examples:
             Create a file and write a string to it both in Alluxio and the under storage,
@@ -412,7 +457,10 @@ class Client(object):
             file_id (int): The file ID returned by :meth:`.open_file` or :meth:`.create_file`.
 
         Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.NotFoundError: If the path does not exist.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
         """
 
         url = self._streams_url(file_id, 'close')
@@ -426,9 +474,6 @@ class Client(object):
 
         Returns:
             Reader: The reader for reading the file as a stream.
-
-        Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._streams_url(file_id, 'read')
@@ -442,9 +487,6 @@ class Client(object):
 
         Returns:
             Reader: The reader for reading the file as a stream.
-
-        Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         url = self._streams_url(file_id, 'write')
@@ -465,7 +507,12 @@ class Client(object):
 
         Raises:
             ValueError: If mode is neither 'w' nor 'r'.
-            requests.HTTPError: If the request fails or the response status is not 200.
+            alluxio.exceptions.InvalidArgumentError: If the path is invalid.
+            alluxio.exceptions.NotFoundError: If mode is 'r' but the path does not exist.
+            alluxio.exceptions.AlreadyExistsError: If mode is 'w' but the path already exists.
+            alluxio.exceptions.AlluxioError: For any other exceptions thrown by Alluxio servers.
+                Check the error status for additional details.
+            alluxio.exceptions.HTTPError: If the underlying HTTP client library raises an error.
 
         Examples:
             Write a string to a file in Alluxio:
@@ -521,6 +568,10 @@ class Reader(object):
     This class is used by :meth:`.Client.open`, it is not intended to be created
     by users directly.
 
+    All operations on the reader will raise :class:`alluxio.exceptions.HTTPError` if the underlying
+    HTTP client library raises errors and raise :class:`alluxio.exceptions.AlluxioError` or its
+    subclasses for exceptions from Alluxio.
+
     Args:
         session (:class:`requests.Session`) The requests session.
         url (str): The Alluxio REST URL for reading a file.
@@ -532,7 +583,10 @@ class Reader(object):
         self.r = None
 
     def _init_r(self):
-        self.r = self.session.post(self.url, stream=True)
+        try:
+            self.r = self.session.post(self.url, stream=True)
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(self.url))
         _check_response(self.r)
 
     def __iter__(self):
@@ -540,7 +594,10 @@ class Reader(object):
 
         if self.r is None:
             self._init_r()
-        return self.r.iter_content(4096)
+        try:
+            return self.r.iter_content(4096)
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to iterate over the response body')
 
     def read(self, n=None):
         """Read the file stream.
@@ -551,16 +608,16 @@ class Reader(object):
 
         Returns:
             The data in bytes, if all data has been read, returns an empty string.
-
-        Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
         if self.r is None:
             self._init_r()
-        if n is None:
-            return self.r.content
-        return self.r.raw.read(n)
+        try:
+            if n is None:
+                return self.r.content
+            return self.r.raw.read(n)
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
 
     def close(self):
         """Close the reader.
@@ -570,7 +627,10 @@ class Reader(object):
         :meth:`.read` should not be called again.
         """
 
-        self.r and self.r.close()
+        try:
+            self.r and self.r.close()
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to close the reader')
 
 
 class Writer(object):
@@ -581,6 +641,10 @@ class Writer(object):
 
     This class is used by :meth:`.Client.open`, it is not intended to be created
     by users directly.
+
+    All operations on the reader will raise :class:`alluxio.exceptions.HTTPError` if the underlying
+    HTTP client library raises errors and raise :class:`alluxio.exceptions.AlluxioError` or its
+    subclasses for exceptions from Alluxio.
 
     Args:
         session (:class:`requests.Session`) The requests session.
@@ -602,15 +666,18 @@ class Writer(object):
 
         Returns:
             The number of bytes that have been written.
-
-        Raises:
-            requests.HTTPError: If the request fails or the response status is not 200.
         """
 
-        self.r = self.session.post(self.url, data=data, stream=True)
+        try:
+            self.r = self.session.post(self.url, data=data, stream=True)
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(self.url))
         _check_response(self.r)
-        bytes_written = self.r.json()
-        return bytes_written
+        try:
+            bytes_written = self.r.json()
+            return bytes_written
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
 
     def close(self):
         """Close the writer.
@@ -620,4 +687,7 @@ class Writer(object):
         should not be called again.
         """
 
-        self.r and self.r.close()
+        try:
+            self.r and self.r.close()
+        except requests.RequestException:
+            raise_with_traceback(exceptions.HTTPError, 'Failed to close the writer')
