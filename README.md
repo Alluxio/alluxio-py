@@ -1,5 +1,9 @@
 # Alluxio Python Client
 
+## Example
+
+See `example.py`.
+
 ## Dependencies
 
 * Python 2.6 or later
