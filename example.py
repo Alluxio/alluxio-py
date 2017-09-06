@@ -5,6 +5,7 @@ import json
 import sys
 
 import alluxio
+from alluxio import option
 
 
 def colorize(code):
@@ -34,7 +35,8 @@ py_test_renamed = py_test_root_dir + '/py-test-renamed'
 client = alluxio.Client('localhost', 39999)
 
 info("creating directory %s" % py_test_nested_dir)
-client.create_directory(py_test_nested_dir, recursive=True)
+opt = option.CreateDirectory(recursive=True)
+client.create_directory(py_test_nested_dir, opt)
 info("done")
 
 info("writing to %s" % py_test)
@@ -70,7 +72,8 @@ for stat in root_stats:
 info("done")
 
 info("deleting %s" % py_test_root_dir)
-client.delete(py_test_root_dir, recursive=True)
+opt = option.Delete(recursive=True)
+client.delete(py_test_root_dir, opt)
 info("done")
 
 info("asserting that %s is deleted" % py_test_root_dir)

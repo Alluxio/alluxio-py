@@ -1,16 +1,6 @@
 # -*- coding: utf-8 -*-
 """Options for Alluxio Client methods.
 
-By convention, methods in :class:`alluxio.Client` have a **kwargs** field for
-setting optional parameters. For each method, there is a corresponding option
-class in this module which defines the optional parameters that can be set in
-that method. You should not need to create these objects manually, they are
-automatically created by the methods in :class:`alluxio.Client`.
-
-Examples:
-    For :meth:`alluxio.Client.create_directory`, the parameters that
-    can be set in **kwargs** are specified in :class:`alluxio.option.CreateDirectory`.
-
 Notes:
     All classes in this module have a **json** method, which converts the class
     into a python dict that can be encoded into a json string.
