@@ -1,5 +1,13 @@
 # Alluxio Python Client
 
+[![Documentation Status](https://readthedocs.org/projects/alluxio-py/badge/?version=latest)](http://alluxio-py.readthedocs.io/en/latest/?badge=latest)
+
+## Install
+
+```bash
+pip install alluxio
+```
+
 ## Example
 
 See `example.py`.
