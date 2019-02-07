@@ -14,7 +14,7 @@ See `example.py`.
 
 ## Dependencies
 
-* Python 2.6 or later
+* Python 2.7 or later
 * requests
 * pytest
 

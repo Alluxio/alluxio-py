@@ -62,4 +62,4 @@ def raise_with_traceback(error_type, message):
     """Raise a new error with the most recent traceback."""
 
     traceback = sys.exc_info()[2]
-    reraise(error_type, message, traceback)
+    reraise(error_type, error_type(message), traceback)

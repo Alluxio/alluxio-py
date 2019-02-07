@@ -7,13 +7,23 @@ from threading import Thread
 import json
 import random
 import urllib
-from urlparse import urlparse
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 import alluxio
 
 from random_option import *
 from random_wire import *
 from util import random_str, random_int
+
+
+def get_http_header(request, key):
+    try:
+        return request.headers.getheader(key, 0)
+    except AttributeError:
+        return request.headers.get(key, 0)
 
 
 def get_free_port():
@@ -27,7 +37,7 @@ def get_free_port():
 def setup_client(handler):
     host = 'localhost'
     port = get_free_port()
-    print port
+    print(port)
     server = HTTPServer((host, port), handler)
     server_thread = Thread(target=server.serve_forever)
     server_thread.setDaemon(True)
@@ -44,13 +54,16 @@ def handle_paths_request(request, path, action, params=None, input=None, output=
         for i, (k, v) in enumerate(params.items()):
             if i != 0:
                 expected_path += '&'
-            expected_path += '{}={}'.format(k,
-                                            urllib.quote(v, safe=''))
+            try:
+                quoted_v = urllib.quote(v, safe='')
+            except AttributeError:
+                quoted_v = urllib.parse.quote(v, safe='')
+            expected_path += '{}={}'.format(k, quoted_v)
     assert request.path == expected_path
 
     if input is not None:
         # Assert that request body is expected.
-        content_len = int(request.headers.getheader('content-length', 0))
+        content_len = int(get_http_header(request, 'content-length'))
         body = request.rfile.read(content_len)
         assert json.loads(body) == input.json()
 
@@ -59,7 +72,9 @@ def handle_paths_request(request, path, action, params=None, input=None, output=
     if output is not None:
         request.send_header('Content-Type', 'application/json')
         request.end_headers()
-        request.wfile.write(json.dumps(output))
+        request.wfile.write(json.dumps(output).encode())
+    else:
+        request.end_headers()
 
 
 def paths_handler(path, action, params=None, input=None, output=None):
@@ -200,8 +215,8 @@ def handle_streams_request(request, file_id, action, input=None, output=None):
     content_len = 0
     if input is not None:
         # Assert that request body is expected.
-        content_len = int(request.headers.getheader('content-length', 0))
-        body = request.rfile.read(content_len)
+        content_len = int(get_http_header(request, 'content-length'))
+        body = request.rfile.read(content_len).decode()
         assert body == input
 
     # Respond.
@@ -209,11 +224,11 @@ def handle_streams_request(request, file_id, action, input=None, output=None):
     if output is not None:
         request.send_header('Content-Type', 'application/octet-stream')
         request.end_headers()
-        request.wfile.write(output)
+        request.wfile.write(output.encode())
     else:
         request.send_header('Content-Type', 'application/json')
         request.end_headers()
-        request.wfile.write(json.dumps(content_len))
+        request.wfile.write(json.dumps(content_len).encode())
 
 
 def streams_handler(file_id, action, input=None, output=None):
@@ -240,7 +255,7 @@ def test_read():
     reader = client.read(file_id)
     got = reader.read()
     reader.close()
-    assert got == message
+    assert got.decode() == message
 
 
 def test_write():
@@ -270,6 +285,7 @@ def combined_handler(path, path_action, file_id, stream_action, path_input=None,
                     self, file_id, stream_action, input=stream_input, output=stream_output)
             elif request_path == close_path:
                 self.send_response(200)
+                self.end_headers()
 
     return _
 
@@ -285,7 +301,7 @@ def test_open_read():
     with client.open(path, 'r') as f:
         got = f.read()
     cleanup()
-    assert got == message
+    assert got == message.encode()
 
 
 def test_open_write():
@@ -293,7 +309,7 @@ def test_open_write():
     file_id = random_int()
     message = random_str()
     handler = combined_handler(path, 'create-file', file_id, 'write',
-                               path_output=file_id, stream_input=message, stream_output=len(message))
+                               path_output=file_id, stream_input=message)
     client, cleanup = setup_client(handler)
     written_len = None
     with client.open(path, 'w') as f:

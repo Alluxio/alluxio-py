@@ -4,7 +4,7 @@ from random_option import *
 
 def test_create_directory():
     opt = random_create_directory()
-    print opt.json()
+    print(opt.json())
     json = dict(allowExists=opt.allow_exists,
                 mode=opt.mode.json(),
                 recursive=opt.recursive,
