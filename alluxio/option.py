@@ -169,11 +169,14 @@ class ListStatus(_JsonEncodable):
 
     def __init__(self, **kwargs):
         self.load_metadata_type = kwargs.get('load_metadata_type')
+        self.recursive = kwargs.get('recursive')
 
     def json(self):
         obj = {}
         if self.load_metadata_type is not None:
             obj['loadMetadataType'] = self.load_metadata_type.json()
+        if self.recursive is not None:
+            obj['recursive'] = self.recursive
         return obj
 
 
