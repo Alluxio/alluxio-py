@@ -49,7 +49,7 @@ def _check_response(r):
     if r.status_code == requests.codes.ok:
         return
     error = r.json()
-    status = error['status']
+    status = error['statusCode']
     message = error['message']
     raise exceptions.new_alluxio_exception(status, message)
 
