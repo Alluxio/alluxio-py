@@ -1,7 +1,8 @@
 from alluxio import wire
 
 from util import assert_json_decode, assert_json_encode, assert_string_subclass
-from random_wire import *
+from random_wire import random_worker_net_address, random_block_location, random_block_info, random_file_block_info, \
+    random_mode, random_file_info
 
 
 def test_bits():

@@ -18,7 +18,6 @@ import os
 import sys
 import time
 
-import syspath
 import alluxio
 from utils import alluxio_path
 
@@ -54,7 +53,7 @@ def run_write(args, data, process_id, timer):
         write_type = alluxio.wire.WriteType(args.write_type)
         t = write(client, data, dst, write_type, timer)
         print('{} seconds'.format(t))
-        sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
+        sys.stdout.flush()  # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print # noqa: E501
 
 
 def print_stats(args, average_time_per_process):
@@ -81,7 +80,6 @@ def main(args):
     for process_id in range(args.nprocess):
         p = Process(target=run_write, args=(args, data, process_id, timer))
         processes.append(p)
-    start_time = time.time()
     for p in processes:
         p.start()
     for p in processes:

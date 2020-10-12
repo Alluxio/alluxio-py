@@ -14,9 +14,8 @@ import os
 import sys
 import time
 
-import syspath
 import alluxio
-from utils import *
+from utils import alluxio_path
 
 
 def read(client, src, expected, timer):
@@ -51,7 +50,7 @@ def run_read(args, expected, process_id, timer):
         src = alluxio_path(args.src, iteration, args.node, process_id) if args.node else args.src
         t = read(client, src, expected, timer)
         print('{} seconds'.format(t))
-        sys.stdout.flush() # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print
+        sys.stdout.flush()  # https://stackoverflow.com/questions/2774585/child-processes-created-with-python-multiprocessing-module-wont-print # noqa: E501
 
 
 def print_stats(args, average_time_per_process):
@@ -78,7 +77,6 @@ def main(args):
     for process_id in range(args.nprocess):
         p = Process(target=run_read, args=(args, expected, process_id, timer))
         processes.append(p)
-    start_time = time.time()
     for p in processes:
         p.start()
     for p in processes:
@@ -101,9 +99,11 @@ if __name__ == '__main__':
                         containing all data written by parallel_write.py, \
                         if this a file, --node must not be set')
     parser.add_argument('--expected', default='data/5mb.txt',
-                        help='the path to a file in local filesystem whose content is expected to be the same as those files read from Alluxio')
+                        help='the path to a file in local filesystem whose content is expected to be the same as '
+                             'those files read from Alluxio')
     parser.add_argument(
-        '--node', help='a unique identifier to another node to read data from, if this not set, --src must be a path to an Alluxio file')
+        '--node', help='a unique identifier to another node to read data from, if this not set, --src must be a '
+                       'path to an Alluxio file')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()

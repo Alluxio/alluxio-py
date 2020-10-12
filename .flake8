@@ -1,0 +1,19 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    .tox,
+    .cache,
+    .coverage,
+    .git,
+    .idea,
+    *.iml,
+    *.pyc,
+    alluxio.egg-info/,
+    build/,
+    dist/,
+    docs/_build,
+    tests/data/,
+    tests/logs/,
+
+max-line-length = 120

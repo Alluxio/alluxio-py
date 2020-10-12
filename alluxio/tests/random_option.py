@@ -2,7 +2,7 @@ import random
 
 from alluxio import option
 
-from random_wire import *
+from random_wire import random_mode, random_ttl_action, random_read_type, random_write_type, random_load_metadata_type
 from util import random_bool, random_str, random_int
 
 

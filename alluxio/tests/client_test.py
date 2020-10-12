@@ -14,8 +14,9 @@ except ImportError:
 
 import alluxio
 
-from random_option import *
-from random_wire import *
+from random_option import random_create_directory, random_create_file, random_delete, random_free, random_list_status, \
+    random_mount, random_open_file, random_set_attribute
+from random_wire import random_file_info
 from util import random_str, random_int
 
 
@@ -269,7 +270,8 @@ def test_write():
     assert length == len(message)
 
 
-def combined_handler(path, path_action, file_id, stream_action, path_input=None, path_output=None, stream_input=None, stream_output=None):
+def combined_handler(path, path_action, file_id, stream_action, path_input=None, path_output=None, stream_input=None,
+                     stream_output=None):
     class _(BaseHTTPRequestHandler):
         def do_POST(self):
             request_path = urlparse(self.path).path
