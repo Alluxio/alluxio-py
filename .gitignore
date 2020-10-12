@@ -11,3 +11,4 @@ dist/
 docs/_build
 tests/data/
 tests/logs/
+.tox
