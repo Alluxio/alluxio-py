@@ -5,11 +5,11 @@ from alluxio import wire
 from util import random_int, random_str, random_bool
 
 
-def random_list_element(l):
-    if len(l) == 0:
+def random_list_element(el):
+    if len(el) == 0:
         return None
-    idx = random.randint(0, len(l) - 1)
-    return l[idx]
+    idx = random.randint(0, len(el) - 1)
+    return el[idx]
 
 
 def random_bits():
