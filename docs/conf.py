@@ -62,7 +62,7 @@ author = u'Alluxio, Inc'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-import alluxio
+import alluxio  # noqa: E402
 # The short X.Y version.
 version = alluxio.__version__
 # The full version, including alpha/beta/rc tags.

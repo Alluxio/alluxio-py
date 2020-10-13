@@ -1,5 +1,6 @@
 from util import assert_json_encode
-from random_option import *
+from random_option import random_create_directory, random_create_file, random_delete, random_free, random_list_status, \
+    random_mount, random_open_file, random_set_attribute
 
 
 def test_create_directory():

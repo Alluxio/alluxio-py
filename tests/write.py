@@ -11,7 +11,6 @@ import argparse
 import os
 import time
 
-import syspath
 import alluxio
 from utils import alluxio_path
 

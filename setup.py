@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 
 import os
 
+
 def get_version():
     lines = open(os.path.join('alluxio', '__init__.py')).readlines()
     vlines = [x for x in lines if '__version__' in x]

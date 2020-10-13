@@ -11,7 +11,6 @@ import argparse
 import os
 import time
 
-import syspath
 import alluxio
 from utils import alluxio_path
 
@@ -55,7 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--src', default='/alluxio-py-test',
                         help='path to the Alluxio directory for files to be read from')
     parser.add_argument('--expected', default='data/5mb.txt',
-                        help='the path to a file in local filesystem whose content is expected to be the same as those files read from Alluxio')
+                        help='the path to a file in local filesystem whose content is expected to be the same as those '
+                             'files read from Alluxio')
     parser.add_argument('--iteration', type=int, default=1,
                         help='number of iterations to repeat the concurrent reading')
     args = parser.parse_args()
