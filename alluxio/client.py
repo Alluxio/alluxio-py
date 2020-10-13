@@ -36,19 +36,19 @@ def _streams_url_path(file_id, action):
     return '%s/%s/%d/%s' % (_API_PREFIX, _STREAMS_PREFIX, file_id, action)
 
 
-def _check_response(r):
+def _check_response(response):
     """Check the response of the REST API request.
 
     Args:
-        r (:class:`requests.Response`): The response of the REST API request.
+        response (:class:`requests.Response`): The response of the REST API request.
 
     Raises:
         alluxio.exceptions.AlluxioError or its subclasses: If the response status is not 200.
     """
 
-    if r.status_code == requests.codes.ok:
+    if response.status_code == requests.codes.ok:  # pylint: disable=no-member
         return
-    error = r.json()
+    error = response.json()
     status = error['statusCode']
     message = error['message']
     raise exceptions.new_alluxio_exception(status, message)
@@ -129,13 +129,13 @@ class Client(object):
 
         try:
             if opt is not None:
-                r = self.session.post(url, params=params, json=opt.json(), timeout=self.timeout)
+                response = self.session.post(url, params=params, json=opt.json(), timeout=self.timeout)
             else:
-                r = self.session.post(url, params=params, timeout=self.timeout)
+                response = self.session.post(url, params=params, timeout=self.timeout)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(url))
-        _check_response(r)
-        return r
+        _check_response(response)
+        return response
 
     def __repr__(self):
         return 'alluxio.Client(host=%s, port=%d, timeout=%d)' % (self.host, self.port, self.timeout)
@@ -282,7 +282,7 @@ class Client(object):
         file_infos.sort()
         return file_infos
 
-    def ls(self, path, opt=None):
+    def ls(self, path, opt=None):  # pylint: disable=invalid-name
         """List the names of the files and directories under path.
 
         To get more information of the files and directories under path, call
@@ -541,7 +541,8 @@ class Client(object):
                 reader = self.read(file_id)
                 yield reader
             finally:
-                reader and reader.close()
+                if reader:
+                    reader.close()
                 self.close(file_id)
         elif mode == 'w':
             file_id = self.create_file(path, opt)
@@ -549,7 +550,8 @@ class Client(object):
                 writer = self.write(file_id)
                 yield writer
             finally:
-                writer and writer.close()
+                if writer:
+                    writer.close()
                 self.close(file_id)
         else:
             raise ValueError("mode can only be 'w' or 'r'")
@@ -580,42 +582,42 @@ class Reader(object):
     def __init__(self, session, url):
         self.session = session
         self.url = url
-        self.r = None
+        self.response = None
 
     def _init_r(self):
         try:
-            self.r = self.session.post(self.url, stream=True)
+            self.response = self.session.post(self.url, stream=True)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(self.url))
-        _check_response(self.r)
+        _check_response(self.response)
 
     def __iter__(self):
         """Make it able to use Reader as an iterator."""
 
-        if self.r is None:
+        if self.response is None:
             self._init_r()
         try:
-            return self.r.iter_content(4096)
+            return self.response.iter_content(4096)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to iterate over the response body')
 
-    def read(self, n=None):
+    def read(self, num=None):
         """Read the file stream.
 
         Args:
-            n (int, optional): The bytes to read from the stream, if n is None,
+            num (int, optional): The bytes to read from the stream, if n is None,
                 it means read the whole data stream.
 
         Returns:
             The data in bytes, if all data has been read, returns an empty string.
         """
 
-        if self.r is None:
+        if self.response is None:
             self._init_r()
         try:
-            if n is None:
-                return self.r.content
-            return self.r.raw.read(n)
+            if num is None:
+                return self.response.content
+            return self.response.raw.read(num)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
 
@@ -628,7 +630,7 @@ class Reader(object):
         """
 
         try:
-            self.r and self.r.close()
+            self.response and self.response.close()
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to close the reader')
 
@@ -654,7 +656,7 @@ class Writer(object):
     def __init__(self, session, url):
         self.session = session
         self.url = url
-        self.r = None
+        self.response = None
 
     def write(self, data):
         """Write data as a stream to the file.
@@ -669,12 +671,12 @@ class Writer(object):
         """
 
         try:
-            self.r = self.session.post(self.url, data=data, stream=True)
+            self.response = self.session.post(self.url, data=data, stream=True)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to send POST request to {}'.format(self.url))
-        _check_response(self.r)
+        _check_response(self.response)
         try:
-            bytes_written = self.r.json()
+            bytes_written = self.response.json()
             return bytes_written
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
@@ -688,6 +690,6 @@ class Writer(object):
         """
 
         try:
-            self.r and self.r.close()
+            self.response and self.response.close()
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to close the writer')

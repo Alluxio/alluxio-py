@@ -1,4 +1,7 @@
 #! -*- coding: utf-8 -*-
+"""
+Commonly used classes throughout the entire Alluxio Python interface.
+"""
 import json
 import sys
 
@@ -10,14 +13,13 @@ class _JsonEncodable(object):
 
     def json(self):
         """Convert the object into a python dict which can be encoded into a json string."""
-        pass
 
     def __repr__(self):
         """Return the json string representation of this object."""
         return json.dumps(self.json())
 
 
-class _JsonDecodable(object):
+class _JsonDecodable(object):  # pylint: disable=too-few-public-methods
     """Base class for all classes that can be decoded from json."""
 
     @classmethod
