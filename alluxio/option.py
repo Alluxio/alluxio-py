@@ -9,7 +9,7 @@ Notes:
 from .common import _JsonEncodable
 
 
-class CreateDirectory(_JsonEncodable):
+class CreateDirectory(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.create_directory`.
 
     Args:
@@ -19,7 +19,6 @@ class CreateDirectory(_JsonEncodable):
         write_type (:obj:`alluxio.wire.WriteType`): Where to create the directory,
             e.g. in Alluxio only, in under storage only, or in both.
     """
-
     def __init__(self, **kwargs):
         self.allow_exists = kwargs.get('allow_exists')
         self.mode = kwargs.get('mode')
@@ -39,7 +38,7 @@ class CreateDirectory(_JsonEncodable):
         return obj
 
 
-class CreateFile(_JsonEncodable):
+class CreateFile(_JsonEncodable):  # pylint: disable=too-many-instance-attributes,too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.create_file`.
 
     Args:
@@ -100,7 +99,7 @@ class CreateFile(_JsonEncodable):
         return obj
 
 
-class Delete(_JsonEncodable):
+class Delete(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.delete`.
 
     Args:
@@ -118,16 +117,14 @@ class Delete(_JsonEncodable):
         return obj
 
 
-class Exists(_JsonEncodable):
+class Exists(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.exists`.
 
     Currently, it is an empty class, options may be added in future releases.
     """
 
-    pass
 
-
-class Free(_JsonEncodable):
+class Free(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.free`.
 
     Args:
@@ -145,16 +142,14 @@ class Free(_JsonEncodable):
         return obj
 
 
-class GetStatus(_JsonEncodable):
+class GetStatus(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.get_status`.
 
     Currently, it is an empty class, options may be added in future releases.
     """
 
-    pass
 
-
-class ListStatus(_JsonEncodable):
+class ListStatus(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.list_status`.
 
     Args:
@@ -180,7 +175,7 @@ class ListStatus(_JsonEncodable):
         return obj
 
 
-class Mount(_JsonEncodable):
+class Mount(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.mount`.
 
     Args:
@@ -205,7 +200,7 @@ class Mount(_JsonEncodable):
         return obj
 
 
-class OpenFile(_JsonEncodable):
+class OpenFile(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.open_file`.
 
     Args:
@@ -246,16 +241,14 @@ class OpenFile(_JsonEncodable):
         return obj
 
 
-class Rename(_JsonEncodable):
+class Rename(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.rename`.
 
     Currently, it is an empty class, options may be added in future releases.
     """
 
-    pass
 
-
-class SetAttribute(_JsonEncodable):
+class SetAttribute(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.set_attribute`.
 
     Args:
@@ -301,10 +294,8 @@ class SetAttribute(_JsonEncodable):
         return obj
 
 
-class Unmount(_JsonEncodable):
+class Unmount(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.unmount`.
 
     Currently, it is an empty class, options may be added in future releases.
     """
-
-    pass

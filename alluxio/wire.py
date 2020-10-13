@@ -60,10 +60,10 @@ class BlockInfo(_JsonEncodable, _JsonDecodable):
             block locations.
     """
 
-    def __init__(self, block_id=0, length=0, locations=[]):
+    def __init__(self, block_id=0, length=0, locations=None):
         self.block_id = block_id
         self.length = length
-        self.locations = locations
+        self.locations = locations or []
 
     def json(self):
         return {
@@ -156,10 +156,10 @@ class FileBlockInfo(_JsonEncodable, _JsonDecodable):
         ufs_locations (list of str): The under storage locations that contain this block.
     """
 
-    def __init__(self, block_info=BlockInfo(), offset=0, ufs_locations=[]):
+    def __init__(self, block_info=BlockInfo(), offset=0, ufs_locations=None):
         self.block_info = block_info
         self.offset = offset
-        self.ufs_locations = ufs_locations
+        self.ufs_locations = ufs_locations or []
 
     def json(self):
         return {
@@ -176,7 +176,7 @@ class FileBlockInfo(_JsonEncodable, _JsonDecodable):
         return cls(block_info, offset, ufs_locations)
 
 
-class FileInfo(_JsonEncodable, _JsonDecodable):
+class FileInfo(_JsonEncodable, _JsonDecodable):  # pylint: disable=too-many-instance-attributes
     """A file or directory's information.
 
     Two :obj:`FileInfo` are comparable based on the attribute **name**. So a
@@ -211,14 +211,14 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
             its TTL expires.
     """
 
-    def __init__(self,
-                 block_ids=[],
+    def __init__(self,   # pylint: disable=too-many-arguments,too-many-locals
+                 block_ids=None,
                  block_size_bytes=0,
                  cacheable=False,
                  completed=False,
                  creation_time_ms=0,
                  last_modification_time_ms=0,
-                 file_block_infos=[],
+                 file_block_infos=None,
                  file_id=0,
                  folder=False,
                  owner='',
@@ -234,15 +234,14 @@ class FileInfo(_JsonEncodable, _JsonDecodable):
                  mode=0,
                  mount_point=False,
                  ttl=0,
-                 ttl_action='',
-                 ):
-        self.block_ids = block_ids
+                 ttl_action=''):
+        self.block_ids = block_ids or []
         self.block_size_bytes = block_size_bytes
         self.cacheable = cacheable
         self.completed = completed
         self.creation_time_ms = creation_time_ms
         self.last_modification_time_ms = last_modification_time_ms
-        self.file_block_infos = file_block_infos
+        self.file_block_infos = file_block_infos or []
         self.file_id = file_id
         self.folder = folder
         self.owner = owner

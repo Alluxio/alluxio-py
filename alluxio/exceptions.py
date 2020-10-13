@@ -13,7 +13,7 @@ Exceptions raised by the requests library are wrapped by :class:`HTTPError`.
 """
 
 
-class Status(object):
+class Status(object):  # pylint: disable=too-few-public-methods
     """A class representing RPC status codes.
 
     The definitions are from
@@ -145,6 +145,7 @@ class AlluxioError(Exception):
     """
 
     def __init__(self, status, message):
+        super(AlluxioError, self).__init__(message)
         self.status = status
         self.message = message
 
@@ -421,4 +422,3 @@ def new_alluxio_exception(status, message):
 
 class HTTPError(Exception):
     """Any error raised by the underlying HTTP client library will be wrapped by this error."""
-    pass
