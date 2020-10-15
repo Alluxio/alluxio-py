@@ -51,7 +51,7 @@ def test_worker_net_address():
 def test_block_location():
     location = random_block_location()
     json = dict(workerId=location.worker_id,
-                workerAddress=location.worker_address.json(),
+                workerAddress=vars(location.worker_address),
                 tierAlias=location.tier_alias)
     assert_json_encode(location, json)
     assert_json_decode(location, json)
@@ -60,14 +60,14 @@ def test_block_location():
 def test_block_info():
     block = random_block_info()
     json = dict(blockId=block.block_id, length=block.length,
-                locations=[location.json() for location in block.locations])
+                locations=[vars(location) for location in block.locations])
     assert_json_encode(block, json)
     assert_json_decode(block, json)
 
 
 def test_file_block_info():
     file_block_info = random_file_block_info()
-    json = dict(blockInfo=file_block_info.block_info.json(),
+    json = dict(blockInfo=vars(file_block_info.block_info),
                 offset=file_block_info.offset,
                 ufsLocations=file_block_info.ufs_locations)
     assert_json_encode(file_block_info, json)
@@ -76,8 +76,7 @@ def test_file_block_info():
 
 def test_mode():
     mode = random_mode()
-    json = dict(ownerBits=mode.owner_bits.json(),
-                groupBits=mode.group_bits.json(), otherBits=mode.other_bits.json())
+    json = vars(mode)
     assert_json_encode(mode, json)
     assert_json_decode(mode, json)
 
@@ -100,7 +99,7 @@ def test_file_info():
         completed=info.completed,
         creationTimeMs=info.creation_time_ms,
         lastModificationTimeMs=info.last_modification_time_ms,
-        fileBlockInfos=[block.json() for block in info.file_block_infos],
+        fileBlockInfos=[vars(block) for block in info.file_block_infos],
         fileId=info.file_id,
         folder=info.folder,
         owner=info.owner,

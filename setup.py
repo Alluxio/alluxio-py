@@ -23,6 +23,6 @@ setup(
     url='https://github.com/Alluxio/alluxio-py',
     author='Alluxio, Inc',
     packages=find_packages(exclude=['docs', 'tests']),
-    install_requires=['six', 'requests'],
+    install_requires=['six', 'requests', 'attrs'],
     tests_require=['pytest', 'pytest-cov']
 )

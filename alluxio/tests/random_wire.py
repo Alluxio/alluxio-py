@@ -26,8 +26,8 @@ def random_bits():
 
 
 def random_mode():
-    return wire.Mode(owner_bits=random_bits(), group_bits=random_bits(),
-                     other_bits=random_bits())
+    obj = wire.Mode(owner_bits=random_bits().name, group_bits=random_bits().name, other_bits=random_bits().name)
+    return obj
 
 
 def random_worker_net_address():
@@ -42,17 +42,13 @@ def random_block_location():
 
 
 def random_block_info():
-    locations = []
-    for _ in range(random.randint(1, 10)):
-        locations.append(random_block_location())
+    locations = [random_block_location() for _ in range(random.randint(1, 10))]
     return wire.BlockInfo(block_id=random_int(), length=random_int(),
                           locations=locations)
 
 
 def random_file_block_info():
-    ufs_locations = []
-    for _ in range(random.randint(1, 10)):
-        ufs_locations.append(random_str())
+    ufs_locations = [random_str() for _ in range(random.randint(1, 10))]
     return wire.FileBlockInfo(block_info=random_block_info(),
                               offset=random_int(), ufs_locations=ufs_locations)
 
@@ -99,23 +95,28 @@ def random_load_metadata_type():
 
 
 def random_file_info():
-    block_ids = []
-    for _ in range(random.randint(1, 10)):
-        block_ids.append(random_int())
-    file_block_infos = []
-    for _ in range(random.randint(1, 10)):
-        file_block_infos.append(random_file_block_info())
-    return wire.FileInfo(block_ids=block_ids, block_size_bytes=random_int(),
-                         cacheable=random_bool(), completed=random_bool(),
+    block_ids = [random_int() for _ in range(random.randint(1, 10))]
+    file_block_infos = [random_file_block_info() for _ in range(random.randint(1, 10))]
+    return wire.FileInfo(block_ids=block_ids,
+                         block_size_bytes=random_int(),
+                         cacheable=random_bool(),
+                         completed=random_bool(),
                          creation_time_ms=random_int(),
-                         file_block_infos=file_block_infos, file_id=random_int(),
-                         folder=random_bool(), group=random_str(),
+                         file_block_infos=file_block_infos,
+                         file_id=random_int(),
+                         folder=random_bool(),
+                         group=random_str(),
                          in_memory_percentage=random_int(),
                          last_modification_time_ms=random_int(),
-                         length=random_int(), mode=random_int(),
-                         mount_point=random_bool(), name=random_str(),
-                         owner=random_str(), path=random_str(),
+                         length=random_int(),
+                         mode=random_int(),
+                         mount_point=random_bool(),
+                         name=random_str(),
+                         owner=random_str(),
+                         path=random_str(),
                          persisted=random_bool(),
                          persistence_state=random_persistence_state(),
-                         pinned=random_bool(), ttl=random_int(),
-                         ttl_action=random_ttl_action(), ufs_path=random_str())
+                         pinned=random_bool(),
+                         ttl=random_int(),
+                         ttl_action=random_ttl_action(),
+                         ufs_path=random_str())

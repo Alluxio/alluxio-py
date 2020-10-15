@@ -1,3 +1,4 @@
+import json
 import random
 
 
@@ -10,13 +11,22 @@ def assert_string_subclass(obj, name):
 
 
 def assert_json_encode(obj, json_obj):
-    assert obj.json() == json_obj
+    d = vars(obj)
+    for key in d:
+        assert d[key] == json_obj[key], "{key}::{incorrect} != {correct}".format(key=key, incorrect=repr(d[key]),
+                                                                                 correct=repr(json_obj[key]))
+    assert d == json_obj
 
 
-def assert_json_decode(obj, json_str):
-    decoded = type(obj).from_json(json_str)
+def assert_json_decode(obj, json_dict):
+    decoded = type(obj).from_json(json.dumps(json_dict))
     assert type(decoded) == type(obj)
-    assert decoded.json() == obj.json()
+    d = vars(obj)
+    json_obj = vars(decoded)
+    for key in d:
+        assert d[key] == json_obj[key], "{key}::{incorrect} != {correct}".format(key=key, incorrect=repr(d[key]),
+                                                                                 correct=repr(json_obj[key]))
+    assert vars(decoded) == vars(obj)
 
 
 def random_bool():

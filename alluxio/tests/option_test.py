@@ -5,9 +5,8 @@ from random_option import random_create_directory, random_create_file, random_de
 
 def test_create_directory():
     opt = random_create_directory()
-    print(opt.json())
     json = dict(allowExists=opt.allow_exists,
-                mode=opt.mode.json(),
+                mode=vars(opt.mode),
                 recursive=opt.recursive,
                 writeType=opt.write_type.json())
     assert_json_encode(opt, json)
@@ -17,7 +16,7 @@ def test_create_file():
     opt = random_create_file()
     json = dict(blockSizeBytes=opt.block_size_bytes,
                 locationPolicyClass=opt.location_policy_class,
-                mode=opt.mode.json(),
+                mode=vars(opt.mode),
                 recursive=opt.recursive,
                 ttl=opt.ttl,
                 ttlAction=opt.ttl_action.json(),
@@ -64,7 +63,7 @@ def test_open_file():
 
 def test_set_attribute():
     opt = random_set_attribute()
-    json = dict(owner=opt.owner, group=opt.group, mode=opt.mode.json(),
+    json = dict(owner=opt.owner, group=opt.group, mode=vars(opt.mode),
                 pinned=opt.pinned, recursive=opt.recursive, ttl=opt.ttl,
                 ttlAction=opt.ttl_action.json())
     assert_json_encode(opt, json)

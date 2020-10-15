@@ -61,7 +61,6 @@ def random_set_attribute():
         group=random_str(),
         mode=random_mode(),
         owner=random_str(),
-        persisted=random_bool(),
         pinned=random_bool(),
         recursive=random_bool(),
         ttl=random_int(),
