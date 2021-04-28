@@ -22,6 +22,7 @@ setup(
     long_description='Alluxio python client based on REST API',
     url='https://github.com/Alluxio/alluxio-py',
     author='Alluxio, Inc',
+    license="Apache-2.0"
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=['six', 'requests'],
     tests_require=['pytest', 'pytest-cov']
