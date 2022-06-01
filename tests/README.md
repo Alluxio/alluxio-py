@@ -1,11 +1,56 @@
-# Overview
+# Integration tests
 
-The test scripts in this directory stress tests the Alluxio python client API.
+<!-- TOC -->
+
+- [Alluxio example cluster](#alluxio-example-cluster)
+- [Functional tests](#functional-tests)
+- [Stress tests](#stress-tests)
+
+<!-- /TOC -->
+
+
+## Alluxio example cluster
+
+Can be used as a playground and for functional integration testing
+
+Requires [docker](https://www.docker.com/) and [docker-compose](https://docs.docker.com/compose/).
+
+Start:
+
+```
+docker-compose up --build -d alluxio-proxy
+```
+
+Check:
+
+```
+proxy_host=<your docker machine host>
+port=39999
+
+curl -X POST http://$proxy_host:$port/api/v1/paths//my/create-directory
+curl -X POST http://$proxy_host:$port/api/v1/paths///list-status
+```
+
+Tear down:
+
+```
+docker-compose down -v
+```
+
+## Functional tests
+
+```
+ALLUXIO_HOST=<your docker machine host> ALLUXIO_PORT=39999 pytest -m it
+```
+
+## Stress tests
+
+Test scripts described below run stress tests using the Alluxio python client API.
 The scripts can be run on multiple nodes where each node will launch multiple
 processes to concurrently read from or write to Alluxio.
 
 
-# Parallel Write
+## Parallel Write
 
 There are multiple nodes, each node runs multiple python client processes,
 each process launched will write a file to Alluxio with filename
@@ -38,7 +83,7 @@ process 1 writes the local file data/5mb.txt to /alluxio-py-test/iteration_0/nod
 ```
 
 
-# Parallel Read
+## Parallel Read
 
 There are two modes for testing parallel read: local and remote.
 Local mode reads the same file multiple times in parallel to stress test the

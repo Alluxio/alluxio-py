@@ -145,8 +145,24 @@ class Free(_JsonEncodable):  # pylint: disable=too-few-public-methods
 class GetStatus(_JsonEncodable):  # pylint: disable=too-few-public-methods
     """Options to be used in :meth:`alluxio.Client.get_status`.
 
-    Currently, it is an empty class, options may be added in future releases.
+    Args:
+        load_metadata_type (:class:`alluxio.wire.LoadMetadataType`): The type of
+            loading metadata, can be one of
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_NEVER`,
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_ONCE`,
+            :data:`alluxio.wire.LOAD_METADATA_TYPE_ALWAYS`,
+            see documentation on :class:`alluxio.wire.LoadMetadataType` for more
+            details
     """
+
+    def __init__(self, **kwargs):
+        self.load_metadata_type = kwargs.get('load_metadata_type')
+
+    def json(self):
+        obj = {}
+        if self.load_metadata_type is not None:
+            obj['loadMetadataType'] = self.load_metadata_type.json()
+        return obj
 
 
 class ListStatus(_JsonEncodable):  # pylint: disable=too-few-public-methods

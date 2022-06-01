@@ -17,9 +17,9 @@ def test_bits():
 
 
 def test_load_metadata_type():
-    assert_string_subclass(wire.LOAD_METADATA_TYPE_NEVER, 'Never')
-    assert_string_subclass(wire.LOAD_METADATA_TYPE_ONCE, 'Once')
-    assert_string_subclass(wire.LOAD_METADATA_TYPE_ALWAYS, 'Always')
+    assert_string_subclass(wire.LOAD_METADATA_TYPE_NEVER, 'NEVER')
+    assert_string_subclass(wire.LOAD_METADATA_TYPE_ONCE, 'ONCE')
+    assert_string_subclass(wire.LOAD_METADATA_TYPE_ALWAYS, 'ALWAYS')
 
 
 def test_read_type():
