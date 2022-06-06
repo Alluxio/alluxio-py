@@ -41,7 +41,7 @@ for docstrings.
 ## Generate Documentation
 
 ```bash
-pip install 'sphinx<1.4' # the latest sphinx has some format issue in the generated html files
+pip install sphinx~=5.0
 cd docs
 make html
 # open docs/_build/html/index.html in your browser

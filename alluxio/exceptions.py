@@ -224,6 +224,7 @@ class FailedPreconditionError(AlluxioError):
     A litmus test that may help a service implementor in deciding between
     :class:`FailedPreconditionException`, :class:`AbortedException`, and
     :class:`UnavailableException`:
+
         (a) Use UnavailableException if the client can retry the failed call.
         (b) Use AbortedException if the client should retry at a higher-level (e.g., restarting a
             read-modify-write sequence).
