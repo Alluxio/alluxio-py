@@ -15,5 +15,6 @@ exclude =
     docs/_build,
     tests/data/,
     tests/logs/,
+    .eggs/,
 
 max-line-length = 120

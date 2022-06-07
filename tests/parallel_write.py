@@ -19,7 +19,6 @@ import sys
 import time
 
 import alluxio
-from alluxio import wire
 from utils import alluxio_path
 
 

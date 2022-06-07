@@ -600,6 +600,7 @@ class Reader(object):
             return self.response.iter_content(4096)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to iterate over the response body')
+        return None
 
     def read(self, num=None):
         """Read the file stream.
@@ -620,6 +621,7 @@ class Reader(object):
             return self.response.raw.read(num)
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
+        return None
 
     def close(self):
         """Close the reader.
@@ -680,6 +682,7 @@ class Writer(object):
             return bytes_written
         except requests.RequestException:
             raise_with_traceback(exceptions.HTTPError, 'Failed to read the response body')
+        return None
 
     def close(self):
         """Close the writer.
