@@ -19,6 +19,7 @@ import sys
 import time
 
 import alluxio
+from alluxio import wire
 from utils import alluxio_path
 
 
@@ -37,7 +38,8 @@ def write(client, data, dst, write_type, timer):
     """
 
     start_time = time.time()
-    with client.open(dst, 'w', recursive=True, write_type=write_type) as alluxio_file:
+    opt = alluxio.option.CreateFile(recursive=True, write_type=write_type)
+    with client.open(dst, "w", opt) as alluxio_file:
         alluxio_file.write(data)
     elapsed_time = time.time() - start_time
     with timer.get_lock():
@@ -73,7 +75,7 @@ def print_stats(args, average_time_per_process):
 
 def main(args):
     with open(args.src, 'r') as f:
-        data = f.read()
+        data = f.read().encode()
 
     timer = Value('d', 0)
     processes = []

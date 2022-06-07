@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  alluxio-master:
+    image: alluxio/alluxio:2.8.0
+    environment:
+      ALLUXIO_JAVA_OPTS: "-Dalluxio.master.hostname=alluxio-master"
+    volumes:
+      - /opt/alluxio/underFSStorage
+    command: ["master"]
+    ports:
+      - "19999:19999"
+      - "19998:19998"
+
+  alluxio-worker:
+    image: alluxio/alluxio:2.8.0
+    environment:
+      ALLUXIO_JAVA_OPTS: "-Dalluxio.worker.memory.size=512m -Dalluxio.master.hostname=alluxio-master"
+    links:
+      - alluxio-master
+    volumes:
+      - /opt/alluxio/underFSStorage
+    command: ["worker"]
+    ports:
+      - "30000:30000"
+      - "29999:29999"
+
+  alluxio-proxy:
+    image: alluxio/alluxio:2.8.0
+    links:
+      - alluxio-worker
+    environment:
+      ALLUXIO_JAVA_OPTS: "-Dalluxio.master.hostname=alluxio-master"
+    command: ["proxy"]
+    ports:
+      - "39999:39999"

@@ -340,11 +340,11 @@ class LoadMetadataType(String):
 
 
 #: Never load metadata.
-LOAD_METADATA_TYPE_NEVER = LoadMetadataType('Never')
+LOAD_METADATA_TYPE_NEVER = LoadMetadataType('NEVER')
 #: Load metadata only at the first time of listing status on a directory.
-LOAD_METADATA_TYPE_ONCE = LoadMetadataType('Once')
+LOAD_METADATA_TYPE_ONCE = LoadMetadataType('ONCE')
 #: Always load metadata when listing status on a directory.
-LOAD_METADATA_TYPE_ALWAYS = LoadMetadataType('Always')
+LOAD_METADATA_TYPE_ALWAYS = LoadMetadataType('ALWAYS')
 
 
 class Mode(_JsonEncodable, _JsonDecodable):
