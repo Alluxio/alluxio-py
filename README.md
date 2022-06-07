@@ -17,6 +17,7 @@ See `example.py`.
 * Python 2.7 or later
 * requests
 * pytest
+* tox
 
 ```bash
 pip install -r requirements.txt
@@ -53,6 +54,12 @@ Unit tests are in `alluxio/tests` directory, they can be run under the `alluxio-
 
 ```bash
 pytest
+```
+
+or
+
+```bash
+tox
 ```
 
 See the test coverage report by
