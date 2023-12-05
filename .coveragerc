@@ -1,8 +1,0 @@
-[run]
-omit = 
-  alluxio/tests/*
-  docs/*
-  example.py
-  setup.py
-  tests/*
-  requests/packages/*
