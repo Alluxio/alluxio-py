@@ -107,3 +107,7 @@ Returns:
 print(alluxio.read(full_ufs_file_path))
 ```
 See datasets/alluxio.py AlluxioDataset for more example usage
+
+## Development
+
+See [Contributions](CONTRIBUTING.md) for guidelines around making new contributions and reviewing them.
