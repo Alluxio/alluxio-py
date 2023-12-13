@@ -20,7 +20,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-class FileStatus:
+class AlluxioPathStatus:
     def __init__(self, type, name, path, ufs_path, last_modification_time_ms, human_readable_file_size, length):
         self.type = type
         self.name = name
@@ -187,7 +187,7 @@ class AlluxioFileSystem:
             response.raise_for_status()
             result = []
             for data in json.loads(response.content):
-                result.append(FileStatus(
+                result.append(AlluxioPathStatus(
                     data['mType'],
                     data['mName'],
                     data['mPath'],
@@ -243,7 +243,7 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             data = json.loads(response.content)[0]
-            return FileStatus(
+            return AlluxioPathStatus(
                 data['mType'],
                 data['mName'],
                 data['mPath'],
