@@ -4,10 +4,12 @@ import json
 import logging
 import os
 import re
+import time
 
 import humanfriendly
 import requests
 from requests.adapters import HTTPAdapter
+from enum import Enum
 
 from .worker_ring import ConsistentHashProvider
 from .worker_ring import EtcdClient
@@ -18,6 +20,20 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+class FileStatus:
+    def __init__(self, type, name, path, ufs_path, last_modification_time_ms, human_readable_file_size, length):
+        self.type = type
+        self.name = name
+        self.path = path
+        self.ufs_path = ufs_path
+        self.last_modification_time_ms = last_modification_time_ms
+        self.human_readable_file_size = human_readable_file_size
+        self.length = length
+
+class Progress(Enum):
+    ONGOING = 1
+    SUCCESS = 2
+    FAIL = 3
 
 class AlluxioFileSystem:
     """
@@ -48,6 +64,18 @@ class AlluxioFileSystem:
     LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
     PAGE_URL_FORMAT = (
         "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
+    )
+    GET_FILE_STATUS_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/info"
+    )
+    LOAD_SUBMIT_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
+    )
+    LOAD_PROGRESS_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=progress"
+    )
+    LOAD_STOP_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=stop"
     )
 
     def __init__(
@@ -126,20 +154,27 @@ class AlluxioFileSystem:
         Example:
             [
                 {
-                    "mType": "file",
-                    "mName": "my_file_name",
-                    "mLength": 77542
+                    type: "file",
+                    name: "my_file_name",
+                    path: '/my_file_name',
+                    ufs_path: 's3://example-bucket/my_file_name',
+                    last_modification_time_ms: 0,
+                    length: 77542,
+                    human_readable_file_size: '75.72KB'
                 },
                 {
-                    "mType": "directory",
-                    "mName": "my_dir_name",
-                    "mLength": 0
+                    type: "directory",
+                    name: "my_dir_name",
+                    path: '/my_dir_name',
+                    ufs_path: 's3://example-bucket/my_dir_name',
+                    last_modification_time_ms: 0,
+                    length: 0,
+                    human_readable_file_size: '0B'
                 },
 
             ]
         """
         self._validate_path(path)
-        path_id = self._get_path_hash(path)
         worker_host = self._get_preferred_worker_host(path)
         params = {"path": path}
         try:
@@ -150,10 +185,186 @@ class AlluxioFileSystem:
                 params=params,
             )
             response.raise_for_status()
-            return json.loads(response.content)
+            result = []
+            for data in json.loads(response.content):
+                result.append(FileStatus(
+                    data['mType'],
+                    data['mName'],
+                    data['mPath'],
+                    data['mUfsPath'],
+                    data['mLastModificationTimeMs'],
+                    data['mHumanReadableFileSize'],
+                    data['mLength']
+                ))
+            return result
         except Exception as e:
             raise Exception(
                 f"Error when listing path {path}: error {e}"
+            ) from e
+
+    def get_file_status(self, path):
+        """
+        Gets the file status of the path.
+
+        Args:
+            path (str): The full ufs path to get the file status of
+
+        Returns:
+            File Status: The struct has:
+                - type (string): directory or file
+                - name (string): name of the directory/file
+                - path (string): the path of the file
+                - ufs_path (string): the ufs path of the file
+                - last_modification_time_ms (long): the last modification time
+                - length (integer): length of the file or 0 for directory
+                - human_readable_file_size (string): the size of the human readable files
+
+        Example:
+            {
+                type: 'directory',
+                name: 'a',
+                path: '/a',
+                ufs_path: 's3://example-bucket/a',
+                last_modification_time_ms: 0,
+                length: 0,
+                human_readable_file_size: '0B'
+            }
+        """
+        self._validate_path(path)
+        worker_host = self._get_preferred_worker_host(path)
+        params = {"path": path}
+        try:
+            response = self.session.get(
+                self.GET_FILE_STATUS_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                ),
+                params=params,
+            )
+            response.raise_for_status()
+            data = json.loads(response.content)[0]
+            return FileStatus(
+                data['mType'],
+                data['mName'],
+                data['mPath'],
+                data['mUfsPath'],
+                data['mLastModificationTimeMs'],
+                data['mHumanReadableFileSize'],
+                data['mLength']
+            )
+        except Exception as e:
+            raise Exception(
+                f"Error when getting file status path {path}: error {e}"
+            ) from e
+
+    def load(
+        self,
+        file_path,
+        timeout=None,
+    ):
+        """
+        Loads a file.
+
+        Args:
+            file_path (str): The full ufs file path to load data from
+            timout (integer): The number of seconds for timeout
+
+        Returns:
+            result (boolean): Whether the file has been loaded successfully
+        """
+        worker_host = self._get_preferred_worker_host(file_path)
+        return self._load_file(worker_host, file_path, timeout)
+
+    def submit_load(
+        self,
+        file_path,
+    ):
+        """
+        Submits a load job for a file.
+
+        Args:
+            file_path (str): The full ufs file path to load data from
+
+        Returns:
+            result (boolean): Whether the job has been submitted successfully
+        """
+        worker_host = self._get_preferred_worker_host(file_path)
+        try:
+            response = self.session.get(
+                self.LOAD_SUBMIT_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path=file_path,
+                ),
+            )
+            response.raise_for_status()
+            return b"successfully" in response.content
+        except Exception as e:
+            raise Exception(
+                f"Error when submitting load job for path {file_path} from {worker_host}: error {e}"
+            ) from e
+
+    def stop_load(
+        self,
+        file_path,
+    ):
+        """
+        Stops a load job for a file.
+
+        Args:
+            file_path (str): The full ufs file path to load data from
+
+        Returns:
+            result (boolean): Whether the job has been stopped successfully
+        """
+        worker_host = self._get_preferred_worker_host(file_path)
+        try:
+            response = self.session.get(
+                self.LOAD_STOP_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path=file_path,
+                ),
+            )
+            response.raise_for_status()
+            return b"successfully" in response.content
+        except Exception as e:
+            raise Exception(
+                f"Error when stopping load job for path {file_path} from {worker_host}: error {e}"
+            ) from e
+
+    def load_progress(
+        self,
+        file_path,
+    ):
+        """
+        Gets the progress of the load job for a file.
+
+        Args:
+            file_path (str): The full ufs file path to load data from
+
+        Returns:
+            progress (Progress): The progress of the load job
+        """
+        worker_host = self._get_preferred_worker_host(file_path)
+        try:
+            response = self.session.get(
+                self.LOAD_PROGRESS_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path=file_path,
+                ),
+            )
+            response.raise_for_status()
+            progress_str = response.content.decode("utf-8")
+            if 'RUNNING' in progress_str:
+                return Progress.ONGOING
+            if 'SUCCEEDED' in progress_str:
+                return Progress.SUCCESS
+            return Progress.FAIL
+        except Exception as e:
+            raise Exception(
+                f"Error when getting load job progress for path {file_path} from {worker_host}: error {e}"
             ) from e
 
     def read(self, file_path):
@@ -218,7 +429,7 @@ class AlluxioFileSystem:
             except Exception as e:
                 if page_index == 0:
                     raise Exception(
-                        f"Error when reading page 0 of {file_path}: error {e}"
+                        f"Error when reading page 0 of {path_id}: error {e}"
                     ) from e
                 else:
                     # TODO(lu) distinguish end of file exception and real exception
@@ -249,7 +460,7 @@ class AlluxioFileSystem:
             except Exception as e:
                 if page_index == start_page_index:
                     raise Exception(
-                        f"Error when reading page {page_index} of {file_path}: error {e}"
+                        f"Error when reading page {page_index} of {path_id}: error {e}"
                     ) from e
                 else:
                     # TODO(lu) distinguish end of file exception and real exception
@@ -277,6 +488,46 @@ class AlluxioFileSystem:
         )
         session.mount("http://", adapter)
         return session
+
+    def _load_file(self, worker_host, path, timeout):
+        try:
+            response = self.session.get(
+                self.LOAD_SUBMIT_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path=path,
+                ),
+            )
+            response.raise_for_status()
+            currentTime = time.time()
+            stopTime = 0
+            if timeout is not None:
+                stopTime = currentTime + timeout
+            while timeout is None or time.time() <= stopTime:
+                response = self.session.get(
+                    self.LOAD_PROGRESS_URL_FORMAT.format(
+                        worker_host=worker_host,
+                        http_port=self.http_port,
+                        path=path,
+                    ),
+                )
+                response.raise_for_status()
+                content = response.content
+                if b"SUCCEEDED" in content:
+                    logging.info(content.decode("utf-8"))
+                    return True
+                if b"FAILED" in content:
+                    raise Exception(f"{content}")
+                if timeout is None or stopTime - time.time() >= 10:
+                    time.sleep(10)
+                else:
+                    if timeout is not None:
+                        time.sleep(stopTime - time.time())
+            raise Exception(f"Load timeout!")
+        except Exception as e:
+            raise Exception(
+                f"Error when loading file {path} from {worker_host}: error {e}"
+            ) from e
 
     def _read_page(self, worker_host, path_id, page_index):
         try:
