@@ -298,7 +298,8 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
-            return b"successfully" in response.content
+            content = json.loads(response.content.decode("utf-8"))
+            return content["success"]
         except Exception as e:
             raise Exception(
                 f"Error when submitting load job for path {file_path} from {worker_host}: error {e}"
@@ -327,7 +328,8 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
-            return b"successfully" in response.content
+            content = json.loads(response.content.decode("utf-8"))
+            return content["success"]
         except Exception as e:
             raise Exception(
                 f"Error when stopping load job for path {file_path} from {worker_host}: error {e}"
@@ -356,10 +358,10 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
-            progress_str = response.content.decode("utf-8")
-            if 'RUNNING' in progress_str:
+            content = json.loads(response.content.decode("utf-8"))
+            if content["jobState"] == 'RUNNING':
                 return Progress.ONGOING
-            if 'SUCCEEDED' in progress_str:
+            if content["jobState"] == 'SUCCEEDED':
                 return Progress.SUCCESS
             return Progress.FAIL
         except Exception as e:
@@ -499,6 +501,9 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
+            content = json.loads(response.content.decode("utf-8"))
+            if not content["success"]:
+                return false
             currentTime = time.time()
             stopTime = 0
             if timeout is not None:
@@ -512,11 +517,11 @@ class AlluxioFileSystem:
                     ),
                 )
                 response.raise_for_status()
-                content = response.content
-                if b"SUCCEEDED" in content:
-                    logging.info(content.decode("utf-8"))
+                content = json.loads(response.content.decode("utf-8"))
+                if content["jobState"] == 'SUCCEEDED':
+                    logging.info(content)
                     return True
-                if b"FAILED" in content:
+                if content["jobState"] == 'FAILED':
                     raise Exception(f"{content}")
                 if timeout is None or stopTime - time.time() >= 10:
                     time.sleep(10)
