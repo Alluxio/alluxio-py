@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 
 import humanfriendly
@@ -77,6 +78,7 @@ class AlluxioFileSystem:
     LOAD_STOP_URL_FORMAT = (
         "http://{worker_host}:{http_port}/v1/load?path={path}&opType=stop"
     )
+    WAIT_SECONDS = 60
 
     def __init__(
         self,
@@ -137,6 +139,21 @@ class AlluxioFileSystem:
             worker_addresses, self.logger
         )
         self.http_port = http_port
+        self.req_counter = 0
+        self.threadLock = threading.Lock()
+        def refresh_worker():
+            with self.threadLock:
+                if self.req_counter == 0:
+                    worker_addresses = EtcdClient(
+                        host=etcd_host, options=options
+                    ).get_worker_addresses()
+                    self.hash_provider = ConsistentHashProvider(
+                        worker_addresses, self.logger
+                    )
+            threading.Timer(WAIT_SECONDS, refresh_worker).start()
+        if etcd_host:
+            refresh_worker()
+
 
     def listdir(self, path):
         """
@@ -175,9 +192,11 @@ class AlluxioFileSystem:
             ]
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
-        params = {"path": path}
         try:
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(path)
+            params = {"path": path}
             response = self.session.get(
                 self.LIST_URL_FORMAT.format(
                     worker_host=worker_host, http_port=self.http_port
@@ -196,8 +215,12 @@ class AlluxioFileSystem:
                     data['mHumanReadableFileSize'],
                     data['mLength']
                 ))
+            with self.threadLock:
+                self.req_counter -= 1
             return result
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when listing path {path}: error {e}"
             ) from e
@@ -231,9 +254,11 @@ class AlluxioFileSystem:
             }
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
-        params = {"path": path}
         try:
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(path)
+            params = {"path": path}
             response = self.session.get(
                 self.GET_FILE_STATUS_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -243,6 +268,8 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             data = json.loads(response.content)[0]
+            with self.threadLock:
+                self.req_counter -= 1
             return AlluxioPathStatus(
                 data['mType'],
                 data['mName'],
@@ -253,6 +280,8 @@ class AlluxioFileSystem:
                 data['mLength']
             )
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when getting file status path {path}: error {e}"
             ) from e
@@ -272,8 +301,13 @@ class AlluxioFileSystem:
         Returns:
             result (boolean): Whether the file has been loaded successfully
         """
+        with self.threadLock:
+                self.req_counter += 1
         worker_host = self._get_preferred_worker_host(file_path)
-        return self._load_file(worker_host, file_path, timeout)
+        result = self._load_file(worker_host, file_path, timeout)
+        with self.threadLock:
+                self.req_counter -= 1
+        return result
 
     def submit_load(
         self,
@@ -288,8 +322,10 @@ class AlluxioFileSystem:
         Returns:
             result (boolean): Whether the job has been submitted successfully
         """
-        worker_host = self._get_preferred_worker_host(file_path)
         try:
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(file_path)
             response = self.session.get(
                 self.LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -298,8 +334,12 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
+            with self.threadLock:
+                self.req_counter -= 1
             return b"successfully" in response.content
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when submitting load job for path {file_path} from {worker_host}: error {e}"
             ) from e
@@ -317,8 +357,10 @@ class AlluxioFileSystem:
         Returns:
             result (boolean): Whether the job has been stopped successfully
         """
-        worker_host = self._get_preferred_worker_host(file_path)
         try:
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(file_path)
             response = self.session.get(
                 self.LOAD_STOP_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -327,8 +369,12 @@ class AlluxioFileSystem:
                 ),
             )
             response.raise_for_status()
+            with self.threadLock:
+                self.req_counter -= 1
             return b"successfully" in response.content
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when stopping load job for path {file_path} from {worker_host}: error {e}"
             ) from e
@@ -346,8 +392,10 @@ class AlluxioFileSystem:
         Returns:
             progress (Progress): The progress of the load job
         """
-        worker_host = self._get_preferred_worker_host(file_path)
         try:
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(file_path)
             response = self.session.get(
                 self.LOAD_PROGRESS_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -357,12 +405,16 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             progress_str = response.content.decode("utf-8")
+            with self.threadLock:
+                self.req_counter -= 1
             if 'RUNNING' in progress_str:
                 return Progress.ONGOING
             if 'SUCCEEDED' in progress_str:
                 return Progress.SUCCESS
             return Progress.FAIL
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when getting load job progress for path {file_path} from {worker_host}: error {e}"
             ) from e
@@ -378,11 +430,18 @@ class AlluxioFileSystem:
             file content (str): The full file content
         """
         self._validate_path(file_path)
-        worker_host = self._get_preferred_worker_host(file_path)
-        path_id = self._get_path_hash(file_path)
         try:
-            return b"".join(self._all_page_generator(worker_host, path_id))
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(file_path)
+            path_id = self._get_path_hash(file_path)
+            result = b"".join(self._all_page_generator(worker_host, path_id))
+            with self.threadLock:
+                self.req_counter -= 1
+            return result
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when reading file {file_path}: error {e}"
             ) from e
@@ -406,15 +465,23 @@ class AlluxioFileSystem:
         if not isinstance(length, int) or (length <= 0 and length != -1):
             raise ValueError("Length must be a positive integer or -1")
 
-        worker_host = self._get_preferred_worker_host(file_path)
-        path_id = self._get_path_hash(file_path)
         try:
-            return b"".join(
+            with self.threadLock:
+                self.req_counter += 1
+            worker_host = self._get_preferred_worker_host(file_path)
+            path_id = self._get_path_hash(file_path)
+
+            result = b"".join(
                 self._range_page_generator(
                     worker_host, path_id, offset, length
                 )
             )
+            with self.threadLock:
+                self.req_counter -= 1
+            return result
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when reading file {file_path}: error {e}"
             ) from e
@@ -525,6 +592,8 @@ class AlluxioFileSystem:
                         time.sleep(stopTime - time.time())
             raise Exception(f"Load timeout!")
         except Exception as e:
+            with self.threadLock:
+                self.req_counter -= 1
             raise Exception(
                 f"Error when loading file {path} from {worker_host}: error {e}"
             ) from e
