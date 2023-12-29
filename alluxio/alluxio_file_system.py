@@ -512,8 +512,8 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
-            if not content["success"]:
-                return false
+            if not content[self.ALLUXIO_SUCCESS_IDENTIFIER]:
+                return False
 
             load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
                 worker_host=worker_host,
