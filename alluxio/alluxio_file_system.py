@@ -100,7 +100,7 @@ class AlluxioFileSystem:
 
     def __init__(
         self,
-        etcd_host=None,
+        etcd_hosts=None,
         worker_hosts=None,
         options=None,
         logger=None,
@@ -111,11 +111,11 @@ class AlluxioFileSystem:
         Inits Alluxio file system.
 
         Args:
-            etcd_host (str, optional):
-                The hostname of ETCD to get worker addresses from
-                Either etcd_host or worker_hosts should be provided, not both.
+            etcd_hosts (str, optional):
+                The hostnames of ETCD to get worker addresses from
+                The hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
             worker_hosts (str, optional):
-                The worker hostnames in host1,host2,host3 format. Either etcd_host or worker_hosts should be provided, not both.
+                The worker hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
             options (dict, optional):
                 A dictionary of Alluxio property key and values.
                 Note that Alluxio Python API only support a limited set of Alluxio properties.
@@ -126,13 +126,13 @@ class AlluxioFileSystem:
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
         """
-        if etcd_host is None and worker_hosts is None:
+        if etcd_hosts is None and worker_hosts is None:
             raise ValueError(
-                "Must supply either 'etcd_host' or 'worker_hosts'"
+                "Must supply either 'etcd_hosts' or 'worker_hosts'"
             )
-        if etcd_host and worker_hosts:
+        if etcd_hosts and worker_hosts:
             raise ValueError(
-                "Supply either 'etcd_host' or 'worker_hosts', not both"
+                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
         self.session = self._create_session(concurrency)
@@ -147,10 +147,22 @@ class AlluxioFileSystem:
 
         # parse worker info to form hash ring
         worker_addresses = None
-        if etcd_host:
-            worker_addresses = EtcdClient(
-                host=etcd_host, options=options
-            ).get_worker_addresses()
+        if etcd_hosts:
+            worker_addresses = []
+            etcd_hosts_list = etcd_hosts.split(",")
+            random.shuffle(etcd_hosts_list)
+            for host in etcd_hosts_list:
+                try:
+                    worker_addresses = EtcdClient(
+                        host=host, options=options
+                    ).get_worker_addresses()
+                    break
+                except Exception as e:
+                    continue
+            if worker_addresses == []:
+                raise Exception(
+                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                )
         else:
             worker_addresses = WorkerNetAddress.from_worker_hosts(worker_hosts)
         self.hash_provider = ConsistentHashProvider(
@@ -542,7 +554,9 @@ class AlluxioFileSystem:
                 if timeout is None or stop_time - time.time() >= 10:
                     time.sleep(10)
                 else:
-                    self.logger.debug(f"Failed to load path {path} within timeout")
+                    self.logger.debug(
+                        f"Failed to load path {path} within timeout"
+                    )
                     return False
 
         except Exception as e:
