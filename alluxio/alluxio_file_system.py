@@ -149,7 +149,9 @@ class AlluxioFileSystem:
         worker_addresses = None
         if etcd_hosts:
             worker_addresses = []
-            for host in etcd_hosts.split(","):
+            etcd_hosts_list = etcd_hosts.split(",")
+            random.shuffle(etcd_hosts_list)
+            for host in etcd_hosts_list:
                 try:
                     worker_addresses = EtcdClient(
                         host=host, options=options
@@ -158,7 +160,9 @@ class AlluxioFileSystem:
                 except Exception as e:
                     continue
             if worker_addresses == []:
-                raise Exception(f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}")
+                raise Exception(
+                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                )
         else:
             worker_addresses = WorkerNetAddress.from_worker_hosts(worker_hosts)
         self.hash_provider = ConsistentHashProvider(
@@ -550,7 +554,9 @@ class AlluxioFileSystem:
                 if timeout is None or stop_time - time.time() >= 10:
                     time.sleep(10)
                 else:
-                    self.logger.debug(f"Failed to load path {path} within timeout")
+                    self.logger.debug(
+                        f"Failed to load path {path} within timeout"
+                    )
                     return False
 
         except Exception as e:
