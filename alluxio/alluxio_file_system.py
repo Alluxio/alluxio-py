@@ -84,8 +84,11 @@ class AlluxioFileSystem:
     ALLUXIO_PAGE_SIZE_DEFAULT_VALUE = "1MB"
     ALLUXIO_SUCCESS_IDENTIFIER = "success"
     LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
-    PAGE_URL_FORMAT = (
+    FULL_PAGE_URL_FORMAT = (
         "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
+    )
+    PAGE_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
     )
     GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
     LOAD_SUBMIT_URL_FORMAT = (
@@ -450,6 +453,7 @@ class AlluxioFileSystem:
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
 
+        # Determine the end page index and the read-to position
         if length == -1:
             end_page_index = None
         else:
@@ -459,32 +463,31 @@ class AlluxioFileSystem:
         page_index = start_page_index
         while True:
             try:
-                page_content = self._read_page(
-                    worker_host, path_id, page_index
-                )
+                if page_index == start_page_index:
+                    if start_page_index == end_page_index:
+                        read_length = end_page_read_to - start_page_offset
+                    else:
+                        read_length = self.page_size - start_page_offset
+                    page_content = self._read_page(worker_host, path_id, page_index, start_page_offset, read_length)
+                elif page_index == end_page_index:
+                    page_content = self._read_page(worker_host, path_id, page_index, 0, end_page_read_to)
+                else:
+                    page_content = self._read_page(worker_host, path_id, page_index)
+
+                yield page_content
+
+                # Check if it's the last page or the end of the file
+                if page_index == end_page_index or len(page_content) < self.page_size:
+                    break
+
+                page_index += 1
+
             except Exception as e:
                 if page_index == start_page_index:
-                    raise Exception(
-                        f"Error when reading page {page_index} of {path_id}: error {e}"
-                    ) from e
+                    raise Exception(f"Error when reading page {page_index} of {path_id}: error {e}") from e
                 else:
-                    # TODO(lu) distinguish end of file exception and real exception
+                    # read some data successfully, return those data
                     break
-            if page_index == start_page_index:
-                if start_page_index == end_page_index:
-                    yield page_content[start_page_offset:end_page_read_to]
-                    break
-                else:
-                    page_content = page_content[start_page_offset:]
-            elif page_index == end_page_index:
-                yield page_content[:end_page_read_to]
-                break
-            elif len(page_content) < self.page_size:
-                yield page_content
-                break
-
-            yield page_content
-            page_index += 1
 
     def _create_session(self, concurrency):
         session = requests.Session()
@@ -559,18 +562,32 @@ class AlluxioFileSystem:
                 f"Error when getting load job progress for {load_url}: error {e}"
             ) from e
 
-    def _read_page(self, worker_host, path_id, page_index):
+    def _read_page(self, worker_host, path_id, page_index, offset=None, length=None):
+        if (offset is None) != (length is None):
+            raise ValueError("Both offset and length should be either None or both not None")
+
         try:
-            response = self.session.get(
-                self.PAGE_URL_FORMAT.format(
+            if offset is None:
+                page_url = self.FULL_PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path_id=path_id,
                     page_index=page_index,
-                ),
-            )
+                )
+            else:
+                page_url = self.PAGE_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path_id=path_id,
+                    page_index=page_index,
+                    page_offset=offset,
+                    page_length=length,
+                )
+
+            response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
+
         except Exception as e:
             raise Exception(
                 f"Error when requesting file {path_id} page {page_index} from {worker_host}: error {e}"
