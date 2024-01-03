@@ -87,8 +87,9 @@ class AlluxioFileSystem:
     FULL_PAGE_URL_FORMAT = (
         "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
     )
-    PAGE_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
+    PAGE_URL_FORMAT = "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
+    WRITE_PAGE_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
     )
     GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
     LOAD_SUBMIT_URL_FORMAT = (
@@ -427,6 +428,39 @@ class AlluxioFileSystem:
                 f"Error when reading file {file_path}: error {e}"
             ) from e
 
+    def write_page(self, file_path, page_index, page_bytes):
+        """
+        Writes a page.
+
+        Args:
+            file_path: The path of the file where data is to be written.
+            page_index: The page index in the file to write the data.
+            page_bytes: The byte data to write to the specified page, MUST BE FULL PAGE.
+
+        Returns:
+            True if the write was successful, False otherwise.
+        """
+        self._validate_path(file_path)
+        worker_host = self._get_preferred_worker_host(file_path)
+        path_id = self._get_path_hash(file_path)
+        try:
+            response = requests.post(
+                self.WRITE_PAGE_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path_id=path_id,
+                    page_index=page_index,
+                ),
+                headers={"Content-Type": "application/octet-stream"},
+                data=page_bytes,
+            )
+            response.raise_for_status()
+            return 200 <= response.status_code < 300
+        except requests.RequestException as e:
+            raise Exception(
+                f"Error writing to file {file_path} at page {page_index}: {e}"
+            )
+
     def _all_page_generator(self, worker_host, path_id):
         page_index = 0
         while True:
@@ -468,23 +502,38 @@ class AlluxioFileSystem:
                         read_length = end_page_read_to - start_page_offset
                     else:
                         read_length = self.page_size - start_page_offset
-                    page_content = self._read_page(worker_host, path_id, page_index, start_page_offset, read_length)
+                    page_content = self._read_page(
+                        worker_host,
+                        path_id,
+                        page_index,
+                        start_page_offset,
+                        read_length,
+                    )
                 elif page_index == end_page_index:
-                    page_content = self._read_page(worker_host, path_id, page_index, 0, end_page_read_to)
+                    page_content = self._read_page(
+                        worker_host, path_id, page_index, 0, end_page_read_to
+                    )
                 else:
-                    page_content = self._read_page(worker_host, path_id, page_index)
+                    page_content = self._read_page(
+                        worker_host, path_id, page_index
+                    )
 
                 yield page_content
 
                 # Check if it's the last page or the end of the file
-                if page_index == end_page_index or len(page_content) < self.page_size:
+                if (
+                    page_index == end_page_index
+                    or len(page_content) < self.page_size
+                ):
                     break
 
                 page_index += 1
 
             except Exception as e:
                 if page_index == start_page_index:
-                    raise Exception(f"Error when reading page {page_index} of {path_id}: error {e}") from e
+                    raise Exception(
+                        f"Error when reading page {page_index} of {path_id}: error {e}"
+                    ) from e
                 else:
                     # read some data successfully, return those data
                     break
@@ -562,9 +611,13 @@ class AlluxioFileSystem:
                 f"Error when getting load job progress for {load_url}: error {e}"
             ) from e
 
-    def _read_page(self, worker_host, path_id, page_index, offset=None, length=None):
+    def _read_page(
+        self, worker_host, path_id, page_index, offset=None, length=None
+    ):
         if (offset is None) != (length is None):
-            raise ValueError("Both offset and length should be either None or both not None")
+            raise ValueError(
+                "Both offset and length should be either None or both not None"
+            )
 
         try:
             if offset is None:
