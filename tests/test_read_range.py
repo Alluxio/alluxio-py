@@ -22,11 +22,11 @@ def parse_args():
         help="The local file path to validate against",
     )
     parser.add_argument(
-        "--etcd_host",
+        "--etcd_hosts",
         type=str,
         default="localhost",
         required=False,
-        help="The host address for etcd",
+        help="The host address(es) for etcd",
     )
     parser.add_argument(
         "--num_tests",
@@ -56,7 +56,7 @@ def test_invalid_read_range(
     alluxio_fs, alluxio_file_path, local_file_path, offset, length
 ):
     try:
-        lluxio_fs.read_range(alluxio_file_path, offset, length)
+        alluxio_fs.read_range(alluxio_file_path, offset, length)
     except Exception as alluxio_error:
         alluxio_exception = alluxio_error
     else:
@@ -77,7 +77,7 @@ def test_invalid_read_range(
 
 
 def main(args):
-    alluxio_fs = AlluxioFileSystem(etcd_host=args.etcd_host)
+    alluxio_fs = AlluxioFileSystem(etcd_hosts=args.etcd_host)
     file_size = os.path.getsize(args.local_file_path)
 
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
