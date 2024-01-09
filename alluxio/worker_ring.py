@@ -88,10 +88,10 @@ class WorkerNetAddress:
 
     @staticmethod
     def from_worker_hosts(worker_hosts):
-        worker_addresses = set()
+        worker_addresses = []
         for host in worker_hosts.split(","):
             worker_address = WorkerNetAddress(host=host)
-            worker_addresses.add(worker_address)
+            worker_addresses.append(worker_address)
         return worker_addresses
 
     def dump_main_info(self):
@@ -138,12 +138,12 @@ class EtcdClient:
         """
         # Note that EtcdClient should not be passed through python multiprocessing
         etcd = self._get_etcd_client()
-        worker_addresses = set()
+        worker_addresses = None
         try:
-            worker_addresses = {
+            worker_addresses = [
                 WorkerNetAddress.from_worker_info(worker_info)
                 for worker_info, _ in etcd.get_prefix(self.PREFIX)
-            }
+            ]
         except Exception as e:
             raise Exception(
                 f"Failed to achieve worker info list from ETCD server {self.host}:{self.port} {e}"
@@ -170,27 +170,30 @@ class EtcdClient:
 class ConsistentHashProvider:
     def __init__(
         self,
-        etcd_hosts=None,
-        worker_hosts=None,
+        worker_addresses,
         logger=None,
         num_virtual_nodes=2000,
         max_attempts=100,
-        refresh_timeout_seconds=120,
     ):
-        self._etcd_hosts = etcd_hosts
-        self._worker_addresses = (
-            WorkerNetAddress.from_worker_hosts(worker_hosts)
-            if worker_hosts
-            else None
-        )
-        self._num_virtual_nodes = num_virtual_nodes
-        self._max_attempts = max_attempts
-        self._logger = logger or logging.getLogger("ConsistentHashProvider")
-
-        self._lock = threading.Lock()
-        self._is_ring_initialized = False
-        self._update_hash_ring_if_needed(self._worker_addresses)
-        self._start_background_update(refresh_timeout_seconds)
+        if not worker_addresses:
+            raise ValueError(
+                "'worker_addresses' must be provided to form worker hash ring."
+            )
+        self.num_virtual_nodes = num_virtual_nodes
+        self.max_attempts = max_attempts
+        self.logger = logger or logging.getLogger("ConsistentHashProvider")
+        self.is_ring_initialized = False
+        # init worker hash ring
+        hash_ring = SortedDict()
+        weight = math.ceil(self.num_virtual_nodes / len(worker_addresses))
+        for worker_address in worker_addresses:
+            worker_string = worker_address.dump_main_info()
+            for i in range(weight):
+                hash_key = self._hash(worker_string, i)
+                hash_ring[hash_key] = worker_address
+        self.worker_addresses = worker_addresses
+        self.hash_ring = hash_ring
+        self.is_ring_initialized = True
 
     def get_multiple_workers(
         self, key: str, count: int
@@ -205,85 +208,30 @@ class ConsistentHashProvider:
         Returns:
             List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
         """
-        with self._lock:
-            if count >= len(self._worker_addresses):
-                return self._worker_addresses
-            workers: Set[WorkerNetAddress] = set()
-            attempts = 0
-            while len(workers) < count and attempts < self._max_attempts:
-                attempts += 1
-                workers.add(self._get_ceiling_value(self._hash(key, attempts)))
-            return list(workers)
+        if count >= len(self.worker_addresses):
+            return self.worker_addresses
+        workers: Set[WorkerNetAddress] = set()
+        attempts = 0
+        while len(workers) < count and attempts < self.max_attempts:
+            attempts += 1
+            workers.add(self.get_worker(key, attempts))
+        return list(workers)
 
-    def _start_background_update(self, interval):
-        def update_loop():
-            time.sleep(interval)
-            try:
-                self._update_hash_ring_if_needed()
-            except Exception as e:
-                self._logger.error(f"Error updating hash ring: {e}")
-
-        self._background_thread = threading.Thread(target=update_loop)
-        self._background_thread.daemon = True
-        self._background_thread.start()
-
-    def _update_hash_ring_if_needed(self):
-        if self._etcd_hosts is None:
-            if self._is_ring_initialized == False:
-                self._update_hash_ring(self._worker_addresses)
-            return
-
-        worker_addresses = set()
-        etcd_hosts_list = self._etcd_hosts.split(",")
-        random.shuffle(etcd_hosts_list)
-        for host in etcd_hosts_list:
-            try:
-                current_addresses = EtcdClient(
-                    host=host, options=options
-                ).get_worker_addresses()
-                worker_addresses.update(current_addresses)
-                break
-            except Exception as e:
-                continue
-        if not worker_addresses:
-            if self._is_ring_initialized:
-                self.logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
-                )
-                return
-            else:
-                raise Exception(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
-                )
-
-        if worker_addresses != self._worker_addresses:
-            self._update_hash_ring(worker_addresses)
-
-    def _update_hash_ring_internal(
-        self, worker_addresses: Set[WorkerNetAddress]
-    ):
-        with self._lock:
-            if worker_addresses == self._worker_addresses:
-                return
-            hash_ring = SortedDict()
-            weight = math.ceil(self._num_virtual_nodes / len(worker_addresses))
-            for worker_address in worker_addresses:
-                worker_string = worker_address.dump_main_info()
-                for i in range(weight):
-                    hash_key = self._hash(worker_string, i)
-                    hash_ring[hash_key] = worker_address
-            self._hash_ring = hash_ring
-            self._worker_addresses = worker_addresses
-            self._is_ring_initialized = True
+    def get_worker(self, key: str, index: int) -> WorkerNetAddress:
+        if not self.is_ring_initialized:
+            raise Exception(
+                "Please initialize the worker ring first using init_worker_ring."
+            )
+        return self._get_ceiling_value(self._hash(key, index))
 
     def _get_ceiling_value(self, hash_key: int):
-        key_index = self._hash_ring.bisect_right(hash_key)
-        if key_index < len(self._hash_ring):
-            ceiling_key = self._hash_ring.keys()[key_index]
-            ceiling_value = self._hash_ring[ceiling_key]
+        key_index = self.hash_ring.bisect_right(hash_key)
+        if key_index < len(self.hash_ring):
+            ceiling_key = self.hash_ring.keys()[key_index]
+            ceiling_value = self.hash_ring[ceiling_key]
             return ceiling_value
         else:
-            return self._hash_ring.peekitem(0)[1]
+            return self.hash_ring.peekitem(0)[1]
 
     def _hash(self, key: str, index: int) -> int:
         return mmh3.hash(f"{key}{index}".encode("utf-8"))
