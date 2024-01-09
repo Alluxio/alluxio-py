@@ -148,31 +148,13 @@ class AlluxioFileSystem:
                 page_size = options[self.ALLUXIO_PAGE_SIZE_KEY]
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
-
-        # parse worker info to form hash ring
-        worker_addresses = None
-        if etcd_hosts:
-            worker_addresses = []
-            etcd_hosts_list = etcd_hosts.split(",")
-            random.shuffle(etcd_hosts_list)
-            for host in etcd_hosts_list:
-                try:
-                    worker_addresses = EtcdClient(
-                        host=host, options=options
-                    ).get_worker_addresses()
-                    break
-                except Exception as e:
-                    continue
-            if worker_addresses == []:
-                raise Exception(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
-                )
-        else:
-            worker_addresses = WorkerNetAddress.from_worker_hosts(worker_hosts)
         self.hash_provider = ConsistentHashProvider(
-            worker_addresses, self.logger
+            etcd_hosts, worker_hosts, self.logger, options
         )
         self.http_port = http_port
+
+    def __del__(self):
+        self.hash_provider.__del__()
 
     def listdir(self, path):
         """
