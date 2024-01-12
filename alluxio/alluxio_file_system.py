@@ -16,7 +16,7 @@ from .worker_ring import EtcdClient
 from .worker_ring import WorkerNetAddress
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.WARN,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 

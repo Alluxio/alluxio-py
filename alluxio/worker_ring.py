@@ -256,10 +256,6 @@ class ConsistentHashProvider:
                 worker_addresses.update(current_addresses)
                 break
             except Exception as e:
-                # TODO(lu) to delete, for debug only
-                self._logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{e}"
-                )
                 continue
         if not worker_addresses:
             if self._is_ring_initialized:
@@ -268,10 +264,6 @@ class ConsistentHashProvider:
                 )
                 return
             else:
-                # TODO(lu) to delete, for debug only
-                self._logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
-                )
                 raise Exception(
                     f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
