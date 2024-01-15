@@ -47,9 +47,19 @@ def validate_read_range(
         local_file.seek(offset)
         local_data = local_file.read(length)
 
-    assert (
-        alluxio_data == local_data
-    ), "Data mismatch between Alluxio and local file"
+    try:
+        assert alluxio_data == local_data
+    except AssertionError:
+        error_message = (
+            f"Data mismatch between Alluxio and local file\n"
+            f"Alluxio file path: {alluxio_file_path}\n"
+            f"Local file path: {local_file_path}\n"
+            f"Offset: {offset}\n"
+            f"Length: {length}\n"
+            f"Alluxio data: {alluxio_data}\n"
+            f"Local data: {local_data}"
+        )
+        raise AssertionError(error_message)
 
 
 def test_invalid_read_range(
