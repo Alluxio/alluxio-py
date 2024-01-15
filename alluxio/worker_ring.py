@@ -214,7 +214,7 @@ class ConsistentHashProvider:
         """
         with self._lock:
             if count >= len(self._worker_addresses):
-                return self._worker_addresses
+                return list(self._worker_addresses)
             workers: Set[WorkerNetAddress] = set()
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
