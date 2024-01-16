@@ -1,15 +1,20 @@
+import asyncio
 import hashlib
 import json
 import logging
 import re
 import time
+import weakref
+from dataclasses import dataclass
 from enum import Enum
 
+import aiohttp
 import humanfriendly
 import requests
 from requests.adapters import HTTPAdapter
 
 from .worker_ring import ConsistentHashProvider
+from alluxio.retry import retry_request
 
 logging.basicConfig(
     level=logging.WARN,
@@ -17,24 +22,15 @@ logging.basicConfig(
 )
 
 
+@dataclass
 class AlluxioPathStatus:
-    def __init__(
-        self,
-        type,
-        name,
-        path,
-        ufs_path,
-        last_modification_time_ms,
-        human_readable_file_size,
-        length,
-    ):
-        self.type = type
-        self.name = name
-        self.path = path
-        self.ufs_path = ufs_path
-        self.last_modification_time_ms = last_modification_time_ms
-        self.human_readable_file_size = human_readable_file_size
-        self.length = length
+    type: str
+    name: str
+    path: str
+    ufs_path: str
+    last_modification_time_ms: int
+    human_readable_file_size: str
+    length: int
 
 
 class LoadState(Enum):
@@ -50,6 +46,16 @@ class LoadState(Enum):
             return LoadState[status]
         except KeyError:
             raise ValueError(f"'{status}' is not a valid LoadState")
+
+
+class Method(Enum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+    OPTIONS = "OPTIONS"
+    PATCH = "PATCH"
 
 
 class AlluxioFileSystem:
@@ -674,3 +680,511 @@ class AlluxioFileSystem:
             raise ValueError(
                 "path must be a full path with a protocol (e.g., 'protocol://path')"
             )
+
+
+class AlluxioAsyncFileSystem:
+    """
+    Access Alluxio file system
+
+    Examples
+    --------
+    >>> # Launch Alluxio with ETCD as service discovery
+    >>> alluxio = AlluxioFileSystem(etcd_host=localhost)
+    >>> # Or launch Alluxio with user provided worker list
+    >>> alluxio = AlluxioFileSystem(worker_hosts="host1,host2,host3")
+
+    >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
+    [
+        {
+            "mType": "file",
+            "mName": "myfile",
+            "mLength": 77542
+        }
+
+    ]
+    >>> print(alluxio.read("s3://mybucket/mypath/dir/myfile"))
+    my_file_content
+    """
+
+    ALLUXIO_PAGE_SIZE_KEY = "alluxio.worker.page.store.page.size"
+    ALLUXIO_PAGE_SIZE_DEFAULT_VALUE = "1MB"
+    ALLUXIO_SUCCESS_IDENTIFIER = "success"
+    LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
+    FULL_PAGE_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
+    )
+    PAGE_URL_FORMAT = "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
+    WRITE_PAGE_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
+    )
+    GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
+    LOAD_SUBMIT_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
+    )
+    LOAD_PROGRESS_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=progress"
+    )
+    LOAD_STOP_URL_FORMAT = (
+        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=stop"
+    )
+
+    def __init__(
+        self,
+        etcd_hosts=None,
+        worker_hosts=None,
+        options=None,
+        logger=None,
+        concurrency=64,
+        http_port="28080",
+        loop=None,
+    ):
+        """
+        Inits Alluxio file system.
+
+        Args:
+            etcd_hosts (str, optional):
+                The hostnames of ETCD to get worker addresses from
+                The hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
+            worker_hosts (str, optional):
+                The worker hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
+            options (dict, optional):
+                A dictionary of Alluxio property key and values.
+                Note that Alluxio Python API only support a limited set of Alluxio properties.
+            logger (Logger, optional):
+                A logger instance for logging messages.
+            concurrency (int, optional):
+                The maximum number of concurrent operations. Default to 64.
+            http_port (string, optional):
+                The port of the HTTP server on each Alluxio worker node.
+        """
+        if etcd_hosts is None and worker_hosts is None:
+            raise ValueError(
+                "Must supply either 'etcd_hosts' or 'worker_hosts'"
+            )
+        if etcd_hosts and worker_hosts:
+            raise ValueError(
+                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
+            )
+        self.logger = logger or logging.getLogger("AlluxioFileSystem")
+        self.session = None
+
+        # parse options
+        page_size = self.ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
+        if options:
+            if self.ALLUXIO_PAGE_SIZE_KEY in options:
+                page_size = options[self.ALLUXIO_PAGE_SIZE_KEY]
+                self.logger.debug(f"Page size is set to {page_size}")
+        self.page_size = humanfriendly.parse_size(page_size, binary=True)
+        self.hash_provider = ConsistentHashProvider(
+            etcd_hosts, worker_hosts, self.logger
+        )
+        self.http_port = http_port
+        self._loop = loop or asyncio.get_event_loop()
+
+    async def _set_session(self):
+        if self._session is None:
+            self._session = await aiohttp.ClientSession(self._loop)(self._loop)
+            weakref.finalize(
+                self, self.close_session, self._loop, self._session
+            )
+        return self._session
+
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            raise RuntimeError("Please await _connect* before anything else")
+        return self._session
+
+    @staticmethod
+    def close_session(loop, session):
+        if loop is not None and session is not None:
+            if loop.is_running():
+                try:
+                    loop = asyncio.get_event_loop()
+                    loop.create_task(session.close())
+                    return
+                except RuntimeError:
+                    pass
+            else:
+                pass
+
+    async def listdir(self, path):
+        """
+        Lists the directory.
+
+        Args:
+            path (str): The full ufs path to list from
+
+        Returns:
+            list of dict: A list containing dictionaries, where each dictionary has:
+                - mType (string): directory or file
+                - mName (string): name of the directory/file
+                - mLength (integer): length of the file or 0 for directory
+
+        Example:
+            [
+                {
+                    type: "file",
+                    name: "my_file_name",
+                    path: '/my_file_name',
+                    ufs_path: 's3://example-bucket/my_file_name',
+                    last_modification_time_ms: 0,
+                    length: 77542,
+                    human_readable_file_size: '75.72KB'
+                },
+                {
+                    type: "directory",
+                    name: "my_dir_name",
+                    path: '/my_dir_name',
+                    ufs_path: 's3://example-bucket/my_dir_name',
+                    last_modification_time_ms: 0,
+                    length: 0,
+                    human_readable_file_size: '0B'
+                },
+
+            ]
+        """
+        self._validate_path(path)
+        worker_host = self._get_preferred_worker_host(path)
+        params = {"path": path}
+
+        _, content = await self._request(
+            Method.GET,
+            self.LIST_URL_FORMAT.format(
+                worker_host=worker_host, http_port=self.http_port
+            ),
+            params=params,
+        )
+
+        result = []
+        for data in json.loads(content):
+            result.append(
+                AlluxioPathStatus(
+                    data["mType"],
+                    data["mName"],
+                    data["mPath"],
+                    data["mUfsPath"],
+                    data["mLastModificationTimeMs"],
+                    data["mHumanReadableFileSize"],
+                    data["mLength"],
+                )
+            )
+        return result
+
+    async def get_file_status(self, path):
+        """
+        Gets the file status of the path.
+
+        Args:
+            path (str): The full ufs path to get the file status of
+
+        Returns:
+            File Status: The struct has:
+                - type (string): directory or file
+                - name (string): name of the directory/file
+                - path (string): the path of the file
+                - ufs_path (string): the ufs path of the file
+                - last_modification_time_ms (long): the last modification time
+                - length (integer): length of the file or 0 for directory
+                - human_readable_file_size (string): the size of the human readable files
+
+        Example:
+            {
+                type: 'directory',
+                name: 'a',
+                path: '/a',
+                ufs_path: 's3://example-bucket/a',
+                last_modification_time_ms: 0,
+                length: 0,
+                human_readable_file_size: '0B'
+            }
+        """
+        self._validate_path(path)
+        worker_host = self._get_preferred_worker_host(path)
+        params = {"path": path}
+        _, content = await self._request(
+            Method.GET,
+            self.GET_FILE_STATUS_URL_FORMAT.format(
+                worker_host=worker_host,
+                http_port=self.http_port,
+            ),
+            params=params,
+        )
+        data = json.loads(content)[0]
+        return AlluxioPathStatus(
+            data["mType"],
+            data["mName"],
+            data["mPath"],
+            data["mUfsPath"],
+            data["mLastModificationTimeMs"],
+            data["mHumanReadableFileSize"],
+            data["mLength"],
+        )
+
+    async def load(
+        self,
+        path,
+        timeout=None,
+    ):
+        """
+        Loads a file.
+
+        Args:
+            path (str): The full path with storage protocol to load data from
+            timeout (integer): The number of seconds for timeout, optional
+
+        Returns:
+            result (boolean): Whether the file has been loaded successfully
+        """
+        self._validate_path(path)
+        worker_host = self._get_preferred_worker_host(path)
+        return self._load_file(worker_host, path, timeout)
+
+    async def read_range(self, file_path, offset, length):
+        """
+        Reads parts of a file.
+
+        Args:
+            file_path (str): The full ufs file path to read data from
+            offset (integer): The offset to start reading data from
+            length (integer): The file length to read
+
+        Returns:
+            file content (str): The file content with length from offset
+        """
+        self._validate_path(file_path)
+        if not isinstance(offset, int) or offset < 0:
+            raise ValueError("Offset must be a non-negative integer")
+
+        if not isinstance(length, int) or (length <= 0 and length != -1):
+            raise ValueError("Length must be a positive integer or -1")
+
+        worker_host = self._get_preferred_worker_host(file_path)
+        path_id = self._get_path_hash(file_path)
+        page_contents = await self._range_page_generator(
+            worker_host, path_id, offset, length
+        )
+        return b"".join(page_contents)
+
+    async def write_page(self, file_path, page_index, page_bytes):
+        """
+        Writes a page.
+
+        Args:
+            file_path: The path of the file where data is to be written.
+            page_index: The page index in the file to write the data.
+            page_bytes: The byte data to write to the specified page, MUST BE FULL PAGE.
+
+        Returns:
+            True if the write was successful, False otherwise.
+        """
+        self._validate_path(file_path)
+        worker_host = self._get_preferred_worker_host(file_path)
+        path_id = self._get_path_hash(file_path)
+
+        status, _ = await self._request(
+            Method.POST,
+            self.WRITE_PAGE_URL_FORMAT.format(
+                worker_host=worker_host,
+                http_port=self.http_port,
+                path_id=path_id,
+                page_index=page_index,
+            ),
+            headers={"Content-Type": "application/octet-stream"},
+            data=page_bytes,
+        )
+        return 200 <= status < 300
+
+    async def _range_page_generator(
+        self, worker_host, path_id, offset, length
+    ):
+        start_page_index = offset // self.page_size
+        start_page_offset = offset % self.page_size
+
+        # Determine the end page index and the read-to position
+        if length == -1:
+            end_page_index = None
+        else:
+            end_page_index = (offset + length - 1) // self.page_size
+            end_page_read_to = ((offset + length - 1) % self.page_size) + 1
+
+        page_index = start_page_index
+        page_contents = []
+        while True:
+
+            if page_index == start_page_index:
+                if start_page_index == end_page_index:
+                    read_length = end_page_read_to - start_page_offset
+                else:
+                    read_length = self.page_size - start_page_offset
+                page_content = await self._read_page(
+                    worker_host,
+                    path_id,
+                    page_index,
+                    start_page_offset,
+                    read_length,
+                )
+                page_contents.append(page_content)
+            elif page_index == end_page_index:
+                page_content = self._read_page(
+                    worker_host, path_id, page_index, 0, end_page_read_to
+                )
+                page_contents.append(page_content)
+            else:
+                page_content = self._read_page(
+                    worker_host, path_id, page_index
+                )
+                page_contents.append(page_content)
+
+            # Check if it's the last page or the end of the file
+            if (
+                page_index == end_page_index
+                or len(page_content) < self.page_size
+            ):
+                break
+
+            page_index += 1
+        return asyncio.gather(*page_contents)
+
+    async def _load_file(self, worker_host, path, timeout):
+        _, content = await self._request(
+            Method.GET,
+            self.LOAD_SUBMIT_URL_FORMAT.format(
+                worker_host=worker_host,
+                http_port=self.http_port,
+                path=path,
+            ),
+        )
+
+        content = json.loads(content.decode("utf-8"))
+        if not content[self.ALLUXIO_SUCCESS_IDENTIFIER]:
+            return False
+
+        load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
+            worker_host=worker_host,
+            http_port=self.http_port,
+            path=path,
+        )
+        stop_time = 0
+        if timeout is not None:
+            stop_time = time.time() + timeout
+        while True:
+            job_state = await self._load_progress_internal(load_progress_url)
+            if job_state == LoadState.SUCCEEDED:
+                return True
+            if job_state == LoadState.FAILED:
+                self.logger.debug(
+                    f"Failed to load path {path} with return message {content}"
+                )
+                return False
+            if job_state == LoadState.STOPPED:
+                self.logger.debug(
+                    f"Failed to load path {path} with return message {content}, load stopped"
+                )
+                return False
+            if timeout is None or stop_time - time.time() >= 10:
+                asyncio.sleep(10)
+            else:
+                self.logger.debug(f"Failed to load path {path} within timeout")
+                return False
+
+    async def _load_progress_internal(self, load_url):
+        _, content = await self._request(Method.GET, load_url)
+        content = json.loads(content.decode("utf-8"))
+        if "jobState" not in content:
+            raise KeyError(
+                "The field 'jobState' is missing from the load progress response content"
+            )
+        return LoadState.from_string(content["jobState"])
+
+    async def _read_page(
+        self, worker_host, path_id, page_index, offset=None, length=None
+    ):
+        if (offset is None) != (length is None):
+            raise ValueError(
+                "Both offset and length should be either None or both not None"
+            )
+
+        try:
+            if offset is None:
+                page_url = self.FULL_PAGE_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path_id=path_id,
+                    page_index=page_index,
+                )
+            else:
+                page_url = self.PAGE_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=self.http_port,
+                    path_id=path_id,
+                    page_index=page_index,
+                    page_offset=offset,
+                    page_length=length,
+                )
+
+            _, content = await self._request(Method.GET, page_url)
+            return content
+
+        except Exception as e:
+            raise Exception(
+                f"Error when requesting file {path_id} page {page_index} from {worker_host}: error {e}"
+            ) from e
+
+    def _get_path_hash(self, uri):
+        hash_functions = [
+            hashlib.sha256,
+            hashlib.md5,
+            lambda x: hex(hash(x))[2:].lower(),  # Fallback to simple hashCode
+        ]
+        for hash_function in hash_functions:
+            try:
+                hash_obj = hash_function()
+                hash_obj.update(uri.encode("utf-8"))
+                return hash_obj.hexdigest().lower()
+            except AttributeError:
+                continue
+
+    def _get_preferred_worker_host(self, full_ufs_path):
+        workers = self.hash_provider.get_multiple_workers(full_ufs_path, 1)
+        if len(workers) != 1:
+            raise ValueError(
+                "Expected exactly one worker from hash ring, but found {} workers {}.".format(
+                    len(workers), workers
+                )
+            )
+        return workers[0].host
+
+    def _validate_path(self, path):
+        if not isinstance(path, str):
+            raise TypeError("path must be a string")
+
+        if not re.search(r"^[a-zA-Z0-9]+://", path):
+            raise ValueError(
+                "path must be a full path with a protocol (e.g., 'protocol://path')"
+            )
+
+    @retry_request
+    async def _request(
+        self,
+        method: Method,
+        path: str,
+        params: dict,
+        *args,
+        headers=None,
+        json=None,
+        data=None,
+    ) -> tuple[int, bytes]:
+        await self._set_session()
+        async with self.session.request(
+            method=method.value,
+            url=self._format_path(path, args),
+            params=params,
+            json=json,
+            headers=self._get_headers(headers),
+            data=data,
+            timeout=self.requests_timeout,
+        ) as r:
+            status = r.status
+            contents = await r.read()
+            return status, contents
