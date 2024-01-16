@@ -13,11 +13,12 @@ repos:
       - id: black
         args:
           - --target-version=py37
+          - --line-length=79
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
       - id: flake8
-        exclude: ^alluxio/
+        exclude: ^alluxio/worker_ring.py
   - repo: https://github.com/asottile/reorder-python-imports
     rev: v3.12.0
     hooks:

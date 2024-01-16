@@ -38,14 +38,18 @@ def parse_args():
     return parser.parse_args()
 
 
-def validate_read_range(alluxio_fs, alluxio_file_path, local_file_path, offset, length):
+def validate_read_range(
+    alluxio_fs, alluxio_file_path, local_file_path, offset, length
+):
     alluxio_data = alluxio_fs.read_range(alluxio_file_path, offset, length)
 
     with open(local_file_path, "rb") as local_file:
         local_file.seek(offset)
         local_data = local_file.read(length)
 
-    assert alluxio_data == local_data, "Data mismatch between Alluxio and local file"
+    assert (
+        alluxio_data == local_data
+    ), "Data mismatch between Alluxio and local file"
 
 
 def test_invalid_read_range(
@@ -56,7 +60,9 @@ def test_invalid_read_range(
     except Exception:
         pass
     else:
-        raise AssertionError("Expected an exception from Alluxio but none occurred.")
+        raise AssertionError(
+            "Expected an exception from Alluxio but none occurred."
+        )
 
     try:
         with open(local_file_path, "rb") as local_file:
