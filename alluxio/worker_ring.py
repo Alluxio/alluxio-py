@@ -1,6 +1,9 @@
+import asyncio
 import json
 import logging
 import math
+import random
+import threading
 from typing import List
 from typing import Set
 
@@ -171,6 +174,7 @@ class ConsistentHashProvider:
         etcd_hosts=None,
         worker_hosts=None,
         logger=None,
+        options=None,
         num_virtual_nodes=2000,
         max_attempts=100,
         refresh_timeout_seconds=120,
@@ -185,8 +189,12 @@ class ConsistentHashProvider:
 
         self._lock = threading.Lock()
         self._is_ring_initialized = False
-        self._update_hash_ring_if_needed(self._worker_addresses)
+        self._update_hash_ring_internal(self._worker_addresses)
         self._start_background_update(refresh_timeout_seconds)
+        self._options=options
+
+    def __del__(self):
+        self._task.cancel()
 
     def get_multiple_workers(self, key: str, count: int) -> List[WorkerNetAddress]:
         """
@@ -201,7 +209,7 @@ class ConsistentHashProvider:
         """
         with self._lock:
             if count >= len(self._worker_addresses):
-                return self._worker_addresses
+                return list(self._worker_addresses)
             workers: Set[WorkerNetAddress] = set()
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
@@ -210,21 +218,20 @@ class ConsistentHashProvider:
             return list(workers)
 
     def _start_background_update(self, interval):
-        def update_loop():
-            time.sleep(interval)
-            try:
-                self._update_hash_ring_if_needed()
-            except Exception as e:
-                self._logger.error(f"Error updating hash ring: {e}")
+        async def update_loop():
+            while True:
+                try:
+                    self._update_hash_ring_if_needed()
+                except Exception as e:
+                    self._logger.error(f"Error updating hash ring: {e}")
+                await asyncio.sleep(interval)
 
-        self._background_thread = threading.Thread(target=update_loop)
-        self._background_thread.daemon = True
-        self._background_thread.start()
+        self._task = asyncio.create_task(update_loop())
 
     def _update_hash_ring_if_needed(self):
         if self._etcd_hosts is None:
             if self._is_ring_initialized == False:
-                self._update_hash_ring(self._worker_addresses)
+                self._update_hash_ring_internal(self._worker_addresses)
             return
 
         worker_addresses = set()
@@ -233,7 +240,7 @@ class ConsistentHashProvider:
         for host in etcd_hosts_list:
             try:
                 current_addresses = EtcdClient(
-                    host=host, options=options
+                    host=host, options=self._options
                 ).get_worker_addresses()
                 worker_addresses.update(current_addresses)
                 break
@@ -242,16 +249,16 @@ class ConsistentHashProvider:
         if not worker_addresses:
             if self._is_ring_initialized:
                 self.logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
                 return
             else:
                 raise Exception(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
 
         if worker_addresses != self._worker_addresses:
-            self._update_hash_ring(worker_addresses)
+            self._update_hash_ring_internal(worker_addresses)
 
     def _update_hash_ring_internal(self, worker_addresses: Set[WorkerNetAddress]):
         with self._lock:

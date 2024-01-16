@@ -141,9 +141,12 @@ class AlluxioFileSystem:
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
-            etcd_hosts, worker_hosts, self.logger
+            etcd_hosts, worker_hosts, self.logger, options
         )
         self.http_port = http_port
+
+    def __del__(self):
+        self.hash_provider.__del__()
 
     def listdir(self, path):
         """
