@@ -1,8 +1,6 @@
 import hashlib
-import io
 import json
 import logging
-import os
 import re
 import time
 from enum import Enum
@@ -12,8 +10,6 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .worker_ring import ConsistentHashProvider
-from .worker_ring import EtcdClient
-from .worker_ring import WorkerNetAddress
 
 logging.basicConfig(
     level=logging.WARN,
@@ -131,13 +127,9 @@ class AlluxioFileSystem:
                 The port of the HTTP server on each Alluxio worker node.
         """
         if etcd_hosts is None and worker_hosts is None:
-            raise ValueError(
-                "Must supply either 'etcd_hosts' or 'worker_hosts'"
-            )
+            raise ValueError("Must supply either 'etcd_hosts' or 'worker_hosts'")
         if etcd_hosts and worker_hosts:
-            raise ValueError(
-                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
-            )
+            raise ValueError("Supply either 'etcd_hosts' or 'worker_hosts', not both")
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
         self.session = self._create_session(concurrency)
 
@@ -215,9 +207,7 @@ class AlluxioFileSystem:
                 )
             return result
         except Exception as e:
-            raise Exception(
-                f"Error when listing path {path}: error {e}"
-            ) from e
+            raise Exception(f"Error when listing path {path}: error {e}") from e
 
     def get_file_status(self, path):
         """
@@ -392,9 +382,7 @@ class AlluxioFileSystem:
         try:
             return b"".join(self._all_page_generator(worker_host, path_id))
         except Exception as e:
-            raise Exception(
-                f"Error when reading file {file_path}: error {e}"
-            ) from e
+            raise Exception(f"Error when reading file {file_path}: error {e}") from e
 
     def read_range(self, file_path, offset, length):
         """
@@ -419,14 +407,10 @@ class AlluxioFileSystem:
         path_id = self._get_path_hash(file_path)
         try:
             return b"".join(
-                self._range_page_generator(
-                    worker_host, path_id, offset, length
-                )
+                self._range_page_generator(worker_host, path_id, offset, length)
             )
         except Exception as e:
-            raise Exception(
-                f"Error when reading file {file_path}: error {e}"
-            ) from e
+            raise Exception(f"Error when reading file {file_path}: error {e}") from e
 
     def write_page(self, file_path, page_index, page_bytes):
         """
@@ -465,9 +449,7 @@ class AlluxioFileSystem:
         page_index = 0
         while True:
             try:
-                page_content = self._read_page(
-                    worker_host, path_id, page_index
-                )
+                page_content = self._read_page(worker_host, path_id, page_index)
             except Exception as e:
                 if page_index == 0:
                     raise Exception(
@@ -514,17 +496,12 @@ class AlluxioFileSystem:
                         worker_host, path_id, page_index, 0, end_page_read_to
                     )
                 else:
-                    page_content = self._read_page(
-                        worker_host, path_id, page_index
-                    )
+                    page_content = self._read_page(worker_host, path_id, page_index)
 
                 yield page_content
 
                 # Check if it's the last page or the end of the file
-                if (
-                    page_index == end_page_index
-                    or len(page_content) < self.page_size
-                ):
+                if page_index == end_page_index or len(page_content) < self.page_size:
                     break
 
                 page_index += 1
@@ -540,9 +517,7 @@ class AlluxioFileSystem:
 
     def _create_session(self, concurrency):
         session = requests.Session()
-        adapter = HTTPAdapter(
-            pool_connections=concurrency, pool_maxsize=concurrency
-        )
+        adapter = HTTPAdapter(pool_connections=concurrency, pool_maxsize=concurrency)
         session.mount("http://", adapter)
         return session
 
@@ -585,9 +560,7 @@ class AlluxioFileSystem:
                 if timeout is None or stop_time - time.time() >= 10:
                     time.sleep(10)
                 else:
-                    self.logger.debug(
-                        f"Failed to load path {path} within timeout"
-                    )
+                    self.logger.debug(f"Failed to load path {path} within timeout")
                     return False
 
         except Exception as e:
@@ -611,9 +584,7 @@ class AlluxioFileSystem:
                 f"Error when getting load job progress for {load_url}: error {e}"
             ) from e
 
-    def _read_page(
-        self, worker_host, path_id, page_index, offset=None, length=None
-    ):
+    def _read_page(self, worker_host, path_id, page_index, offset=None, length=None):
         if (offset is None) != (length is None):
             raise ValueError(
                 "Both offset and length should be either None or both not None"

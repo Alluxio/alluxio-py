@@ -50,9 +50,7 @@ class WorkerNetAddress:
             worker_net_address = worker_info_json.get("WorkerNetAddress", {})
 
             return WorkerNetAddress(
-                host=worker_net_address.get(
-                    "Host", WorkerNetAddress.DEFAULT_HOST
-                ),
+                host=worker_net_address.get("Host", WorkerNetAddress.DEFAULT_HOST),
                 container_host=worker_net_address.get(
                     "ContainerHost", WorkerNetAddress.DEFAULT_CONTAINER_HOST
                 ),
@@ -182,8 +180,20 @@ class ConsistentHashProvider:
         refresh_timeout_seconds=120,
     ):
         self._etcd_hosts = etcd_hosts
+<<<<<<< HEAD
         self._options = options
         self._logger = logger or logging.getLogger("ConsistentHashProvider")
+||||||| 0098855
+        self._worker_addresses = (
+            WorkerNetAddress.from_worker_hosts(worker_hosts)
+            if worker_hosts
+            else None
+        )
+=======
+        self._worker_addresses = (
+            WorkerNetAddress.from_worker_hosts(worker_hosts) if worker_hosts else None
+        )
+>>>>>>> 476cbc3a2cb044f0f03cbace3d383ef099f846f4
         self._num_virtual_nodes = num_virtual_nodes
         self._max_attempts = max_attempts
         self._lock = threading.Lock()
@@ -199,9 +209,7 @@ class ConsistentHashProvider:
             self._update_hash_ring_etcd()
             self._start_background_update(refresh_timeout_seconds)
 
-    def get_multiple_workers(
-        self, key: str, count: int
-    ) -> List[WorkerNetAddress]:
+    def get_multiple_workers(self, key: str, count: int) -> List[WorkerNetAddress]:
         """
         Retrieve a specified number of worker addresses based on a given key.
 
@@ -271,9 +279,7 @@ class ConsistentHashProvider:
         if worker_addresses != self._worker_addresses:
             self._update_hash_ring_internal(worker_addresses)
 
-    def _update_hash_ring_internal(
-        self, worker_addresses: Set[WorkerNetAddress]
-    ):
+    def _update_hash_ring_internal(self, worker_addresses: Set[WorkerNetAddress]):
         with self._lock:
             hash_ring = SortedDict()
             weight = math.ceil(self._num_virtual_nodes / len(worker_addresses))
