@@ -50,7 +50,9 @@ class WorkerNetAddress:
             worker_net_address = worker_info_json.get("WorkerNetAddress", {})
 
             return WorkerNetAddress(
-                host=worker_net_address.get("Host", WorkerNetAddress.DEFAULT_HOST),
+                host=worker_net_address.get(
+                    "Host", WorkerNetAddress.DEFAULT_HOST
+                ),
                 container_host=worker_net_address.get(
                     "ContainerHost", WorkerNetAddress.DEFAULT_CONTAINER_HOST
                 ),
@@ -197,7 +199,9 @@ class ConsistentHashProvider:
             self._update_hash_ring_etcd()
             self._start_background_update(refresh_timeout_seconds)
 
-    def get_multiple_workers(self, key: str, count: int) -> List[WorkerNetAddress]:
+    def get_multiple_workers(
+        self, key: str, count: int
+    ) -> List[WorkerNetAddress]:
         """
         Retrieve a specified number of worker addresses based on a given key.
 
@@ -267,7 +271,9 @@ class ConsistentHashProvider:
         if worker_addresses != self._worker_addresses:
             self._update_hash_ring_internal(worker_addresses)
 
-    def _update_hash_ring_internal(self, worker_addresses: Set[WorkerNetAddress]):
+    def _update_hash_ring_internal(
+        self, worker_addresses: Set[WorkerNetAddress]
+    ):
         with self._lock:
             hash_ring = SortedDict()
             weight = math.ceil(self._num_virtual_nodes / len(worker_addresses))
