@@ -126,7 +126,7 @@ class AlluxioFileSystem:
                 The maximum number of concurrent operations. Default to 64.
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
-            etcd_refresh_interval(int, optional):
+            etcd_refresh_workers_interval(int, optional):
                 The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
 
         """
