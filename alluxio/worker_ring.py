@@ -1,6 +1,9 @@
 import json
 import logging
 import math
+import random
+import threading
+import time
 from typing import List
 from typing import Set
 
@@ -172,25 +175,33 @@ class ConsistentHashProvider:
         self,
         etcd_hosts=None,
         worker_hosts=None,
+        options=None,
         logger=None,
         num_virtual_nodes=2000,
         max_attempts=100,
-        refresh_timeout_seconds=120,
+        etcd_refresh_workers_interval=None,
     ):
         self._etcd_hosts = etcd_hosts
-        self._worker_addresses = (
-            WorkerNetAddress.from_worker_hosts(worker_hosts)
-            if worker_hosts
-            else None
-        )
+        self._options = options
+        self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._num_virtual_nodes = num_virtual_nodes
         self._max_attempts = max_attempts
-        self._logger = logger or logging.getLogger("ConsistentHashProvider")
-
         self._lock = threading.Lock()
         self._is_ring_initialized = False
-        self._update_hash_ring_if_needed(self._worker_addresses)
-        self._start_background_update(refresh_timeout_seconds)
+        self._worker_addresses = None
+        self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
+        if worker_hosts:
+            self._update_hash_ring(
+                WorkerNetAddress.from_worker_hosts(worker_hosts)
+            )
+        if self._etcd_hosts:
+            self._fetch_workers_and_update_ring()
+            if self._etcd_refresh_workers_interval > 0:
+                self._shutdown_background_update_ring_event = threading.Event()
+                self._background_thread = None
+                self._start_background_update_ring(
+                    self._etcd_refresh_workers_interval
+                )
 
     def get_multiple_workers(
         self, key: str, count: int
@@ -207,7 +218,7 @@ class ConsistentHashProvider:
         """
         with self._lock:
             if count >= len(self._worker_addresses):
-                return self._worker_addresses
+                return list(self._worker_addresses)
             workers: Set[WorkerNetAddress] = set()
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
@@ -215,31 +226,36 @@ class ConsistentHashProvider:
                 workers.add(self._get_ceiling_value(self._hash(key, attempts)))
             return list(workers)
 
-    def _start_background_update(self, interval):
+    def _start_background_update_ring(self, interval):
         def update_loop():
-            time.sleep(interval)
-            try:
-                self._update_hash_ring_if_needed()
-            except Exception as e:
-                self._logger.error(f"Error updating hash ring: {e}")
+            while not self._shutdown_background_update_ring_event.is_set():
+                try:
+                    self._fetch_workers_and_update_ring()
+                except Exception as e:
+                    self._logger.error(f"Error updating worker hash ring: {e}")
+                time.sleep(interval)
 
         self._background_thread = threading.Thread(target=update_loop)
         self._background_thread.daemon = True
         self._background_thread.start()
 
-    def _update_hash_ring_if_needed(self):
-        if self._etcd_hosts is None:
-            if self._is_ring_initialized == False:
-                self._update_hash_ring(self._worker_addresses)
-            return
+    def shutdown_background_update_ring(self):
+        if self._etcd_hosts and self._etcd_refresh_workers_interval > 0:
+            self._shutdown_background_update_ring_event.set()
+            if self._background_thread:
+                self._background_thread.join()
 
+    def __del__(self):
+        self.shutdown_background_update_ring()
+
+    def _fetch_workers_and_update_ring(self):
         worker_addresses = set()
         etcd_hosts_list = self._etcd_hosts.split(",")
         random.shuffle(etcd_hosts_list)
         for host in etcd_hosts_list:
             try:
                 current_addresses = EtcdClient(
-                    host=host, options=options
+                    host=host, options=self._options
                 ).get_worker_addresses()
                 worker_addresses.update(current_addresses)
                 break
@@ -247,24 +263,20 @@ class ConsistentHashProvider:
                 continue
         if not worker_addresses:
             if self._is_ring_initialized:
-                self.logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                self._logger.info(
+                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
                 return
             else:
                 raise Exception(
-                    f"Failed to achieve worker info list from ETCD servers:{etcd_hosts}"
+                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
 
         if worker_addresses != self._worker_addresses:
             self._update_hash_ring(worker_addresses)
 
-    def _update_hash_ring_internal(
-        self, worker_addresses: Set[WorkerNetAddress]
-    ):
+    def _update_hash_ring(self, worker_addresses: Set[WorkerNetAddress]):
         with self._lock:
-            if worker_addresses == self._worker_addresses:
-                return
             hash_ring = SortedDict()
             weight = math.ceil(self._num_virtual_nodes / len(worker_addresses))
             for worker_address in worker_addresses:

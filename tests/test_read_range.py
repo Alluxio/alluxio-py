@@ -47,9 +47,19 @@ def validate_read_range(
         local_file.seek(offset)
         local_data = local_file.read(length)
 
-    assert (
-        alluxio_data == local_data
-    ), "Data mismatch between Alluxio and local file"
+    try:
+        assert alluxio_data == local_data
+    except AssertionError:
+        error_message = (
+            f"Data mismatch between Alluxio and local file\n"
+            f"Alluxio file path: {alluxio_file_path}\n"
+            f"Local file path: {local_file_path}\n"
+            f"Offset: {offset}\n"
+            f"Length: {length}\n"
+            f"Alluxio data: {alluxio_data}\n"
+            f"Local data: {local_data}"
+        )
+        raise AssertionError(error_message)
 
 
 def test_invalid_read_range(
@@ -57,8 +67,8 @@ def test_invalid_read_range(
 ):
     try:
         alluxio_fs.read_range(alluxio_file_path, offset, length)
-    except Exception as alluxio_error:
-        alluxio_exception = alluxio_error
+    except Exception:
+        pass
     else:
         raise AssertionError(
             "Expected an exception from Alluxio but none occurred."
@@ -68,8 +78,8 @@ def test_invalid_read_range(
         with open(local_file_path, "rb") as local_file:
             local_file.seek(offset)
             local_file.read(length)
-    except Exception as local_error:
-        local_exception = local_error
+    except Exception:
+        pass
     else:
         raise AssertionError(
             "Expected an exception from local file read but none occurred."
@@ -77,7 +87,7 @@ def test_invalid_read_range(
 
 
 def main(args):
-    alluxio_fs = AlluxioFileSystem(etcd_hosts=args.etcd_host)
+    alluxio_fs = AlluxioFileSystem(etcd_hosts=args.etcd_hosts)
     file_size = os.path.getsize(args.local_file_path)
 
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
