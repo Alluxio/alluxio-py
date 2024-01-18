@@ -106,6 +106,7 @@ class AlluxioFileSystem:
         logger=None,
         concurrency=64,
         http_port="28080",
+        etcd_refresh_workers_interval=120,
     ):
         """
         Inits Alluxio file system.
@@ -125,6 +126,9 @@ class AlluxioFileSystem:
                 The maximum number of concurrent operations. Default to 64.
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
+            etcd_refresh_workers_interval(int, optional):
+                The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
+
         """
         if etcd_hosts is None and worker_hosts is None:
             raise ValueError(
@@ -145,7 +149,11 @@ class AlluxioFileSystem:
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
-            etcd_hosts, worker_hosts, options, self.logger
+            etcd_hosts=etcd_hosts,
+            worker_hosts=worker_hosts,
+            options=options,
+            logger=self.logger,
+            etcd_refresh_workers_interval=etcd_refresh_workers_interval,
         )
         self.http_port = http_port
 
