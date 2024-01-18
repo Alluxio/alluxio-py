@@ -66,10 +66,14 @@ class AlluxioFileSystem:
     >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
     [
         {
-            "mType": "file",
-            "mName": "myfile",
-            "mLength": 77542
-        }
+            type: "file",
+            name: "my_file_name",
+            path: '/my_file_name',
+            ufs_path: 's3://example-bucket/my_file_name',
+            last_modification_time_ms: 0,
+            length: 77542,
+            human_readable_file_size: '75.72KB'
+        },
 
     ]
     >>> print(alluxio.read("s3://mybucket/mypath/dir/myfile"))
@@ -166,9 +170,13 @@ class AlluxioFileSystem:
 
         Returns:
             list of dict: A list containing dictionaries, where each dictionary has:
-                - mType (string): directory or file
-                - mName (string): name of the directory/file
-                - mLength (integer): length of the file or 0 for directory
+                - type (str): 'directory' or 'file'.
+                - name (str): Name of the directory/file.
+                - path (str): Path of the directory/file.
+                - ufs_path (str): UFS path of the directory/file.
+                - last_modification_time_ms (int): Last modification time in milliseconds.
+                - length (int): Length of the file or 0 for directory.
+                - human_readable_file_size (str): Human-readable file size.
 
         Example:
             [
@@ -190,7 +198,6 @@ class AlluxioFileSystem:
                     length: 0,
                     human_readable_file_size: '0B'
                 },
-
             ]
         """
         self._validate_path(path)
@@ -364,13 +371,22 @@ class AlluxioFileSystem:
         path,
     ):
         """
-        Gets the progress of the load job for a file.
+        Gets the progress of the load job for a path.
 
         Args:
-            path (str): The full ufs file path to load data from
+            path (str): The full UFS file path to load data from UFS to Alluxio.
 
         Returns:
-            progress (Progress): The progress of the load job
+            LoadState: The current state of the load job as a LoadState enum. Possible values are:
+                - LoadState.RUNNING: The load job is in progress.
+                - LoadState.VERIFYING: The load job is verifying the loaded data.
+                - LoadState.STOPPED: The load job has been stopped.
+                - LoadState.SUCCEEDED: The load job completed successfully.
+                - LoadState.FAILED: The load job failed.
+
+        Example:
+            load_state = alluxio_fs.load_progress("s3://mybucket/mypath/file")
+            print(f"Current Load State: {load_state.name}")
         """
         self._validate_path(path)
         load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
@@ -382,7 +398,7 @@ class AlluxioFileSystem:
 
     def read(self, file_path):
         """
-        Reads a file.
+        Reads the full file.
 
         Args:
             file_path (str): The full ufs file path to read data from

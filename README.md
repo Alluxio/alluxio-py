@@ -1,5 +1,24 @@
 # Alluxio Python Library
 
+This repo contains the Alluxio Python API to interact with Alluxio servers, bridging the gap between computation frameworks and undelying storage systems. This module provides a convenient interface for performing file system operations such as reading, writing, and listing files in an Alluxio cluster.
+
+## Features
+
+- Directory listing and file status fetching
+- Put data to Alluxio system cache and read from Alluxio system cache (include range read)
+- Alluxio system Load operations with progress tracking
+- Support dynamic Alluxio worker membership services (ETCD periodically refreshing and manually specified worker hosts)
+
+## Limitations
+
+Alluxio Python library supports reading from Alluxio cached data.
+The data needs to either
+- Loaded into Alluxio servers via load operations
+- Put into Alluxio servers via write_page operation.
+
+If you need to read from storage systems directly with Alluxio on demand caching capabilities,
+please use [alluxiofs](https://github.com/fsspec/alluxiofs) instead.
+
 ## Installation
 
 Install from source
@@ -11,31 +30,9 @@ pip install dist/alluxio_python_library-0.1-py3-none-any.whl
 
 ## Usage
 
-Import Alluxio
+### Initialization
+Import and initialize the `AlluxioFileSystem` class:
 ```
-from alluxio import AlluxioFileSystem
-```
-
-Init Alluxio filesystem
-```
-"""
-Inits Alluxio file system.
-
-Args:
-    etcd_host (str, optional):
-        The hostname of ETCD to get worker addresses from
-        Either etcd_host or worker_hosts should be provided, not both.
-    worker_hosts (str, optional):
-        The worker hostnames in host1,host2,host3 format. Either etcd_host or worker_hosts should be provided, not both.
-    options (dict, optional):
-        A dictionary of Alluxio property key and values.
-        Note that Alluxio Python API only support a limited set of Alluxio properties.
-    logger (Logger, optional):
-        A logger instance for logging messages.
-    concurrency (int, optional):
-        The maximum number of concurrent operations. Default to 64.
-"""
-
 # Minimum setup for Alluxio with ETCD membership service
 alluxio = AlluxioFileSystem(etcd_host="localhost")
 
@@ -59,41 +56,50 @@ alluxio = AlluxioFileSystem(
 )
 ```
 
-List directory
-
+### Load Operations
+Dataset metadata and data in the Alluxio under storage need to be loaded into Alluxio system cache
+to read by end-users. Run the load operations before executing the read commands.
 ```
-"""
-Lists the directory.
+# Start a load operation
+load_success = alluxio_fs.load('s3://mybucket/mypath/file')
+print('Load successful:', load_success)
 
-Args:
-    path (str): The full ufs path to list from
+# Check load progress
+progress = alluxio_fs.load_progress('s3://mybucket/mypath/file')
+print('Load progress:', progress)
 
-Returns:
-    list of dict: A list containing dictionaries, where each dictionary has:
-        - mType (string): directory or file
-        - mName (string): name of the directory/file
-        - mLength (integer): length of the file or 0 for directory
-
-Example:
-    [
-        {
-            "mType": "file",
-            "mName": "my_file_name",
-            "mLength": 77542
-        },
-        {
-            "mType": "directory",
-            "mName": "my_dir_name",
-            "mLength": 0
-        },
-
-    ]
-"""
-print(alluxio.listdir(full_ufs_dataset_path))
+# Stop a load operation
+stop_success = alluxio_fs.stop_load('s3://mybucket/mypath/file')
+print('Stop successful:', stop_success)
 ```
 
+### (Advanced) Page Write
+Alluxio system cache can be used as a key value cache system.
+Data can be written to Alluxio system cache via `write_page` command
+after which the data can be read from Alluxio system cache (Alternative to load operations).
 
-Read a file
+```
+success = alluxio_fs.write_page('s3://mybucket/mypath/file', page_index, page_bytes)
+print('Write successful:', success)
+```
+
+### Directory Listing
+List the contents of a directory:
+```
+"""
+contents = alluxio_fs.listdir('s3://mybucket/mypath/dir')
+print(contents)
+```
+
+### Get File Status
+Retrieve the status of a file or directory:
+```
+status = alluxio_fs.get_file_status('s3://mybucket/mypath/file')
+print(status)
+```
+
+### File Reading
+Read the entire content of a file:
 ```
 """
 Reads a file.
@@ -104,9 +110,14 @@ Args:
 Returns:
     file content (str): The full file content
 """
-print(alluxio.read(full_ufs_file_path))
+content = alluxio_fs.read('s3://mybucket/mypath/file')
+print(content)
 ```
-See datasets/alluxio.py AlluxioDataset for more example usage
+Read a specific range of a file:
+```
+content = alluxio_fs.read_range('s3://mybucket/mypath/file', offset, length)
+print(content)
+```
 
 ## Development
 
