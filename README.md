@@ -13,8 +13,8 @@ This repo contains the Alluxio Python API to interact with Alluxio servers, brid
 
 Alluxio Python library supports reading from Alluxio cached data.
 The data needs to either
-- Loaded into Alluxio servers via load operations
-- Put into Alluxio servers via write_page operation.
+- Loaded into Alluxio servers via `load` operations
+- Put into Alluxio servers via `write_page` operation.
 
 If you need to read from storage systems directly with Alluxio on demand caching capabilities,
 please use [alluxiofs](https://github.com/fsspec/alluxiofs) instead.
