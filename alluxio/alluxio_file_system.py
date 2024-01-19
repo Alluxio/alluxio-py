@@ -14,8 +14,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .worker_ring import ConsistentHashProvider
-from alluxio.retry import retry_request
-from alluxio.retry import validate_response
+from alluxio import const
 
 logging.basicConfig(
     level=logging.WARN,
@@ -80,28 +79,6 @@ class AlluxioFileSystem:
     my_file_content
     """
 
-    ALLUXIO_PAGE_SIZE_KEY = "alluxio.worker.page.store.page.size"
-    ALLUXIO_PAGE_SIZE_DEFAULT_VALUE = "1MB"
-    ALLUXIO_SUCCESS_IDENTIFIER = "success"
-    LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
-    FULL_PAGE_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
-    )
-    PAGE_URL_FORMAT = "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
-    WRITE_PAGE_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
-    )
-    GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
-    LOAD_SUBMIT_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
-    )
-    LOAD_PROGRESS_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=progress"
-    )
-    LOAD_STOP_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=stop"
-    )
-
     def __init__(
         self,
         etcd_hosts=None,
@@ -146,10 +123,10 @@ class AlluxioFileSystem:
         self.session = self._create_session(concurrency)
 
         # parse options
-        page_size = self.ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
+        page_size = const.ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
         if options:
-            if self.ALLUXIO_PAGE_SIZE_KEY in options:
-                page_size = options[self.ALLUXIO_PAGE_SIZE_KEY]
+            if const.ALLUXIO_PAGE_SIZE_KEY in options:
+                page_size = options[const.ALLUXIO_PAGE_SIZE_KEY]
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
@@ -205,7 +182,7 @@ class AlluxioFileSystem:
         params = {"path": path}
         try:
             response = self.session.get(
-                self.LIST_URL_FORMAT.format(
+                const.LIST_URL_FORMAT.format(
                     worker_host=worker_host, http_port=self.http_port
                 ),
                 params=params,
@@ -263,7 +240,7 @@ class AlluxioFileSystem:
         params = {"path": path}
         try:
             response = self.session.get(
-                self.GET_FILE_STATUS_URL_FORMAT.format(
+                const.GET_FILE_STATUS_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                 ),
@@ -321,7 +298,7 @@ class AlluxioFileSystem:
         worker_host = self._get_preferred_worker_host(path)
         try:
             response = self.session.get(
-                self.LOAD_SUBMIT_URL_FORMAT.format(
+                const.LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path=path,
@@ -329,7 +306,7 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
-            return content[self.ALLUXIO_SUCCESS_IDENTIFIER]
+            return content[const.ALLUXIO_SUCCESS_IDENTIFIER]
         except Exception as e:
             raise Exception(
                 f"Error when submitting load job for path {path} from {worker_host}: error {e}"
@@ -352,7 +329,7 @@ class AlluxioFileSystem:
         worker_host = self._get_preferred_worker_host(path)
         try:
             response = self.session.get(
-                self.LOAD_STOP_URL_FORMAT.format(
+                const.LOAD_STOP_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path=path,
@@ -360,7 +337,7 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
-            return content[self.ALLUXIO_SUCCESS_IDENTIFIER]
+            return content[const.ALLUXIO_SUCCESS_IDENTIFIER]
         except Exception as e:
             raise Exception(
                 f"Error when stopping load job for path {path} from {worker_host}: error {e}"
@@ -389,7 +366,7 @@ class AlluxioFileSystem:
             print(f"Current Load State: {load_state.name}")
         """
         self._validate_path(path)
-        load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
+        load_progress_url = const.LOAD_PROGRESS_URL_FORMAT.format(
             worker_host=self._get_preferred_worker_host(path),
             http_port=self.http_port,
             path=path,
@@ -465,7 +442,7 @@ class AlluxioFileSystem:
         path_id = self._get_path_hash(file_path)
         try:
             response = requests.post(
-                self.WRITE_PAGE_URL_FORMAT.format(
+                const.WRITE_PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path_id=path_id,
@@ -569,7 +546,7 @@ class AlluxioFileSystem:
     def _load_file(self, worker_host, path, timeout):
         try:
             response = self.session.get(
-                self.LOAD_SUBMIT_URL_FORMAT.format(
+                const.LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path=path,
@@ -577,10 +554,10 @@ class AlluxioFileSystem:
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
-            if not content[self.ALLUXIO_SUCCESS_IDENTIFIER]:
+            if not content[const.ALLUXIO_SUCCESS_IDENTIFIER]:
                 return False
 
-            load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
+            load_progress_url = const.LOAD_PROGRESS_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
                 path=path,
@@ -641,14 +618,14 @@ class AlluxioFileSystem:
 
         try:
             if offset is None:
-                page_url = self.FULL_PAGE_URL_FORMAT.format(
+                page_url = const.FULL_PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path_id=path_id,
                     page_index=page_index,
                 )
             else:
-                page_url = self.PAGE_URL_FORMAT.format(
+                page_url = const.PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=self.http_port,
                     path_id=path_id,
@@ -707,11 +684,11 @@ class AlluxioAsyncFileSystem:
     Examples
     --------
     >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioFileSystem(etcd_host=localhost)
+    >>> alluxio = AlluxioAsyncFileSystem(etcd_host=localhost)
     >>> # Or launch Alluxio with user provided worker list
-    >>> alluxio = AlluxioFileSystem(worker_hosts="host1,host2,host3")
+    >>> alluxio = AlluxioAsyncFileSystem(worker_hosts="host1,host2,host3")
 
-    >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
+    >>> print(await alluxio.listdir("s3://mybucket/mypath/dir"))
     [
         {
             "mType": "file",
@@ -720,31 +697,9 @@ class AlluxioAsyncFileSystem:
         }
 
     ]
-    >>> print(alluxio.read("s3://mybucket/mypath/dir/myfile"))
+    >>> print(await alluxio.read("s3://mybucket/mypath/dir/myfile"))
     my_file_content
     """
-
-    ALLUXIO_PAGE_SIZE_KEY = "alluxio.worker.page.store.page.size"
-    ALLUXIO_PAGE_SIZE_DEFAULT_VALUE = "1MB"
-    ALLUXIO_SUCCESS_IDENTIFIER = "success"
-    LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
-    FULL_PAGE_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
-    )
-    PAGE_URL_FORMAT = "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}?offset={page_offset}&length={page_length}"
-    WRITE_PAGE_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
-    )
-    GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
-    LOAD_SUBMIT_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
-    )
-    LOAD_PROGRESS_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=progress"
-    )
-    LOAD_STOP_URL_FORMAT = (
-        "http://{worker_host}:{http_port}/v1/load?path={path}&opType=stop"
-    )
 
     def __init__(
         self,
@@ -781,24 +736,24 @@ class AlluxioAsyncFileSystem:
                 "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
-        self.session = None
+        self._session = None
 
         # parse options
-        page_size = self.ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
+        page_size = const.ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
         if options:
-            if self.ALLUXIO_PAGE_SIZE_KEY in options:
-                page_size = options[self.ALLUXIO_PAGE_SIZE_KEY]
+            if const.ALLUXIO_PAGE_SIZE_KEY in options:
+                page_size = options[const.ALLUXIO_PAGE_SIZE_KEY]
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
-            etcd_hosts, worker_hosts, self.logger
+            etcd_hosts, worker_hosts, options, self.logger
         )
         self.http_port = http_port
         self._loop = loop or asyncio.get_event_loop()
 
     async def _set_session(self):
         if self._session is None:
-            self._session = await aiohttp.ClientSession(self._loop)
+            self._session = aiohttp.ClientSession(loop=self._loop)
             weakref.finalize(
                 self, self.close_session, self._loop, self._session
             )
@@ -865,7 +820,7 @@ class AlluxioAsyncFileSystem:
 
         _, content = await self._request(
             Method.GET,
-            self.LIST_URL_FORMAT.format(
+            const.LIST_URL_FORMAT.format(
                 worker_host=worker_host, http_port=self.http_port
             ),
             params=params,
@@ -919,7 +874,7 @@ class AlluxioAsyncFileSystem:
         params = {"path": path}
         _, content = await self._request(
             Method.GET,
-            self.GET_FILE_STATUS_URL_FORMAT.format(
+            const.GET_FILE_STATUS_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
             ),
@@ -955,7 +910,9 @@ class AlluxioAsyncFileSystem:
         worker_host = self._get_preferred_worker_host(path)
         return self._load_file(worker_host, path, timeout)
 
-    async def read_range(self, file_path: str, offset: int, length: int):
+    async def read_range(
+        self, file_path: str, offset: int, length: int
+    ) -> bytes:
         """
         Reads parts of a file.
 
@@ -979,7 +936,7 @@ class AlluxioAsyncFileSystem:
         page_contents = await self._range_page_generator(
             worker_host, path_id, offset, length
         )
-        return b"".join(page_contents)
+        return b"".join(await page_contents)
 
     async def write_page(
         self, file_path: str, page_index: int, page_bytes: bytes
@@ -999,9 +956,9 @@ class AlluxioAsyncFileSystem:
         worker_host = self._get_preferred_worker_host(file_path)
         path_id = self._get_path_hash(file_path)
 
-        status, _ = await self._request(
+        status, content = await self._request(
             Method.POST,
-            self.WRITE_PAGE_URL_FORMAT.format(
+            const.WRITE_PAGE_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
                 path_id=path_id,
@@ -1028,13 +985,12 @@ class AlluxioAsyncFileSystem:
         page_index = start_page_index
         page_contents = []
         while True:
-
             if page_index == start_page_index:
                 if start_page_index == end_page_index:
                     read_length = end_page_read_to - start_page_offset
                 else:
                     read_length = self.page_size - start_page_offset
-                page_content = await self._read_page(
+                page_content = self._read_page(
                     worker_host,
                     path_id,
                     page_index,
@@ -1066,7 +1022,7 @@ class AlluxioAsyncFileSystem:
     async def _load_file(self, worker_host: str, path: str, timeout):
         _, content = await self._request(
             Method.GET,
-            self.LOAD_SUBMIT_URL_FORMAT.format(
+            const.LOAD_SUBMIT_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
                 path=path,
@@ -1074,10 +1030,10 @@ class AlluxioAsyncFileSystem:
         )
 
         content = json.loads(content.decode("utf-8"))
-        if not content[self.ALLUXIO_SUCCESS_IDENTIFIER]:
+        if not content[const.ALLUXIO_SUCCESS_IDENTIFIER]:
             return False
 
-        load_progress_url = self.LOAD_PROGRESS_URL_FORMAT.format(
+        load_progress_url = const.LOAD_PROGRESS_URL_FORMAT.format(
             worker_host=worker_host,
             http_port=self.http_port,
             path=path,
@@ -1128,14 +1084,14 @@ class AlluxioAsyncFileSystem:
             )
 
         if offset is None:
-            page_url = self.FULL_PAGE_URL_FORMAT.format(
+            page_url = const.FULL_PAGE_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
                 path_id=path_id,
                 page_index=page_index,
             )
         else:
-            page_url = self.PAGE_URL_FORMAT.format(
+            page_url = const.PAGE_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
                 path_id=path_id,
@@ -1180,13 +1136,12 @@ class AlluxioAsyncFileSystem:
                 "path must be a full path with a protocol (e.g., 'protocol://path')"
             )
 
-    @retry_request
     async def _request(
         self,
         method: Method,
-        path: str,
-        params: dict,
+        url: str,
         *args,
+        params: dict = None,
         headers=None,
         json=None,
         data=None,
@@ -1194,14 +1149,14 @@ class AlluxioAsyncFileSystem:
         await self._set_session()
         async with self.session.request(
             method=method.value,
-            url=self._format_path(path, args),
+            url=url,
             params=params,
             json=json,
-            headers=self._get_headers(headers),
+            headers=headers,
             data=data,
-            timeout=self.requests_timeout,
+            timeout=None,
         ) as r:
             status = r.status
             contents = await r.read()
-            validate_response(status, contents, path, args)
+            # validate_response(status, contents, url, args)
             return status, contents
