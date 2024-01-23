@@ -8,12 +8,14 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        "aiohttp",
+        "decorator",
         "humanfriendly",
         "requests",
         "etcd3",
         "mmh3",
         "sortedcontainers",
     ],
-    extras_require={"tests": ["pytest"]},
+    extras_require={"tests": ["pytest", "pytest-aiohttp"]},
     python_requires=">=3.8",
 )
