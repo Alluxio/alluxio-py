@@ -132,7 +132,7 @@ class EtcdClient:
                 "Both ETCD username and password must be set or both should be unset."
             )
 
-    def get_worker_addresses(self):
+    def get_worker_addresses(self) -> Set[WorkerNetAddress]:
         """
         Retrieve worker addresses from etcd using the specified prefix.
 
@@ -188,7 +188,7 @@ class ConsistentHashProvider:
         self._max_attempts = max_attempts
         self._lock = threading.Lock()
         self._is_ring_initialized = False
-        self._worker_addresses = None
+        self._worker_addresses = set()
         self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
         if worker_hosts:
             self._update_hash_ring(
@@ -205,7 +205,7 @@ class ConsistentHashProvider:
 
     def get_multiple_workers(
         self, key: str, count: int
-    ) -> List[WorkerNetAddress]:
+    ) -> Set[WorkerNetAddress]:
         """
         Retrieve a specified number of worker addresses based on a given key.
 
@@ -218,13 +218,13 @@ class ConsistentHashProvider:
         """
         with self._lock:
             if count >= len(self._worker_addresses):
-                return list(self._worker_addresses)
+                return self._worker_addresses
             workers: Set[WorkerNetAddress] = set()
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
                 attempts += 1
                 workers.add(self._get_ceiling_value(self._hash(key, attempts)))
-            return list(workers)
+            return workers
 
     def _start_background_update_ring(self, interval):
         def update_loop():
@@ -260,6 +260,7 @@ class ConsistentHashProvider:
                 worker_addresses.update(current_addresses)
                 break
             except Exception as e:
+                self._logger.info(f"Failed to achieve work info list from etcd server {host}: {e}")
                 continue
         if not worker_addresses:
             if self._is_ring_initialized:
