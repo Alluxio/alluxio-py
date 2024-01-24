@@ -174,6 +174,7 @@ class ConsistentHashProvider:
     def __init__(
         self,
         etcd_hosts=None,
+        etcd_port=2379,
         worker_hosts=None,
         options=None,
         logger=None,
@@ -182,6 +183,7 @@ class ConsistentHashProvider:
         etcd_refresh_workers_interval=None,
     ):
         self._etcd_hosts = etcd_hosts
+        self._etcd_port = etcd_port
         self._options = options
         self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._num_virtual_nodes = num_virtual_nodes
@@ -255,7 +257,7 @@ class ConsistentHashProvider:
         for host in etcd_hosts_list:
             try:
                 current_addresses = EtcdClient(
-                    host=host, options=self._options
+                    host=host, port=self._etcd_port, options=self._options
                 ).get_worker_addresses()
                 worker_addresses.update(current_addresses)
                 break

@@ -58,7 +58,7 @@ class AlluxioFileSystem:
     Examples
     --------
     >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioFileSystem(etcd_host=localhost)
+    >>> alluxio = AlluxioFileSystem(etcd_hosts="localhost")
     >>> # Or launch Alluxio with user provided worker list
     >>> alluxio = AlluxioFileSystem(worker_hosts="host1,host2,host3")
 
@@ -87,6 +87,7 @@ class AlluxioFileSystem:
         logger=None,
         concurrency=64,
         http_port="28080",
+        etcd_port="2379",
         etcd_refresh_workers_interval=120,
     ):
         """
@@ -105,6 +106,8 @@ class AlluxioFileSystem:
                 A logger instance for logging messages.
             concurrency (int, optional):
                 The maximum number of concurrent operations. Default to 64.
+            etcd_port (str, optional):
+                The port of each etcd server.
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
             etcd_refresh_workers_interval(int, optional):
@@ -131,6 +134,7 @@ class AlluxioFileSystem:
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
             etcd_hosts=etcd_hosts,
+            etcd_port=int(etcd_port),
             worker_hosts=worker_hosts,
             options=options,
             logger=self.logger,
@@ -684,7 +688,7 @@ class AlluxioAsyncFileSystem:
     Examples
     --------
     >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioAsyncFileSystem(etcd_host=localhost)
+    >>> alluxio = AlluxioAsyncFileSystem(etcd_hosts="localhost")
     >>> # Or launch Alluxio with user provided worker list
     >>> alluxio = AlluxioAsyncFileSystem(worker_hosts="host1,host2,host3")
 
@@ -708,6 +712,7 @@ class AlluxioAsyncFileSystem:
         options=None,
         logger=None,
         http_port="28080",
+        etcd_port="2379",
         loop=None,
     ):
         """
@@ -724,6 +729,8 @@ class AlluxioAsyncFileSystem:
                 Note that Alluxio Python API only support a limited set of Alluxio properties.
             logger (Logger, optional):
                 A logger instance for logging messages.
+            etcd_port (str, optional):
+                The port of each etcd server.
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
         """
@@ -746,7 +753,7 @@ class AlluxioAsyncFileSystem:
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
-            etcd_hosts, worker_hosts, options, self.logger
+            etcd_hosts, int(etcd_port), worker_hosts, options, self.logger
         )
         self.http_port = http_port
         self._loop = loop or asyncio.get_event_loop()
