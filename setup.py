@@ -3,7 +3,9 @@ from setuptools import setup
 
 setup(
     name="alluxio-python-library",
-    version="0.1",
+    version="2.0.1",
+    description="Alluxio Python library 2.0.1 provides API to interact with Alluxio servers.",
+    url="https://github.com/Alluxio/alluxio-py",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     zip_safe=False,
