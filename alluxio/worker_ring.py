@@ -4,6 +4,7 @@ import math
 import random
 import threading
 import time
+from dataclasses import dataclass
 from typing import List
 from typing import Set
 
@@ -12,35 +13,27 @@ import mmh3
 from sortedcontainers import SortedDict
 
 
-class WorkerNetAddress:
-    DEFAULT_HOST = "localhost"
-    DEFAULT_CONTAINER_HOST = ""
-    DEFAULT_RPC_PORT = 29999
-    DEFAULT_DATA_PORT = 29997
-    DEFAULT_SECURE_RPC_PORT = 0
-    DEFAULT_NETTY_DATA_PORT = 29997
-    DEFAULT_WEB_PORT = 30000
-    DEFAULT_DOMAIN_SOCKET_PATH = ""
+DEFAULT_HOST = "localhost"
+DEFAULT_CONTAINER_HOST = ""
+DEFAULT_RPC_PORT = 29999
+DEFAULT_DATA_PORT = 29997
+DEFAULT_SECURE_RPC_PORT = 0
+DEFAULT_NETTY_DATA_PORT = 29997
+DEFAULT_WEB_PORT = 30000
+DEFAULT_DOMAIN_SOCKET_PATH = ""
 
-    def __init__(
-        self,
-        host=DEFAULT_HOST,
-        container_host=DEFAULT_CONTAINER_HOST,
-        rpc_port=DEFAULT_RPC_PORT,
-        data_port=DEFAULT_DATA_PORT,
-        secure_rpc_port=DEFAULT_SECURE_RPC_PORT,
-        netty_data_port=DEFAULT_NETTY_DATA_PORT,
-        web_port=DEFAULT_WEB_PORT,
-        domain_socket_path=DEFAULT_DOMAIN_SOCKET_PATH,
-    ):
-        self.host = host
-        self.container_host = container_host
-        self.rpc_port = rpc_port
-        self.data_port = data_port
-        self.secure_rpc_port = secure_rpc_port
-        self.netty_data_port = netty_data_port
-        self.web_port = web_port
-        self.domain_socket_path = domain_socket_path
+
+@dataclass
+class WorkerNetAddress:
+    host: str = "localhost"
+    container_host: str = ""
+    rpc_port: int = 29999
+    data_port: int = 29997
+    secure_rpc_port: int = 0
+    netty_data_port: int = 29997
+    web_port: int = 30000
+    domain_socket_path = ""
+    rest_api_port = 28080
 
     @staticmethod
     def from_worker_info(worker_info):
@@ -50,30 +43,24 @@ class WorkerNetAddress:
             worker_net_address = worker_info_json.get("WorkerNetAddress", {})
 
             return WorkerNetAddress(
-                host=worker_net_address.get(
-                    "Host", WorkerNetAddress.DEFAULT_HOST
-                ),
+                host=worker_net_address.get("Host", DEFAULT_HOST),
                 container_host=worker_net_address.get(
-                    "ContainerHost", WorkerNetAddress.DEFAULT_CONTAINER_HOST
+                    "ContainerHost", DEFAULT_CONTAINER_HOST
                 ),
-                rpc_port=worker_net_address.get(
-                    "RpcPort", WorkerNetAddress.DEFAULT_RPC_PORT
-                ),
+                rpc_port=worker_net_address.get("RpcPort", DEFAULT_RPC_PORT),
                 data_port=worker_net_address.get(
-                    "DataPort", WorkerNetAddress.DEFAULT_DATA_PORT
+                    "DataPort", DEFAULT_DATA_PORT
                 ),
                 secure_rpc_port=worker_net_address.get(
-                    "SecureRpcPort", WorkerNetAddress.DEFAULT_SECURE_RPC_PORT
+                    "SecureRpcPort", DEFAULT_SECURE_RPC_PORT
                 ),
                 netty_data_port=worker_net_address.get(
-                    "NettyDataPort", WorkerNetAddress.DEFAULT_NETTY_DATA_PORT
+                    "NettyDataPort", DEFAULT_NETTY_DATA_PORT
                 ),
-                web_port=worker_net_address.get(
-                    "WebPort", WorkerNetAddress.DEFAULT_WEB_PORT
-                ),
+                web_port=worker_net_address.get("WebPort", DEFAULT_WEB_PORT),
                 domain_socket_path=worker_net_address.get(
                     "DomainSocketPath",
-                    WorkerNetAddress.DEFAULT_DOMAIN_SOCKET_PATH,
+                    DEFAULT_DOMAIN_SOCKET_PATH,
                 ),
             )
         except json.JSONDecodeError as e:
@@ -111,7 +98,7 @@ class WorkerNetAddress:
 
 
 class EtcdClient:
-    PREFIX = "/DHT/DefaultAlluxioCluster/AUTHORIZED/"
+    PREFIX = "/ServiceDiscovery/DefaultAlluxioCluster/"
     ALLUXIO_ETCD_USERNAME = "alluxio.etcd.username"
     ALLUXIO_ETCD_PASSWORD = "alluxio.etcd.password"
 
@@ -144,8 +131,10 @@ class EtcdClient:
         worker_addresses = set()
         try:
             worker_addresses = {
-                WorkerNetAddress.from_worker_info(worker_info)
-                for worker_info, _ in etcd.get_prefix(self.PREFIX)
+                WorkerNetAddress.from_worker_info(
+                    worker_info["WorkerNetAddress"]
+                )
+                for _, worker_info in etcd.get_prefix(self.PREFIX)
             }
         except Exception as e:
             raise Exception(
