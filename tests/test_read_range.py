@@ -62,7 +62,7 @@ def validate_read_range(
         raise AssertionError(error_message)
 
 
-def test_invalid_read_range(
+def manual_test_invalid_read_range(
     alluxio_fs, alluxio_file_path, local_file_path, offset, length
 ):
     try:
@@ -92,7 +92,7 @@ def main(args):
 
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
     for offset, length in invalid_test_cases:
-        test_invalid_read_range(
+        manual_test_invalid_read_range(
             alluxio_fs,
             args.alluxio_file_path,
             args.local_file_path,
