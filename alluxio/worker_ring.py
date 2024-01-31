@@ -20,7 +20,7 @@ DEFAULT_SECURE_RPC_PORT = 0
 DEFAULT_NETTY_DATA_PORT = 29997
 DEFAULT_WEB_PORT = 30000
 DEFAULT_DOMAIN_SOCKET_PATH = ""
-DEFAULT_REST_API_PORT = 28080
+DEFAULT_HTTP_SERVER_PORT = 28080
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class WorkerNetAddress:
     netty_data_port: int = DEFAULT_NETTY_DATA_PORT
     web_port: int = DEFAULT_WEB_PORT
     domain_socket_path: str = DEFAULT_DOMAIN_SOCKET_PATH
-    rest_api_port: int = DEFAULT_REST_API_PORT
+    http_server_port: int = DEFAULT_HTTP_SERVER_PORT
 
     @staticmethod
     def from_worker_info(worker_info):
@@ -62,6 +62,10 @@ class WorkerNetAddress:
                     "DomainSocketPath",
                     DEFAULT_DOMAIN_SOCKET_PATH,
                 ),
+                http_server_port=worker_net_address.get(
+                    "HttpServerPort",
+                    DEFAULT_HTTP_SERVER_PORT,
+                ),
             )
         except json.JSONDecodeError as e:
             raise ValueError(
@@ -77,16 +81,19 @@ class WorkerNetAddress:
             ) from e
 
     @staticmethod
-    def from_worker_hosts(worker_hosts):
+    def from_worker_hosts(worker_hosts, worker_http_port=DEFAULT_HTTP_SERVER_PORT):
         worker_addresses = set()
         for host in worker_hosts.split(","):
-            worker_address = WorkerNetAddress(host=host)
+            worker_address = WorkerNetAddress(
+                host=host, http_server_port=worker_http_port
+            )
             worker_addresses.add(worker_address)
         return worker_addresses
 
     def dump_main_info(self):
         return (
-            "WorkerNetAddress{{host={}, containerHost={}, rpcPort={}, dataPort={}, webPort={}, domainSocketPath={}}}"
+            "WorkerNetAddress{{host={}, containerHost={}, rpcPort={}, "
+            "dataPort={}, webPort={}, domainSocketPath={}, httpServerPort={}}}"
         ).format(
             self.host,
             self.container_host,
@@ -94,6 +101,7 @@ class WorkerNetAddress:
             self.data_port,
             self.web_port,
             self.domain_socket_path,
+            self.http_server_port,
         )
 
 
@@ -163,6 +171,7 @@ class ConsistentHashProvider:
         etcd_hosts=None,
         etcd_port=2379,
         worker_hosts=None,
+        worker_http_port=DEFAULT_HTTP_SERVER_PORT,
         options=None,
         logger=None,
         num_virtual_nodes=2000,
@@ -181,7 +190,7 @@ class ConsistentHashProvider:
         self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
         if worker_hosts:
             self._update_hash_ring(
-                WorkerNetAddress.from_worker_hosts(worker_hosts)
+                WorkerNetAddress.from_worker_hosts(worker_hosts, worker_http_port)
             )
         if self._etcd_hosts:
             self._fetch_workers_and_update_ring()

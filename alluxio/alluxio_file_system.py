@@ -11,10 +11,10 @@ from enum import Enum
 import aiohttp
 import humanfriendly
 import requests
+from alluxio import const
 from requests.adapters import HTTPAdapter
 
 from .worker_ring import ConsistentHashProvider
-from alluxio import const
 
 logging.basicConfig(
     level=logging.WARN,
@@ -110,6 +110,7 @@ class AlluxioFileSystem:
                 The port of each etcd server.
             http_port (string, optional):
                 The port of the HTTP server on each Alluxio worker node.
+                TODO (Chunxu): remove this variable and merge it into the worker_hosts
             etcd_refresh_workers_interval(int, optional):
                 The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
 
@@ -136,11 +137,11 @@ class AlluxioFileSystem:
             etcd_hosts=etcd_hosts,
             etcd_port=int(etcd_port),
             worker_hosts=worker_hosts,
+            worker_http_port=http_port,
             options=options,
             logger=self.logger,
             etcd_refresh_workers_interval=etcd_refresh_workers_interval,
         )
-        self.http_port = http_port
 
     def listdir(self, path):
         """
@@ -182,12 +183,14 @@ class AlluxioFileSystem:
             ]
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
         params = {"path": path}
         try:
             response = self.session.get(
                 const.LIST_URL_FORMAT.format(
-                    worker_host=worker_host, http_port=self.http_port
+                    worker_host=worker_host, http_port=worker_http_port
                 ),
                 params=params,
             )
@@ -240,13 +243,15 @@ class AlluxioFileSystem:
             }
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
         params = {"path": path}
         try:
             response = self.session.get(
                 const.GET_FILE_STATUS_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                 ),
                 params=params,
             )
@@ -282,8 +287,10 @@ class AlluxioFileSystem:
             result (boolean): Whether the file has been loaded successfully
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
-        return self._load_file(worker_host, path, timeout)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
+        return self._load_file(worker_host, worker_http_port, path, timeout)
 
     def submit_load(
         self,
@@ -299,12 +306,14 @@ class AlluxioFileSystem:
             result (boolean): Whether the job has been submitted successfully
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
         try:
             response = self.session.get(
                 const.LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path=path,
                 ),
             )
@@ -330,12 +339,14 @@ class AlluxioFileSystem:
             result (boolean): Whether the job has been stopped successfully
         """
         self._validate_path(path)
-        worker_host = self._get_preferred_worker_host(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
         try:
             response = self.session.get(
                 const.LOAD_STOP_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path=path,
                 ),
             )
@@ -370,9 +381,12 @@ class AlluxioFileSystem:
             print(f"Current Load State: {load_state.name}")
         """
         self._validate_path(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
         load_progress_url = const.LOAD_PROGRESS_URL_FORMAT.format(
-            worker_host=self._get_preferred_worker_host(path),
-            http_port=self.http_port,
+            worker_host=worker_host,
+            http_port=worker_http_port,
             path=path,
         )
         return self._load_progress_internal(load_progress_url)
@@ -388,10 +402,16 @@ class AlluxioFileSystem:
             file content (str): The full file content
         """
         self._validate_path(file_path)
-        worker_host = self._get_preferred_worker_host(file_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            file_path
+        )
         path_id = self._get_path_hash(file_path)
         try:
-            return b"".join(self._all_page_generator(worker_host, path_id))
+            return b"".join(
+                self._all_page_generator(
+                    worker_host, worker_http_port, path_id
+                )
+            )
         except Exception as e:
             raise Exception(
                 f"Error when reading file {file_path}: error {e}"
@@ -416,12 +436,14 @@ class AlluxioFileSystem:
         if not isinstance(length, int) or (length <= 0 and length != -1):
             raise ValueError("Length must be a positive integer or -1")
 
-        worker_host = self._get_preferred_worker_host(file_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            file_path
+        )
         path_id = self._get_path_hash(file_path)
         try:
             return b"".join(
                 self._range_page_generator(
-                    worker_host, path_id, offset, length
+                    worker_host, worker_http_port, path_id, offset, length
                 )
             )
         except Exception as e:
@@ -442,13 +464,15 @@ class AlluxioFileSystem:
             True if the write was successful, False otherwise.
         """
         self._validate_path(file_path)
-        worker_host = self._get_preferred_worker_host(file_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            file_path
+        )
         path_id = self._get_path_hash(file_path)
         try:
             response = requests.post(
                 const.WRITE_PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path_id=path_id,
                     page_index=page_index,
                 ),
@@ -462,12 +486,12 @@ class AlluxioFileSystem:
                 f"Error writing to file {file_path} at page {page_index}: {e}"
             )
 
-    def _all_page_generator(self, worker_host, path_id):
+    def _all_page_generator(self, worker_host, worker_http_port, path_id):
         page_index = 0
         while True:
             try:
                 page_content = self._read_page(
-                    worker_host, path_id, page_index
+                    worker_host, worker_http_port, path_id, page_index
                 )
             except Exception as e:
                 if page_index == 0:
@@ -484,7 +508,9 @@ class AlluxioFileSystem:
                 break
             page_index += 1
 
-    def _range_page_generator(self, worker_host, path_id, offset, length):
+    def _range_page_generator(
+        self, worker_host, worker_http_port, path_id, offset, length
+    ):
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
 
@@ -505,6 +531,7 @@ class AlluxioFileSystem:
                         read_length = self.page_size - start_page_offset
                     page_content = self._read_page(
                         worker_host,
+                        worker_http_port,
                         path_id,
                         page_index,
                         start_page_offset,
@@ -512,11 +539,16 @@ class AlluxioFileSystem:
                     )
                 elif page_index == end_page_index:
                     page_content = self._read_page(
-                        worker_host, path_id, page_index, 0, end_page_read_to
+                        worker_host,
+                        worker_http_port,
+                        path_id,
+                        page_index,
+                        0,
+                        end_page_read_to,
                     )
                 else:
                     page_content = self._read_page(
-                        worker_host, path_id, page_index
+                        worker_host, worker_http_port, path_id, page_index
                     )
 
                 yield page_content
@@ -547,12 +579,12 @@ class AlluxioFileSystem:
         session.mount("http://", adapter)
         return session
 
-    def _load_file(self, worker_host, path, timeout):
+    def _load_file(self, worker_host, worker_http_port, path, timeout):
         try:
             response = self.session.get(
                 const.LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path=path,
                 ),
             )
@@ -563,7 +595,7 @@ class AlluxioFileSystem:
 
             load_progress_url = const.LOAD_PROGRESS_URL_FORMAT.format(
                 worker_host=worker_host,
-                http_port=self.http_port,
+                http_port=worker_http_port,
                 path=path,
             )
             stop_time = 0
@@ -613,7 +645,13 @@ class AlluxioFileSystem:
             ) from e
 
     def _read_page(
-        self, worker_host, path_id, page_index, offset=None, length=None
+        self,
+        worker_host,
+        worker_http_port,
+        path_id,
+        page_index,
+        offset=None,
+        length=None,
     ):
         if (offset is None) != (length is None):
             raise ValueError(
@@ -624,25 +662,26 @@ class AlluxioFileSystem:
             if offset is None:
                 page_url = const.FULL_PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path_id=path_id,
                     page_index=page_index,
                 )
+                print(page_url)
             else:
                 page_url = const.PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
-                    http_port=self.http_port,
+                    http_port=worker_http_port,
                     path_id=path_id,
                     page_index=page_index,
                     page_offset=offset,
                     page_length=length,
                 )
-
             response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
 
         except Exception as e:
+            print(e)
             raise Exception(
                 f"Error when requesting file {path_id} page {page_index} from {worker_host}: error {e}"
             ) from e
@@ -661,7 +700,7 @@ class AlluxioFileSystem:
             except AttributeError:
                 continue
 
-    def _get_preferred_worker_host(self, full_ufs_path):
+    def _get_preferred_worker_address(self, full_ufs_path):
         workers = self.hash_provider.get_multiple_workers(full_ufs_path, 1)
         if len(workers) != 1:
             raise ValueError(
@@ -669,7 +708,7 @@ class AlluxioFileSystem:
                     len(workers), workers
                 )
             )
-        return workers[0].host
+        return workers[0].host, workers[0].http_server_port
 
     def _validate_path(self, path):
         if not isinstance(path, str):
