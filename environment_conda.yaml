@@ -1,0 +1,14 @@
+name: alluxio_test
+channels:
+  - conda-forge
+dependencies:
+  - aiohttp
+  - pytest=7.4.4
+  - pytest-timeout
+  - pytest-aiohttp
+  - requests
+  - humanfriendly
+  - mmh3
+  - sortedcontainers
+  - pip:
+        - git+https://github.com/kragniz/python-etcd3
