@@ -1,5 +1,6 @@
 import pytest
 
+from alluxio.worker_ring import DEFAULT_DATA_PORT
 from alluxio.worker_ring import WorkerNetAddress
 
 
@@ -38,5 +39,11 @@ def test_worker_net_address_dump_main_info():
         "1234" in result
     ), "rpc port 1234 should be included in the dump info"
     assert (
-        str(WorkerNetAddress.DEFAULT_DATA_PORT) in result
+        str(DEFAULT_DATA_PORT) in result
     ), "default data port should be included in the dump info"
+
+
+def test_worker_net_address_from_service_registry_worker_info():
+    worker_info = b'{"Identity":{"version":1,"identifier":"cb157baaafe04b988af01a4645d38456"},"WorkerNetAddress":{"Host":"192.168.4.36","ContainerHost":"","RpcPort":29999,"DataPort":29997,"SecureRpcPort":0,"NettyDataPort":29997,"WebPort":30000,"DomainSocketPath":""},"State":"AUTHORIZED","GenerationNumber":-1,"ServiceEntityName":"worker-cb157baa-afe0-4b98-8af0-1a4645d38456"}'
+    result = WorkerNetAddress.from_worker_info(worker_info)
+    assert result.host == "192.168.4.36", "The host should be 192.168.4.36"

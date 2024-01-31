@@ -12,7 +12,6 @@ import etcd3
 import mmh3
 from sortedcontainers import SortedDict
 
-
 DEFAULT_HOST = "localhost"
 DEFAULT_CONTAINER_HOST = ""
 DEFAULT_RPC_PORT = 29999
@@ -21,19 +20,20 @@ DEFAULT_SECURE_RPC_PORT = 0
 DEFAULT_NETTY_DATA_PORT = 29997
 DEFAULT_WEB_PORT = 30000
 DEFAULT_DOMAIN_SOCKET_PATH = ""
+DEFAULT_REST_API_PORT = 28080
 
 
-@dataclass
+@dataclass(frozen=True)
 class WorkerNetAddress:
-    host: str = "localhost"
-    container_host: str = ""
-    rpc_port: int = 29999
-    data_port: int = 29997
-    secure_rpc_port: int = 0
-    netty_data_port: int = 29997
-    web_port: int = 30000
-    domain_socket_path = ""
-    rest_api_port = 28080
+    host: str = DEFAULT_HOST
+    container_host: str = DEFAULT_CONTAINER_HOST
+    rpc_port: int = DEFAULT_RPC_PORT
+    data_port: int = DEFAULT_DATA_PORT
+    secure_rpc_port: int = DEFAULT_SECURE_RPC_PORT
+    netty_data_port: int = DEFAULT_NETTY_DATA_PORT
+    web_port: int = DEFAULT_WEB_PORT
+    domain_socket_path: str = DEFAULT_DOMAIN_SOCKET_PATH
+    rest_api_port: int = DEFAULT_REST_API_PORT
 
     @staticmethod
     def from_worker_info(worker_info):
@@ -131,10 +131,8 @@ class EtcdClient:
         worker_addresses = set()
         try:
             worker_addresses = {
-                WorkerNetAddress.from_worker_info(
-                    worker_info["WorkerNetAddress"]
-                )
-                for _, worker_info in etcd.get_prefix(self.PREFIX)
+                WorkerNetAddress.from_worker_info(worker_info)
+                for worker_info, _ in etcd.get_prefix(self.PREFIX)
             }
         except Exception as e:
             raise Exception(
