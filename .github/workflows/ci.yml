@@ -1,0 +1,52 @@
+name: CI
+
+on: [pull_request, workflow_dispatch]
+
+defaults:
+  run:
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9"]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Conda Environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          cache-downloads: true
+          environment-file: environment_conda.yaml
+          environment-name: alluxio_test
+          create-args: >-
+            python=${{ matrix.PY }}
+
+      - name: Conda info
+        run: |
+          conda list
+          conda --version
+
+      - name: Run tests
+        run: |
+          pytest -vv \
+          --log-format="%(asctime)s %(levelname)s %(message)s" \
+          --log-date-format="%H:%M:%S" \
+          tests/
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - uses: pre-commit/action@v3.0.0
