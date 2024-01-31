@@ -413,11 +413,23 @@ class AlluxioFileSystem:
         if not isinstance(offset, int) or offset < 0:
             raise ValueError("Offset must be a non-negative integer")
 
-        if not isinstance(length, int) or (length <= 0 and length != -1):
-            raise ValueError("Length must be a positive integer or -1")
+        if length is None or length == -1:
+            file_status = self.get_file_status(file_path)
+            if file_status is None:
+                raise FileNotFoundError(f"File {file_path} not found")
+            length = file_status.length - offset
+
+        if length == 0:
+            return b""
+
+        if not isinstance(length, int) or length < 0:
+            raise ValueError(
+                f"Invalid length: {length}. Length must be a non-negative integer, -1, or None. Requested offset: {offset}"
+            )
 
         worker_host = self._get_preferred_worker_host(file_path)
         path_id = self._get_path_hash(file_path)
+
         try:
             return b"".join(
                 self._range_page_generator(
@@ -488,12 +500,8 @@ class AlluxioFileSystem:
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
 
-        # Determine the end page index and the read-to position
-        if length == -1:
-            end_page_index = None
-        else:
-            end_page_index = (offset + length - 1) // self.page_size
-            end_page_read_to = ((offset + length - 1) % self.page_size) + 1
+        end_page_index = (offset + length - 1) // self.page_size
+        end_page_read_to = ((offset + length - 1) % self.page_size) + 1
 
         page_index = start_page_index
         while True:

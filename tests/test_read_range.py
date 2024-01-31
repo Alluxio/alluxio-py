@@ -105,7 +105,10 @@ def main(args):
     max_length = 13 * 1024 * 1024
     for _ in range(args.num_tests):
         offset = random.randint(0, file_size - 1)
-        length = min(random.randint(1, file_size - offset), max_length)
+        length = min(random.randint(-1, file_size - offset), max_length)
+        # -1 and None length represents read from offset to file end
+        if length == 0:
+            length = None
         validate_read_range(
             alluxio_fs,
             args.alluxio_file_path,
@@ -120,6 +123,7 @@ def main(args):
 
     special_test_cases = [
         (file_size - 1, -1),
+        (file_size - 1, None),
         (file_size - 1, file_size + 1),
         (file_size, 100),
     ]
