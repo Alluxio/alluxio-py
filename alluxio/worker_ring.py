@@ -81,7 +81,9 @@ class WorkerNetAddress:
             ) from e
 
     @staticmethod
-    def from_worker_hosts(worker_hosts, worker_http_port=DEFAULT_HTTP_SERVER_PORT):
+    def from_worker_hosts(
+        worker_hosts, worker_http_port=DEFAULT_HTTP_SERVER_PORT
+    ):
         worker_addresses = set()
         for host in worker_hosts.split(","):
             worker_address = WorkerNetAddress(
@@ -190,7 +192,9 @@ class ConsistentHashProvider:
         self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
         if worker_hosts:
             self._update_hash_ring(
-                WorkerNetAddress.from_worker_hosts(worker_hosts, worker_http_port)
+                WorkerNetAddress.from_worker_hosts(
+                    worker_hosts, worker_http_port
+                )
             )
         if self._etcd_hosts:
             self._fetch_workers_and_update_ring()
