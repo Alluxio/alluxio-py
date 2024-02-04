@@ -95,7 +95,7 @@ class WorkerNetAddress:
     def dump_main_info(self):
         return (
             "WorkerNetAddress{{host={}, containerHost={}, rpcPort={}, "
-            "dataPort={}, webPort={}, domainSocketPath={}, httpServerPort={}}}"
+            "dataPort={}, webPort={}, domainSocketPath={}}}"
         ).format(
             self.host,
             self.container_host,
@@ -103,7 +103,6 @@ class WorkerNetAddress:
             self.data_port,
             self.web_port,
             self.domain_socket_path,
-            self.http_server_port,
         )
 
 
