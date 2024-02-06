@@ -399,6 +399,7 @@ class AlluxioFileSystem:
             http_port=worker_http_port,
             path=path,
         )
+
         return self._load_progress_internal(load_progress_url)
 
     def read(self, file_path):
@@ -620,7 +621,9 @@ class AlluxioFileSystem:
             if timeout is not None:
                 stop_time = time.time() + timeout
             while True:
-                job_state = self._load_progress_internal(load_progress_url)
+                job_state, content = self._load_progress_internal(
+                    load_progress_url
+                )
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
@@ -647,7 +650,7 @@ class AlluxioFileSystem:
             )
             return False
 
-    def _load_progress_internal(self, load_url):
+    def _load_progress_internal(self, load_url: str) -> (LoadState, str):
         try:
             response = self.session.get(load_url)
             response.raise_for_status()
@@ -656,7 +659,10 @@ class AlluxioFileSystem:
                 raise KeyError(
                     "The field 'jobState' is missing from the load progress response content"
                 )
-            return LoadState(content["jobState"])
+            state = content["jobState"]
+            if "FAILED" in state:
+                return LoadState.FAILED, content
+            return LoadState(state), content
         except Exception as e:
             raise Exception(
                 f"Error when getting load job progress for {load_url}: error {e}"
