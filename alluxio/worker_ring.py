@@ -209,14 +209,16 @@ class ConsistentHashProvider:
             List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
         """
         with self._lock:
-            if count >= len(self._worker_addresses):
-                return list(self._worker_addresses)
-            workers: Set[WorkerNetAddress] = set()
+            if count >= len(self._worker_info_map):
+                return list(self._worker_info_map.values())
+            workers = []
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
                 attempts += 1
-                workers.add(self._get_ceiling_value(self._hash(key, attempts)))
-            return list(workers)
+                worker = self._get_ceiling_value(self._hash(key, attempts))
+                if worker not in workers:
+                    workers.append(worker)
+            return workers
 
     def _start_background_update_ring(self, interval):
         def update_loop():
@@ -290,7 +292,10 @@ class ConsistentHashProvider:
             hash_ring = SortedDict()
             for worker_identity in worker_info_map.keys():
                 for i in range(self._hash_node_per_worker):
-                    hash_key = self._hash(worker_identity, i)
+                    hash_key = self._hash(
+                        f"{worker_identity.identifier}{worker_identity.version}",
+                        i,
+                    )
                     hash_ring[hash_key] = worker_identity
             self._hash_ring = hash_ring
             self._worker_info_map = worker_info_map
@@ -305,9 +310,5 @@ class ConsistentHashProvider:
         else:
             return self._hash_ring.peekitem(0)[1]
 
-    def _hash(self, worker_identity: WorkerIdentity, index: int) -> int:
-        return mmh3.hash(
-            f"{worker_identity.identifier}{worker_identity.version}{index}".encode(
-                "utf-8"
-            )
-        )
+    def _hash(self, key: str, index: int) -> int:
+        return mmh3.hash(f"{key}{index}".encode("utf-8"))
