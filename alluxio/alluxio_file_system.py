@@ -599,12 +599,13 @@ class AlluxioFileSystem:
 
     def _load_file(self, worker_host, worker_http_port, path, timeout):
         try:
+            params = {"path": path, "opType": "submit"}
             response = self.session.get(
                 LOAD_SUBMIT_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=worker_http_port,
-                    path=path,
                 ),
+                params=params,
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))

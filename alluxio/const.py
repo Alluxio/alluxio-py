@@ -11,7 +11,7 @@ WRITE_PAGE_URL_FORMAT = (
 )
 GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
 LOAD_SUBMIT_URL_FORMAT = (
-    "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
+    "http://{worker_host}:{http_port}/v1/load"
 )
 LOAD_PROGRESS_URL_FORMAT = (
     "http://{worker_host}:{http_port}/v1/load?path={path}&opType=progress"
