@@ -35,38 +35,62 @@ class WorkerNetAddress:
     domain_socket_path: str = DEFAULT_DOMAIN_SOCKET_PATH
     http_server_port: int = DEFAULT_HTTP_SERVER_PORT
 
+
+@dataclass(frozen=True)
+class WorkerIdentity:
+    version: int
+    identifier: str
+
+
+@dataclass(frozen=True)
+class WorkerEntity:
+    worker_identity: WorkerIdentity
+    worker_net_address: WorkerNetAddress
+
     @staticmethod
     def from_worker_info(worker_info):
         try:
             worker_info_string = worker_info.decode("utf-8")
             worker_info_json = json.loads(worker_info_string)
-            worker_net_address = worker_info_json.get("WorkerNetAddress", {})
+            identity_info = worker_info_json.get("Identity", {})
+            worker_identity = WorkerIdentity(
+                version=identity_info.get("version"),
+                identifier=identity_info.get("identifier"),
+            )
 
-            return WorkerNetAddress(
-                host=worker_net_address.get("Host", DEFAULT_HOST),
-                container_host=worker_net_address.get(
+            worker_net_address_info = worker_info_json.get(
+                "WorkerNetAddress", {}
+            )
+            worker_net_address = WorkerNetAddress(
+                host=worker_net_address_info.get("Host", DEFAULT_HOST),
+                container_host=worker_net_address_info.get(
                     "ContainerHost", DEFAULT_CONTAINER_HOST
                 ),
-                rpc_port=worker_net_address.get("RpcPort", DEFAULT_RPC_PORT),
-                data_port=worker_net_address.get(
+                rpc_port=worker_net_address_info.get(
+                    "RpcPort", DEFAULT_RPC_PORT
+                ),
+                data_port=worker_net_address_info.get(
                     "DataPort", DEFAULT_DATA_PORT
                 ),
-                secure_rpc_port=worker_net_address.get(
+                secure_rpc_port=worker_net_address_info.get(
                     "SecureRpcPort", DEFAULT_SECURE_RPC_PORT
                 ),
-                netty_data_port=worker_net_address.get(
+                netty_data_port=worker_net_address_info.get(
                     "NettyDataPort", DEFAULT_NETTY_DATA_PORT
                 ),
-                web_port=worker_net_address.get("WebPort", DEFAULT_WEB_PORT),
-                domain_socket_path=worker_net_address.get(
+                web_port=worker_net_address_info.get(
+                    "WebPort", DEFAULT_WEB_PORT
+                ),
+                domain_socket_path=worker_net_address_info.get(
                     "DomainSocketPath",
                     DEFAULT_DOMAIN_SOCKET_PATH,
                 ),
-                http_server_port=worker_net_address.get(
+                http_server_port=worker_net_address_info.get(
                     "HttpServerPort",
                     DEFAULT_HTTP_SERVER_PORT,
                 ),
             )
+            return WorkerEntity(worker_identity, worker_net_address)
         except json.JSONDecodeError as e:
             raise ValueError(
                 f"Provided worker_info is not a valid JSON string {e}"
@@ -79,31 +103,6 @@ class WorkerNetAddress:
             raise Exception(
                 f"Failed to process given worker_info {worker_info} {e}"
             ) from e
-
-    @staticmethod
-    def from_worker_hosts(
-        worker_hosts, worker_http_port=DEFAULT_HTTP_SERVER_PORT
-    ):
-        worker_addresses = set()
-        for host in worker_hosts.split(","):
-            worker_address = WorkerNetAddress(
-                host=host, http_server_port=worker_http_port
-            )
-            worker_addresses.add(worker_address)
-        return worker_addresses
-
-    def dump_main_info(self):
-        return (
-            "WorkerNetAddress{{host={}, containerHost={}, rpcPort={}, "
-            "dataPort={}, webPort={}, domainSocketPath={}}}"
-        ).format(
-            self.host,
-            self.container_host,
-            self.rpc_port,
-            self.data_port,
-            self.web_port,
-            self.domain_socket_path,
-        )
 
 
 class EtcdClient:
@@ -128,19 +127,19 @@ class EtcdClient:
                 "Both ETCD username and password must be set or both should be unset."
             )
 
-    def get_worker_addresses(self):
+    def get_worker_entities(self) -> Set[WorkerEntity]:
         """
-        Retrieve worker addresses from etcd using the specified prefix.
+        Retrieve worker entities from etcd using the specified prefix.
 
         Returns:
-            list: A list of WorkerNetAddress objects.
+            set: A set of WorkerEntity objects.
         """
         # Note that EtcdClient should not be passed through python multiprocessing
         etcd = self._get_etcd_client()
-        worker_addresses = set()
+        worker_entities: Set[WorkerEntity] = set()
         try:
-            worker_addresses = {
-                WorkerNetAddress.from_worker_info(worker_info)
+            worker_entities = {
+                WorkerEntity.from_worker_info(worker_info)
                 for worker_info, _ in etcd.get_prefix(self.PREFIX)
             }
         except Exception as e:
@@ -148,12 +147,12 @@ class EtcdClient:
                 f"Failed to achieve worker info list from ETCD server {self.host}:{self.port} {e}"
             ) from e
 
-        if not worker_addresses:
+        if not worker_entities:
             # TODO(lu) deal with the alluxio cluster initalizing issue
             raise Exception(
                 "Alluxio cluster may still be initializing. No worker registered"
             )
-        return worker_addresses
+        return worker_entities
 
     def _get_etcd_client(self):
         if self.etcd_username:
@@ -171,11 +170,9 @@ class ConsistentHashProvider:
         self,
         etcd_hosts=None,
         etcd_port=2379,
-        worker_hosts=None,
-        worker_http_port=DEFAULT_HTTP_SERVER_PORT,
         options=None,
         logger=None,
-        num_virtual_nodes=2000,
+        hash_node_per_worker=5,
         max_attempts=100,
         etcd_refresh_workers_interval=None,
     ):
@@ -183,18 +180,12 @@ class ConsistentHashProvider:
         self._etcd_port = etcd_port
         self._options = options
         self._logger = logger or logging.getLogger("ConsistentHashProvider")
-        self._num_virtual_nodes = num_virtual_nodes
+        self._hash_node_per_worker = hash_node_per_worker
         self._max_attempts = max_attempts
         self._lock = threading.Lock()
         self._is_ring_initialized = False
-        self._worker_addresses = None
+        self._worker_info_map = {}
         self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
-        if worker_hosts:
-            self._update_hash_ring(
-                WorkerNetAddress.from_worker_hosts(
-                    worker_hosts, worker_http_port
-                )
-            )
         if self._etcd_hosts:
             self._fetch_workers_and_update_ring()
             if self._etcd_refresh_workers_interval > 0:
@@ -250,19 +241,18 @@ class ConsistentHashProvider:
         self.shutdown_background_update_ring()
 
     def _fetch_workers_and_update_ring(self):
-        worker_addresses = set()
         etcd_hosts_list = self._etcd_hosts.split(",")
         random.shuffle(etcd_hosts_list)
+        worker_entities: Set[WorkerEntity] = set()
         for host in etcd_hosts_list:
             try:
-                current_addresses = EtcdClient(
+                worker_entities = EtcdClient(
                     host=host, port=self._etcd_port, options=self._options
-                ).get_worker_addresses()
-                worker_addresses.update(current_addresses)
+                ).get_worker_entities()
                 break
             except Exception as e:
                 continue
-        if not worker_addresses:
+        if not worker_entities:
             if self._is_ring_initialized:
                 self._logger.info(
                     f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
@@ -273,20 +263,37 @@ class ConsistentHashProvider:
                     f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
                 )
 
-        if worker_addresses != self._worker_addresses:
-            self._update_hash_ring(worker_addresses)
+        worker_info_map = {}
+        detect_diff_in_worker_info = False
+        for worker_entity in worker_entities:
+            worker_info_map[
+                worker_entity.worker_identity
+            ] = worker_entity.worker_net_address
+            if worker_entity.worker_identity not in self._worker_info_map:
+                detect_diff_in_worker_info = True
+            elif (
+                self._worker_info_map[worker_entity.worker_identity]
+                != worker_entity.worker_net_address
+            ):
+                detect_diff_in_worker_info = True
 
-    def _update_hash_ring(self, worker_addresses: Set[WorkerNetAddress]):
+        if len(worker_info_map) != len(self._worker_info_map):
+            detect_diff_in_worker_info = True
+
+        if detect_diff_in_worker_info:
+            self._update_hash_ring(worker_info_map)
+
+    def _update_hash_ring(
+        self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
+    ):
         with self._lock:
             hash_ring = SortedDict()
-            weight = math.ceil(self._num_virtual_nodes / len(worker_addresses))
-            for worker_address in worker_addresses:
-                worker_string = worker_address.dump_main_info()
-                for i in range(weight):
-                    hash_key = self._hash(worker_string, i)
-                    hash_ring[hash_key] = worker_address
+            for worker_identity in worker_info_map.keys():
+                for i in range(self._hash_node_per_worker):
+                    hash_key = self._hash(worker_identity, i)
+                    hash_ring[hash_key] = worker_identity
             self._hash_ring = hash_ring
-            self._worker_addresses = worker_addresses
+            self._worker_info_map = worker_info_map
             self._is_ring_initialized = True
 
     def _get_ceiling_value(self, hash_key: int):
@@ -298,5 +305,9 @@ class ConsistentHashProvider:
         else:
             return self._hash_ring.peekitem(0)[1]
 
-    def _hash(self, key: str, index: int) -> int:
-        return mmh3.hash(f"{key}{index}".encode("utf-8"))
+    def _hash(self, worker_identity: WorkerIdentity, index: int) -> int:
+        return mmh3.hash(
+            f"{worker_identity.identifier}{worker_identity.version}{index}".encode(
+                "utf-8"
+            )
+        )
