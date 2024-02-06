@@ -31,9 +31,11 @@ def test_worker_net_address_from_worker_hosts():
 
 
 def test_worker_net_address_dump_main_info():
-    worker_address = WorkerNetAddress(host="host", rpc_port=1234)
+    worker_address = WorkerNetAddress(
+        host="host", rpc_port=1234, http_server_port=38080
+    )
     result = worker_address.dump_main_info()
-    print(result)
+
     assert "host" in result, "host should be included in the dump info"
     assert (
         "1234" in result
@@ -41,9 +43,25 @@ def test_worker_net_address_dump_main_info():
     assert (
         str(DEFAULT_DATA_PORT) in result
     ), "default data port should be included in the dump info"
+    assert (
+        "38080" not in result
+    ), "Http server port should not be included in the dump info"
 
 
 def test_worker_net_address_from_service_registry_worker_info():
-    worker_info = b'{"Identity":{"version":1,"identifier":"cb157baaafe04b988af01a4645d38456"},"WorkerNetAddress":{"Host":"192.168.4.36","ContainerHost":"","RpcPort":29999,"DataPort":29997,"SecureRpcPort":0,"NettyDataPort":29997,"WebPort":30000,"DomainSocketPath":""},"State":"AUTHORIZED","GenerationNumber":-1,"ServiceEntityName":"worker-cb157baa-afe0-4b98-8af0-1a4645d38456"}'
+    worker_info = (
+        b'{"Identity":{"version":1,'
+        b'"identifier":"cb157baaafe04b988af01a4645d38456"},'
+        b'"WorkerNetAddress":{"Host":"192.168.4.36",'
+        b'"ContainerHost":"",'
+        b'"RpcPort":29999,'
+        b'"DataPort":29997,"SecureRpcPort":0,'
+        b'"NettyDataPort":29997,'
+        b'"WebPort":30000,'
+        b'"DomainSocketPath":""},'
+        b'"State":"AUTHORIZED",'
+        b'"GenerationNumber":-1,'
+        b'"ServiceEntityName":"worker-cb157baa-afe0-4b98-8af0-1a4645d38456"}'
+    )
     result = WorkerNetAddress.from_worker_info(worker_info)
     assert result.host == "192.168.4.36", "The host should be 192.168.4.36"
