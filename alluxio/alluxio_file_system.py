@@ -326,7 +326,7 @@ class AlluxioFileSystem:
             path
         )
         try:
-            params = {"path": path, "opType": OpType.SUBMIT}
+            params = {"path": path, "opType": OpType.SUBMIT.value}
             response = self.session.get(
                 LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -360,7 +360,7 @@ class AlluxioFileSystem:
             path
         )
         try:
-            params = {"path": path, "opType": OpType.STOP}
+            params = {"path": path, "opType": OpType.STOP.value}
             response = self.session.get(
                 LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -402,7 +402,7 @@ class AlluxioFileSystem:
         worker_host, worker_http_port = self._get_preferred_worker_address(
             path
         )
-        params = {"path": path, "opType": OpType.PROGRESS}
+        params = {"path": path, "opType": OpType.PROGRESS.value}
         load_progress_url = LOAD_URL_FORMAT.format(
             worker_host=worker_host,
             http_port=worker_http_port,
@@ -607,9 +607,9 @@ class AlluxioFileSystem:
 
     def _load_file(self, worker_host, worker_http_port, path, timeout):
         try:
-            params = {"path": path, "opType": OpType.SUBMIT}
+            params = {"path": path, "opType": OpType.SUBMIT.value}
             response = self.session.get(
-                LOAD_SUBMIT_URL_FORMAT.format(
+                LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=worker_http_port,
                 ),
@@ -620,7 +620,7 @@ class AlluxioFileSystem:
             if not content[ALLUXIO_SUCCESS_IDENTIFIER]:
                 return False
 
-            params = {"path": path, "opType": OpType.PROGRESS}
+            params = {"path": path, "opType": OpType.PROGRESS.value}
             load_progress_url = LOAD_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=worker_http_port,
