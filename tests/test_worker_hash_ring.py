@@ -9,7 +9,7 @@ def main():
     hash_provider = ConsistentHashProvider(
         etcd_hosts="localhost",
         etcd_port=2379,
-        hash_node_per_worker=5,
+        hash_node_per_worker=3,
         etcd_refresh_workers_interval=100000000,
     )
     worker_list_path = "/Users/alluxio/downloads/testData/workerList.json"
@@ -19,8 +19,8 @@ def main():
     worker_info_map = {}
     for worker_data in workers_data:
         worker_identity = WorkerIdentity(
-            version=worker_data["version"],
-            identifier=worker_data["identifier"],
+            version=int(worker_data["version"]),
+            identifier=bytes.fromhex(worker_data["identifier"]),
         )
         # Assuming you want to use a default WorkerNetAddress for each WorkerIdentity
         default_worker_net_address = WorkerNetAddress()  # Using default values
@@ -28,8 +28,11 @@ def main():
 
     hash_provider.update_hash_ring(worker_info_map)
     current_ring = hash_provider.get_hash_ring()
+    # Use the above function in the printing section of your main function
     for hash_key, worker_identity in current_ring.items():
-        print(f"Hash Key: {hash_key}, Worker: {worker_identity}")
+        print(
+            f"Hash Key: {hash_key}, Worker: WorkerIdentity(version={worker_identity.version}, identifier={worker_identity.identifier.hex()})"
+        )
 
     hash_ring_path = "/Users/alluxio/downloads/testData/activeNodesMap.json"
     with open(hash_ring_path, "r") as file:

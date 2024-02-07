@@ -1,8 +1,10 @@
 import json
 import logging
 import random
+import struct
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from typing import List
 from typing import Set
@@ -38,7 +40,7 @@ class WorkerNetAddress:
 @dataclass(frozen=True)
 class WorkerIdentity:
     version: int
-    identifier: str
+    identifier: bytes
 
 
 @dataclass(frozen=True)
@@ -53,8 +55,8 @@ class WorkerEntity:
             worker_info_json = json.loads(worker_info_string)
             identity_info = worker_info_json.get("Identity", {})
             worker_identity = WorkerIdentity(
-                version=identity_info.get("version"),
-                identifier=identity_info.get("identifier"),
+                version=int(identity_info.get("version")),
+                identifier=bytes.fromhex(identity_info.get("identifier")),
             )
 
             worker_net_address_info = worker_info_json.get(
@@ -220,7 +222,11 @@ class ConsistentHashProvider:
                 worker = self._get_ceiling_value(self._hash(key, attempts))
                 if worker not in workers:
                     workers.append(worker)
-            return workers
+
+            worker_addresses = []
+            for worker in workers:
+                worker_addresses.append(self._worker_info_map.get(worker))
+            return worker_addresses
 
     def _start_background_update_ring(self, interval):
         def update_loop():
@@ -319,6 +325,12 @@ class ConsistentHashProvider:
     def _hash_worker_identity(
         self, worker: WorkerIdentity, node_index: int
     ) -> int:
-        return mmh3.hash(
-            f"{worker.identifier}{worker.version}{node_index}".encode("utf-8")
+        version_node_bytes = str(f"{worker.version}{node_index}").encode(
+            "utf-8"
         )
+
+        # Concatenate bytes
+        combined_bytes = worker.identifier + version_node_bytes
+
+        # Hash the combined bytes
+        return mmh3.hash(combined_bytes)

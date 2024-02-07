@@ -1,464 +1,212 @@
 {
   "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_checkin.json": [
     {
-      "version": 0,
-      "identifier": "19bf523306b40c00"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     },
     {
-      "version": 0,
-      "identifier": "6b38af6afcd36c00"
-    },
-    {
-      "version": 0,
-      "identifier": "0d2f56aec9d46800"
-    },
-    {
-      "version": 0,
-      "identifier": "5371de8188688000"
-    },
-    {
-      "version": 0,
-      "identifier": "61e79fffc3494000"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "gcs://bucket/file.txt": [
     {
-      "version": 0,
-      "identifier": "6b38af6afcd36c00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "4ec9528c0f1d8400"
-    },
-    {
-      "version": 0,
-      "identifier": "24cfe47f8a7eb800"
-    },
-    {
-      "version": 0,
-      "identifier": "2231b2e34d0f9400"
-    },
-    {
-      "version": 0,
-      "identifier": "7cd836521b5eec00"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "s://ai-testing/": [
     {
-      "version": 0,
-      "identifier": "1427c2f3d8507800"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "387b9d494248cc00"
-    },
-    {
-      "version": 0,
-      "identifier": "600bef8f8d76b000"
-    },
-    {
-      "version": 0,
-      "identifier": "142116a3b9126c00"
-    },
-    {
-      "version": 0,
-      "identifier": "0a66121330df7800"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_review.json": [
     {
-      "version": 0,
-      "identifier": "74425b8975cd4c00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "2231b2e34d0f9400"
-    },
-    {
-      "version": 0,
-      "identifier": "1f71b65921808400"
-    },
-    {
-      "version": 0,
-      "identifier": "754fb5bd2dfa2800"
-    },
-    {
-      "version": 0,
-      "identifier": "54a70c21eab28000"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "s3://bucket/path/to/dir": [
     {
-      "version": 0,
-      "identifier": "5606fa82b21b6c00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "2231b2e34d0f9400"
-    },
-    {
-      "version": 0,
-      "identifier": "44c968cf5d59b800"
-    },
-    {
-      "version": 0,
-      "identifier": "74425b8975cd4c00"
-    },
-    {
-      "version": 0,
-      "identifier": "46ebfed922610800"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "hdfs://host:port/path/to/file": [
     {
-      "version": 0,
-      "identifier": "600bef8f8d76b000"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
-    },
-    {
-      "version": 0,
-      "identifier": "7b791ba51dc0dc00"
-    },
-    {
-      "version": 0,
-      "identifier": "3b675e5bfe25c000"
-    },
-    {
-      "version": 0,
-      "identifier": "24cfe47f8a7eb800"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "wasbs://container@account.blob.core.windows.net/dir": [
     {
-      "version": 0,
-      "identifier": "4885f3391740d800"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "655f6dd6e8ba1800"
-    },
-    {
-      "version": 0,
-      "identifier": "24cfe47f8a7eb800"
-    },
-    {
-      "version": 0,
-      "identifier": "600bef8f8d76b000"
-    },
-    {
-      "version": 0,
-      "identifier": "142116a3b9126c00"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "gs://bucket/file.txt": [
     {
-      "version": 0,
-      "identifier": "0c2452cf3a590400"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "4885f3391740d800"
-    },
-    {
-      "version": 0,
-      "identifier": "3d2c3b0111f5b000"
-    },
-    {
-      "version": 0,
-      "identifier": "1427c2f3d8507800"
-    },
-    {
-      "version": 0,
-      "identifier": "4ec9528c0f1d8400"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_review_sample_large.csv": [
     {
-      "version": 0,
-      "identifier": "1d45d885af8b2400"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "735fcc8d7ff1d800"
-    },
-    {
-      "version": 0,
-      "identifier": "1ddbe94385ed9800"
-    },
-    {
-      "version": 0,
-      "identifier": "728fb281f67aac00"
-    },
-    {
-      "version": 0,
-      "identifier": "7cd836521b5eec00"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "s3://ai-ref-arch/yelp-review/model.pt": [
     {
-      "version": 0,
-      "identifier": "735fcc8d7ff1d800"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "4ec9528c0f1d8400"
-    },
-    {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
-    },
-    {
-      "version": 0,
-      "identifier": "19bf523306b40c00"
-    },
-    {
-      "version": 0,
-      "identifier": "5371de8188688000"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_business.json": [
     {
-      "version": 0,
-      "identifier": "2b6ad30b13873000"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "49a1d53d04e7d000"
-    },
-    {
-      "version": 0,
-      "identifier": "3d2c3b0111f5b000"
-    },
-    {
-      "version": 0,
-      "identifier": "3c197edb19fc4400"
-    },
-    {
-      "version": 0,
-      "identifier": "4232fa1a8d29d000"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "hdfs://namenode:8020/user/hadoop/file.txt": [
     {
-      "version": 0,
-      "identifier": "1d45d885af8b2400"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "54a70c21eab28000"
-    },
-    {
-      "version": 0,
-      "identifier": "6b38af6afcd36c00"
-    },
-    {
-      "version": 0,
-      "identifier": "3b675e5bfe25c000"
-    },
-    {
-      "version": 0,
-      "identifier": "4232fa1a8d29d000"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "gs://bucket/dir": [
     {
-      "version": 0,
-      "identifier": "387b9d494248cc00"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "3d2c3b0111f5b000"
-    },
-    {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
-    },
-    {
-      "version": 0,
-      "identifier": "57044306fd09d000"
-    },
-    {
-      "version": 0,
-      "identifier": "0a66121330df7800"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ],
   "gcs://bucket/dir": [
     {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "19bf523306b40c00"
-    },
-    {
-      "version": 0,
-      "identifier": "2231b2e34d0f9400"
-    },
-    {
-      "version": 0,
-      "identifier": "5371de8188688000"
-    },
-    {
-      "version": 0,
-      "identifier": "387b9d494248cc00"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_user.json": [
     {
-      "version": 0,
-      "identifier": "6ae9cebc84b2dc00"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "3b675e5bfe25c000"
-    },
-    {
-      "version": 0,
-      "identifier": "6b9e104903840800"
-    },
-    {
-      "version": 0,
-      "identifier": "2231b2e34d0f9400"
-    },
-    {
-      "version": 0,
-      "identifier": "74425b8975cd4c00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ],
   "s3://bucket/path/to/file": [
     {
-      "version": 0,
-      "identifier": "7dc2007ecb9a2800"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "0c2452cf3a590400"
-    },
-    {
-      "version": 0,
-      "identifier": "19bf523306b40c00"
-    },
-    {
-      "version": 0,
-      "identifier": "5606fa82b21b6c00"
-    },
-    {
-      "version": 0,
-      "identifier": "5371de8188688000"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "hdfs://host:port/path/to/dir": [
     {
-      "version": 0,
-      "identifier": "512db1f1465b0000"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "2b6ad30b13873000"
-    },
-    {
-      "version": 0,
-      "identifier": "6b38af6afcd36c00"
-    },
-    {
-      "version": 0,
-      "identifier": "5606fa82b21b6c00"
-    },
-    {
-      "version": 0,
-      "identifier": "5371de8188688000"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_tip.json": [
     {
-      "version": 0,
-      "identifier": "54a70c21eab28000"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     },
     {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
-    },
-    {
-      "version": 0,
-      "identifier": "0a66121330df7800"
-    },
-    {
-      "version": 0,
-      "identifier": "3c197edb19fc4400"
-    },
-    {
-      "version": 0,
-      "identifier": "6ae9cebc84b2dc00"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     }
   ],
   "hdfs://namenode:8020/user/hadoop/dir": [
     {
-      "version": 0,
-      "identifier": "1ddbe94385ed9800"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     },
     {
-      "version": 0,
-      "identifier": "0d2f56aec9d46800"
-    },
-    {
-      "version": 0,
-      "identifier": "387b9d494248cc00"
-    },
-    {
-      "version": 0,
-      "identifier": "1d45d885af8b2400"
-    },
-    {
-      "version": 0,
-      "identifier": "04c784c5b2411000"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ],
   "s3://ai-ref-arch/yelp-review/yelp_review_sample.csv": [
     {
-      "version": 0,
-      "identifier": "0d2f56aec9d46800"
+      "version": 1,
+      "identifier": "e2893632291944699a84f65b82d96047"
     },
     {
-      "version": 0,
-      "identifier": "4885f3391740d800"
-    },
-    {
-      "version": 0,
-      "identifier": "1d45d885af8b2400"
-    },
-    {
-      "version": 0,
-      "identifier": "0c2452cf3a590400"
-    },
-    {
-      "version": 0,
-      "identifier": "7bf8fca538019c00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ],
   "wasbs://container@account.blob.core.windows.net/file.txt": [
     {
-      "version": 0,
-      "identifier": "6b38af6afcd36c00"
+      "version": 1,
+      "identifier": "b7df6305f5d24cfd8389aeaffeb5b9f0"
     },
     {
-      "version": 0,
-      "identifier": "74425b8975cd4c00"
-    },
-    {
-      "version": 0,
-      "identifier": "54a70c21eab28000"
-    },
-    {
-      "version": 0,
-      "identifier": "57044306fd09d000"
-    },
-    {
-      "version": 0,
-      "identifier": "6ae9cebc84b2dc00"
+      "version": 1,
+      "identifier": "ba72593f48bf43fd8c284ce8ea5bb17e"
     }
   ]
 }
