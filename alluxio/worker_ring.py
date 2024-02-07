@@ -1,6 +1,5 @@
 import json
 import logging
-import math
 import random
 import threading
 import time
@@ -209,8 +208,11 @@ class ConsistentHashProvider:
             List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
         """
         with self._lock:
-            if count >= len(self._worker_info_map):
-                return list(self._worker_info_map.values())
+            count = (
+                len(self._worker_info_map)
+                if count >= len(self._worker_info_map)
+                else count
+            )
             workers = []
             attempts = 0
             while len(workers) < count and attempts < self._max_attempts:
@@ -283,32 +285,40 @@ class ConsistentHashProvider:
             detect_diff_in_worker_info = True
 
         if detect_diff_in_worker_info:
-            self._update_hash_ring(worker_info_map)
+            self.update_hash_ring(worker_info_map)
 
-    def _update_hash_ring(
+    def update_hash_ring(
         self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
     ):
         with self._lock:
             hash_ring = SortedDict()
             for worker_identity in worker_info_map.keys():
                 for i in range(self._hash_node_per_worker):
-                    hash_key = self._hash(
-                        f"{worker_identity.identifier}{worker_identity.version}",
-                        i,
-                    )
+                    hash_key = self._hash_worker_identity(worker_identity, i)
                     hash_ring[hash_key] = worker_identity
-            self._hash_ring = hash_ring
+            self.hash_ring = hash_ring
             self._worker_info_map = worker_info_map
             self._is_ring_initialized = True
 
+    def get_hash_ring(self):
+        with self._lock:
+            return self.hash_ring
+
     def _get_ceiling_value(self, hash_key: int):
-        key_index = self._hash_ring.bisect_right(hash_key)
-        if key_index < len(self._hash_ring):
-            ceiling_key = self._hash_ring.keys()[key_index]
-            ceiling_value = self._hash_ring[ceiling_key]
+        key_index = self.hash_ring.bisect_right(hash_key)
+        if key_index < len(self.hash_ring):
+            ceiling_key = self.hash_ring.keys()[key_index]
+            ceiling_value = self.hash_ring[ceiling_key]
             return ceiling_value
         else:
-            return self._hash_ring.peekitem(0)[1]
+            return self.hash_ring.peekitem(0)[1]
 
     def _hash(self, key: str, index: int) -> int:
         return mmh3.hash(f"{key}{index}".encode("utf-8"))
+
+    def _hash_worker_identity(
+        self, worker: WorkerIdentity, node_index: int
+    ) -> int:
+        return mmh3.hash(
+            f"{worker.identifier}{worker.version}{node_index}".encode("utf-8")
+        )
