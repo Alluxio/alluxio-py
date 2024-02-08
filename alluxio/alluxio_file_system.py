@@ -7,6 +7,7 @@ import time
 import weakref
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict
 
 import aiohttp
 import humanfriendly
@@ -629,7 +630,7 @@ class AlluxioFileSystem:
             if timeout is not None:
                 stop_time = time.time() + timeout
             while True:
-                job_state = self._load_progress_internal(
+                job_state, content = self._load_progress_internal(
                     load_progress_url, params
                 )
                 if job_state == LoadState.SUCCEEDED:
@@ -658,7 +659,9 @@ class AlluxioFileSystem:
             )
             return False
 
-    def _load_progress_internal(self, load_url, params):
+    def _load_progress_internal(
+        self, load_url: str, params: Dict
+    ) -> (LoadState, str):
         try:
             response = self.session.get(load_url, params=params)
             response.raise_for_status()
@@ -667,7 +670,10 @@ class AlluxioFileSystem:
                 raise KeyError(
                     "The field 'jobState' is missing from the load progress response content"
                 )
-            return LoadState(content["jobState"])
+            state = content["jobState"]
+            if "FAILED" in state:
+                return LoadState.FAILED, content
+            return LoadState(state), content
         except Exception as e:
             raise Exception(
                 f"Error when getting load job progress for {load_url}: error {e}"
