@@ -9,7 +9,7 @@ def test_hash_ring():
     hash_provider = ConsistentHashProvider(
         # etcd_hosts="localhost",
         # etcd_port=2379,
-        hash_node_per_worker=3,
+        hash_node_per_worker=5,
         etcd_refresh_workers_interval=100000000,
     )
     worker_list_path = "tests/hash_res/workerList.json"
@@ -28,11 +28,6 @@ def test_hash_ring():
 
     hash_provider.update_hash_ring(worker_info_map)
     current_ring = hash_provider.get_hash_ring()
-    # Use the above function in the printing section of your main function
-    for hash_key, worker_identity in current_ring.items():
-        print(
-            f"Hash Key: {hash_key}, Worker: WorkerIdentity(version={worker_identity.version}, identifier={worker_identity.identifier.hex()})"
-        )
 
     hash_ring_path = "tests/hash_res/activeNodesMap.json"
     with open(hash_ring_path, "r") as file:
@@ -62,3 +57,21 @@ def test_hash_ring():
         not_found_count == 0
     ), "Some hash keys were not found in the current ring"
     assert mismatch_count == 0, "Some hash keys had mismatched WorkerIdentity"
+
+    file_workers_path = "tests/hash_res/fileUrlWorkers.json"
+    with open(file_workers_path, "r") as file:
+        file_workers_data = json.load(file)
+
+    for ufs_url, workers in file_workers_data.items():
+        current_worker_identities = (
+            hash_provider.get_multiple_worker_identities(ufs_url, 5)
+        )
+        original_set = {
+            (worker["version"], bytes.fromhex(worker["identifier"]))
+            for worker in workers
+        }
+        current_set = {
+            (worker.version, worker.identifier)
+            for worker in current_worker_identities
+        }
+        assert original_set == current_set

@@ -226,6 +226,35 @@ class ConsistentHashProvider:
                 worker_addresses.append(self._worker_info_map.get(worker))
             return worker_addresses
 
+    def get_multiple_worker_identities(
+        self, key: str, count: int
+    ) -> List[WorkerIdentity]:
+        """
+        Retrieve a specified number of worker addresses based on a given key.
+
+        Args:
+            key (str): The unique path identifier, e.g., full UFS path.
+            count (int): The number of worker addresses to retrieve.
+
+        Returns:
+            List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
+        """
+        with self._lock:
+            count = (
+                len(self._worker_info_map)
+                if count >= len(self._worker_info_map)
+                else count
+            )
+            workers = []
+            attempts = 0
+            while len(workers) < count and attempts < self._max_attempts:
+                attempts += 1
+                worker = self._get_ceiling_value(self._hash(key, attempts))
+                if worker not in workers:
+                    workers.append(worker)
+
+            return workers
+
     def _start_background_update_ring(self, interval):
         def update_loop():
             while not self._shutdown_background_update_ring_event.is_set():
@@ -319,7 +348,7 @@ class ConsistentHashProvider:
 
     def _hash(self, key: str, index: int) -> int:
         hasher = mmh3.mmh3_32()
-        hasher.update(key)
+        hasher.update(key.encode("utf-8"))
         hasher.update(index.to_bytes(4, "little"))
         return hasher.sintdigest()
 
