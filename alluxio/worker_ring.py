@@ -1,10 +1,8 @@
 import json
 import logging
 import random
-import struct
 import threading
 import time
-import uuid
 from dataclasses import dataclass
 from typing import List
 from typing import Set
@@ -320,17 +318,17 @@ class ConsistentHashProvider:
             return self.hash_ring.peekitem(0)[1]
 
     def _hash(self, key: str, index: int) -> int:
-        return mmh3.hash(f"{key}{index}".encode("utf-8"))
+        hasher = mmh3.mmh3_32()
+        hasher.update(key)
+        hasher.update(index.to_bytes(4, "little"))
+        return hasher.sintdigest()
 
     def _hash_worker_identity(
         self, worker: WorkerIdentity, node_index: int
     ) -> int:
-        version_node_bytes = str(f"{worker.version}{node_index}").encode(
-            "utf-8"
-        )
-
-        # Concatenate bytes
-        combined_bytes = worker.identifier + version_node_bytes
-
         # Hash the combined bytes
-        return mmh3.hash(combined_bytes)
+        hasher = mmh3.mmh3_32()
+        hasher.update(worker.identifier)
+        hasher.update(worker.version.to_bytes(4, "little"))
+        hasher.update(node_index.to_bytes(4, "little"))
+        return hasher.sintdigest()
