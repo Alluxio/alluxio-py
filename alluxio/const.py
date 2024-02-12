@@ -10,6 +10,8 @@ WRITE_PAGE_URL_FORMAT = (
     "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
 )
 GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
+LOAD_URL_FORMAT = "http://{worker_host}:{http_port}/v1/load"
+# TODO (chunxu): Remove the concrete types of LOAD formats. Keep them for asyncio.
 LOAD_SUBMIT_URL_FORMAT = (
     "http://{worker_host}:{http_port}/v1/load?path={path}&opType=submit"
 )
