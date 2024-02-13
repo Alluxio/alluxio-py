@@ -11,6 +11,12 @@ import etcd3
 import mmh3
 from sortedcontainers import SortedDict
 
+from .const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+from .const import ALLUXIO_CLUSTER_NAME_KEY
+from .const import ALLUXIO_ETCD_PASSWORD_KEY
+from .const import ALLUXIO_ETCD_USERNAME_KEY
+from .const import ETCD_PREFIX_FORMAT
+
 DEFAULT_HOST = "localhost"
 DEFAULT_CONTAINER_HOST = ""
 DEFAULT_RPC_PORT = 29999
@@ -105,10 +111,6 @@ class WorkerEntity:
 
 
 class EtcdClient:
-    PREFIX = "/ServiceDiscovery/DefaultAlluxioCluster/"
-    ALLUXIO_ETCD_USERNAME = "alluxio.etcd.username"
-    ALLUXIO_ETCD_PASSWORD = "alluxio.etcd.password"
-
     def __init__(self, host="localhost", port=2379, options=None):
         self.host = host
         self.port = port
@@ -116,11 +118,19 @@ class EtcdClient:
         # Parse options
         self.etcd_username = None
         self.etcd_password = None
+        self.prefix = ETCD_PREFIX_FORMAT.format(
+            ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+        )
         if options:
-            if self.ALLUXIO_ETCD_USERNAME in options:
-                self.etcd_username = options[self.ALLUXIO_ETCD_USERNAME]
-            if self.ALLUXIO_ETCD_PASSWORD in options:
-                self.etcd_password = options[self.ALLUXIO_ETCD_PASSWORD]
+            if ALLUXIO_ETCD_USERNAME_KEY in options:
+                self.etcd_username = options[ALLUXIO_ETCD_USERNAME_KEY]
+            if ALLUXIO_ETCD_PASSWORD_KEY in options:
+                self.etcd_password = options[ALLUXIO_ETCD_PASSWORD_KEY]
+            if ALLUXIO_CLUSTER_NAME_KEY in options:
+                self.prefix = ETCD_PREFIX_FORMAT.format(
+                    options[ALLUXIO_CLUSTER_NAME_KEY]
+                )
+
         if (self.etcd_username is None) != (self.etcd_password is None):
             raise ValueError(
                 "Both ETCD username and password must be set or both should be unset."
@@ -139,7 +149,7 @@ class EtcdClient:
         try:
             worker_entities = {
                 WorkerEntity.from_worker_info(worker_info)
-                for worker_info, _ in etcd.get_prefix(self.PREFIX)
+                for worker_info, _ in etcd.get_prefix(self.prefix)
             }
         except Exception as e:
             raise Exception(
@@ -147,7 +157,7 @@ class EtcdClient:
             ) from e
 
         if not worker_entities:
-            # TODO(lu) deal with the alluxio cluster initalizing issue
+            # TODO(lu) deal with the alluxio cluster initializing issue
             raise Exception(
                 "Alluxio cluster may still be initializing. No worker registered"
             )

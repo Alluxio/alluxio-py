@@ -7,6 +7,7 @@ import time
 import weakref
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict
 
 import aiohttp
 import humanfriendly
@@ -22,8 +23,8 @@ from .const import FULL_PAGE_URL_FORMAT
 from .const import GET_FILE_STATUS_URL_FORMAT
 from .const import LIST_URL_FORMAT
 from .const import LOAD_PROGRESS_URL_FORMAT
-from .const import LOAD_STOP_URL_FORMAT
 from .const import LOAD_SUBMIT_URL_FORMAT
+from .const import LOAD_URL_FORMAT
 from .const import PAGE_URL_FORMAT
 from .const import WRITE_PAGE_URL_FORMAT
 from .worker_ring import ConsistentHashProvider
@@ -61,6 +62,12 @@ class Method(Enum):
     HEAD = "HEAD"
     OPTIONS = "OPTIONS"
     PATCH = "PATCH"
+
+
+class OpType(Enum):
+    SUBMIT = "submit"
+    PROGRESS = "progress"
+    STOP = "stop"
 
 
 class AlluxioFileSystem:
@@ -330,12 +337,13 @@ class AlluxioFileSystem:
             path
         )
         try:
+            params = {"path": path, "opType": OpType.SUBMIT.value}
             response = self.session.get(
-                LOAD_SUBMIT_URL_FORMAT.format(
+                LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=worker_http_port,
-                    path=path,
                 ),
+                params=params,
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
@@ -363,12 +371,13 @@ class AlluxioFileSystem:
             path
         )
         try:
+            params = {"path": path, "opType": OpType.STOP.value}
             response = self.session.get(
-                LOAD_STOP_URL_FORMAT.format(
+                LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=worker_http_port,
-                    path=path,
                 ),
+                params=params,
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
@@ -404,12 +413,12 @@ class AlluxioFileSystem:
         worker_host, worker_http_port = self._get_preferred_worker_address(
             path
         )
-        load_progress_url = LOAD_PROGRESS_URL_FORMAT.format(
+        params = {"path": path, "opType": OpType.PROGRESS.value}
+        load_progress_url = LOAD_URL_FORMAT.format(
             worker_host=worker_host,
             http_port=worker_http_port,
-            path=path,
         )
-        return self._load_progress_internal(load_progress_url)
+        return self._load_progress_internal(load_progress_url, params)
 
     def read(self, file_path):
         """
@@ -609,28 +618,31 @@ class AlluxioFileSystem:
 
     def _load_file(self, worker_host, worker_http_port, path, timeout):
         try:
+            params = {"path": path, "opType": OpType.SUBMIT.value}
             response = self.session.get(
-                LOAD_SUBMIT_URL_FORMAT.format(
+                LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
                     http_port=worker_http_port,
-                    path=path,
                 ),
+                params=params,
             )
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
             if not content[ALLUXIO_SUCCESS_IDENTIFIER]:
                 return False
 
-            load_progress_url = LOAD_PROGRESS_URL_FORMAT.format(
+            params = {"path": path, "opType": OpType.PROGRESS.value}
+            load_progress_url = LOAD_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=worker_http_port,
-                path=path,
             )
             stop_time = 0
             if timeout is not None:
                 stop_time = time.time() + timeout
             while True:
-                job_state = self._load_progress_internal(load_progress_url)
+                job_state, content = self._load_progress_internal(
+                    load_progress_url, params
+                )
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
@@ -657,16 +669,21 @@ class AlluxioFileSystem:
             )
             return False
 
-    def _load_progress_internal(self, load_url):
+    def _load_progress_internal(
+        self, load_url: str, params: Dict
+    ) -> (LoadState, str):
         try:
-            response = self.session.get(load_url)
+            response = self.session.get(load_url, params=params)
             response.raise_for_status()
             content = json.loads(response.content.decode("utf-8"))
             if "jobState" not in content:
                 raise KeyError(
                     "The field 'jobState' is missing from the load progress response content"
                 )
-            return LoadState(content["jobState"])
+            state = content["jobState"]
+            if "FAILED" in state:
+                return LoadState.FAILED, content
+            return LoadState(state), content
         except Exception as e:
             raise Exception(
                 f"Error when getting load job progress for {load_url}: error {e}"
