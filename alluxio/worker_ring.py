@@ -121,7 +121,7 @@ class EtcdClient:
         self.etcd_username = None
         self.etcd_password = None
         self.prefix = ETCD_PREFIX_FORMAT.format(
-            ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+            cluster_name=ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
         )
         if options:
             if ALLUXIO_ETCD_USERNAME_KEY in options:
@@ -130,7 +130,7 @@ class EtcdClient:
                 self.etcd_password = options[ALLUXIO_ETCD_PASSWORD_KEY]
             if ALLUXIO_CLUSTER_NAME_KEY in options:
                 self.prefix = ETCD_PREFIX_FORMAT.format(
-                    options[ALLUXIO_CLUSTER_NAME_KEY]
+                    cluster_name=options[ALLUXIO_CLUSTER_NAME_KEY]
                 )
 
         if (self.etcd_username is None) != (self.etcd_password is None):
