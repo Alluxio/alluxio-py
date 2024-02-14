@@ -551,39 +551,31 @@ class AlluxioFileSystem:
         page_index = start_page_index
         while True:
             try:
+                read_offset = 0
+                read_length = self.page_size
                 if page_index == start_page_index:
+                    read_offset = start_page_offset
                     if start_page_index == end_page_index:
                         read_length = end_page_read_to - start_page_offset
                     else:
                         read_length = self.page_size - start_page_offset
-                    page_content = self._read_page(
-                        worker_host,
-                        worker_http_port,
-                        path_id,
-                        page_index,
-                        start_page_offset,
-                        read_length,
-                    )
                 elif page_index == end_page_index:
-                    page_content = self._read_page(
-                        worker_host,
-                        worker_http_port,
-                        path_id,
-                        page_index,
-                        0,
-                        end_page_read_to,
-                    )
-                else:
-                    page_content = self._read_page(
-                        worker_host, worker_http_port, path_id, page_index
-                    )
+                    read_length = end_page_read_to
 
+                page_content = self._read_page(
+                    worker_host,
+                    worker_http_port,
+                    path_id,
+                    page_index,
+                    read_offset,
+                    read_length,
+                )
                 yield page_content
 
                 # Check if it's the last page or the end of the file
                 if (
                     page_index == end_page_index
-                    or len(page_content) < self.page_size
+                    or len(page_content) < read_length
                 ):
                     break
 
