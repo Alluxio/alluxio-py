@@ -628,12 +628,12 @@ class AlluxioFileSystem:
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
-                    self.logger.debug(
+                    self.logger.error(
                         f"Failed to load path {path} with return message {content}"
                     )
                     return False
                 if job_state == LoadState.STOPPED:
-                    self.logger.debug(
+                    self.logger.warning(
                         f"Failed to load path {path} with return message {content}, load stopped"
                     )
                     return False

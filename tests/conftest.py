@@ -1,7 +1,6 @@
 import logging
 import os
 import shlex
-import shutil
 import subprocess
 import time
 from urllib.parse import urlparse
@@ -12,11 +11,10 @@ import requests
 from alluxio.alluxio_file_system import AlluxioFileSystem
 
 LOGGER = logging.getLogger("alluxio_test")
-TEST_ROOT = os.getenv("TEST_ROOT", "file:///tmp/alluxio_test_root")
+TEST_ROOT = os.getenv("TEST_ROOT", "file:///opt/alluxio/ufs/")
 # This is the path to the file you want to access
-LOCAL_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "test.csv"
-)
+TEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+LOCAL_FILE_PATH = os.path.join(TEST_DIR, "test.csv")
 ALLUXIO_FILE_PATH = "file://{}".format("/opt/alluxio/ufs/test.csv")
 
 
@@ -29,7 +27,7 @@ def stop_docker(container):
 
 
 @pytest.fixture(scope="module")
-def docker_alluxio(tmpdir_factory):
+def docker_alluxio():
     if "ALLUXIO_URL" in os.environ:
         # assume we already have a server already set up
         yield os.getenv("ALLUXIO_URL")
@@ -37,14 +35,10 @@ def docker_alluxio(tmpdir_factory):
     master_container = "alluxio-master"
     worker_container = "alluxio-worker"
     network_cmd = "docker network create alluxio_network"
-    test_root = tmpdir_factory.mktemp("alluxio_test")
-    LOGGER.debug(f"test_root: {test_root}")
-    test_file = test_root.join("test.csv")
-    shutil.copy(LOCAL_FILE_PATH, str(test_file))
 
     run_cmd_master = (
         "docker run --platform linux/amd64 -d --rm --net=alluxio_network -p 19999:19999 -p 19998:19998 "
-        f"--name=alluxio-master -v {test_root}:/opt/alluxio/ufs "
+        f"--name=alluxio-master -v {TEST_DIR}:/opt/alluxio/ufs "
         '-e ALLUXIO_JAVA_OPTS=" -Dalluxio.master.hostname=alluxio-master '
         "-Dalluxio.security.authentication.type=NOSASL "
         "-Dalluxio.security.authorization.permission.enabled=false "
@@ -56,7 +50,7 @@ def docker_alluxio(tmpdir_factory):
     )
     run_cmd_worker = (
         "docker run --platform linux/amd64 -d --rm --net=alluxio_network -p 28080:28080 -p 29999:29999 -p 29997:29997 "
-        f"--name=alluxio-worker --shm-size=1G -v {test_root}:/opt/alluxio/ufs "
+        f"--name=alluxio-worker --shm-size=1G -v {TEST_DIR}:/opt/alluxio/ufs "
         '-e ALLUXIO_JAVA_OPTS=" -Dalluxio.master.hostname=alluxio-master '
         "-Dalluxio.security.authentication.type=NOSASL "
         "-Dalluxio.security.authorization.permission.enabled=false "
