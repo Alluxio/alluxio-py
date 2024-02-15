@@ -112,9 +112,9 @@ class AlluxioFileSystem:
         Inits Alluxio file system.
 
         Args:
-            etcd_hosts (str, optional):
+            etcd_hosts (str, required):
                 The hostnames of ETCD to get worker addresses from
-                The hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
+                The hostnames in host1,host2,host3 format.
             options (dict, optional):
                 A dictionary of Alluxio property key and values.
                 Note that Alluxio Python API only support a limited set of Alluxio properties.
@@ -132,9 +132,7 @@ class AlluxioFileSystem:
 
         """
         if etcd_hosts is None:
-            raise ValueError(
-                "Must supply either 'etcd_hosts' or 'worker_hosts'"
-            )
+            raise ValueError("Must supply 'etcd_hosts'")
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
         self.session = self._create_session(concurrency)
 
