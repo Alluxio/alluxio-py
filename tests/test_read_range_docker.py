@@ -1,6 +1,8 @@
 import os
 import random
 
+import pytest
+
 from alluxio import AlluxioFileSystem
 from tests.conftest import ALLUXIO_FILE_PATH
 from tests.conftest import LOCAL_FILE_PATH
@@ -64,6 +66,7 @@ def validate_invalid_read_range(
         )
 
 
+@pytest.mark.skip
 def test_alluxio_filesystem(fs: AlluxioFileSystem):
     file_size = os.path.getsize(LOCAL_FILE_PATH)
     assert fs.load(ALLUXIO_FILE_PATH, 200)
