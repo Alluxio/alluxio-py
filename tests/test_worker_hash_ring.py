@@ -7,8 +7,6 @@ from alluxio.worker_ring import WorkerNetAddress
 
 def test_hash_ring():
     hash_provider = ConsistentHashProvider(
-        # etcd_hosts="localhost",
-        # etcd_port=2379,
         hash_node_per_worker=5,
         etcd_refresh_workers_interval=100000000,
     )
@@ -26,8 +24,8 @@ def test_hash_ring():
         default_worker_net_address = WorkerNetAddress()  # Using default values
         worker_info_map[worker_identity] = default_worker_net_address
 
-    hash_provider.update_hash_ring(worker_info_map)
-    current_ring = hash_provider.get_hash_ring()
+    hash_provider._update_hash_ring(worker_info_map)
+    current_ring = hash_provider.hash_ring
 
     hash_ring_path = "tests/hash_res/activeNodesMap.json"
     with open(hash_ring_path, "r") as file:
@@ -64,7 +62,7 @@ def test_hash_ring():
 
     for ufs_url, workers in file_workers_data.items():
         current_worker_identities = (
-            hash_provider.get_multiple_worker_identities(ufs_url, 5)
+            hash_provider._get_multiple_worker_identities(ufs_url, 5)
         )
         original_set = {
             (worker["version"], bytes.fromhex(worker["identifier"]))

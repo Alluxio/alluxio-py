@@ -7,7 +7,7 @@ from alluxio.worker_ring import WorkerNetAddress
 def test_worker_net_address_from_worker_info():
     worker_info = b'{"WorkerNetAddress": {"Host": "localhost"}}'
     result = WorkerNetAddress.from_worker_info(worker_info)
-    assert result.host == "localhost", "The host should be localhost"
+    assert result._host == "localhost", "The host should be localhost"
 
     invalid_worker_info = b'{"invalid_json": {}'
     with pytest.raises(ValueError) as err:
@@ -64,4 +64,4 @@ def test_worker_net_address_from_service_registry_worker_info():
         b'"ServiceEntityName":"worker-cb157baa-afe0-4b98-8af0-1a4645d38456"}'
     )
     result = WorkerNetAddress.from_worker_info(worker_info)
-    assert result.host == "192.168.4.36", "The host should be 192.168.4.36"
+    assert result._host == "192.168.4.36", "The host should be 192.168.4.36"

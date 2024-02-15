@@ -112,26 +112,26 @@ class WorkerEntity:
 
 class EtcdClient:
     def __init__(self, host="localhost", port=2379, options=None):
-        self.host = host
-        self.port = port
+        self._host = host
+        self._port = port
 
         # Parse options
-        self.etcd_username = None
-        self.etcd_password = None
-        self.prefix = ETCD_PREFIX_FORMAT.format(
+        self._etcd_username = None
+        self._etcd_password = None
+        self._prefix = ETCD_PREFIX_FORMAT.format(
             cluster_name=ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
         )
         if options:
             if ALLUXIO_ETCD_USERNAME_KEY in options:
-                self.etcd_username = options[ALLUXIO_ETCD_USERNAME_KEY]
+                self._etcd_username = options[ALLUXIO_ETCD_USERNAME_KEY]
             if ALLUXIO_ETCD_PASSWORD_KEY in options:
-                self.etcd_password = options[ALLUXIO_ETCD_PASSWORD_KEY]
+                self._etcd_password = options[ALLUXIO_ETCD_PASSWORD_KEY]
             if ALLUXIO_CLUSTER_NAME_KEY in options:
-                self.prefix = ETCD_PREFIX_FORMAT.format(
+                self._prefix = ETCD_PREFIX_FORMAT.format(
                     cluster_name=options[ALLUXIO_CLUSTER_NAME_KEY]
                 )
 
-        if (self.etcd_username is None) != (self.etcd_password is None):
+        if (self._etcd_username is None) != (self._etcd_password is None):
             raise ValueError(
                 "Both ETCD username and password must be set or both should be unset."
             )
@@ -149,11 +149,11 @@ class EtcdClient:
         try:
             worker_entities = {
                 WorkerEntity.from_worker_info(worker_info)
-                for worker_info, _ in etcd.get_prefix(self.prefix)
+                for worker_info, _ in etcd.get_prefix(self._prefix)
             }
         except Exception as e:
             raise Exception(
-                f"Failed to achieve worker info list from ETCD server {self.host}:{self.port} {e}"
+                f"Failed to achieve worker info list from ETCD server {self._host}:{self._port} {e}"
             ) from e
 
         if not worker_entities:
@@ -164,14 +164,14 @@ class EtcdClient:
         return worker_entities
 
     def _get_etcd_client(self):
-        if self.etcd_username:
+        if self._etcd_username:
             return etcd3.client(
-                host=self.host,
-                port=self.port,
-                user=self.etcd_username,
-                password=self.etcd_password,
+                host=self._host,
+                port=self._port,
+                user=self._etcd_username,
+                password=self._etcd_password,
             )
-        return etcd3.client(host=self.host, port=self.port)
+        return etcd3.client(host=self._host, port=self._port)
 
 
 class ConsistentHashProvider:
@@ -218,52 +218,38 @@ class ConsistentHashProvider:
             List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
         """
         with self._lock:
-            count = (
-                len(self._worker_info_map)
-                if count >= len(self._worker_info_map)
-                else count
+            worker_identities = self._get_multiple_worker_identities(
+                key, count
             )
-            workers = []
-            attempts = 0
-            while len(workers) < count and attempts < self._max_attempts:
-                attempts += 1
-                worker = self._get_ceiling_value(self._hash(key, attempts))
-                if worker not in workers:
-                    workers.append(worker)
-
             worker_addresses = []
-            for worker in workers:
-                worker_addresses.append(self._worker_info_map.get(worker))
+            for worker_identity in worker_identities:
+                worker_address = self._worker_info_map.get(worker_identity)
+                if (
+                    worker_address
+                ):  # Check to ensure the worker_address is not None.
+                    worker_addresses.append(worker_address)
             return worker_addresses
 
-    def get_multiple_worker_identities(
+    def _get_multiple_worker_identities(
         self, key: str, count: int
     ) -> List[WorkerIdentity]:
         """
-        Retrieve a specified number of worker addresses based on a given key.
-
-        Args:
-            key (str): The unique path identifier, e.g., full UFS path.
-            count (int): The number of worker addresses to retrieve.
-
-        Returns:
-            List[WorkerNetAddress]: A list containing the desired number of WorkerNetAddress objects.
+        This method needs external lock to ensure safety
         """
-        with self._lock:
-            count = (
-                len(self._worker_info_map)
-                if count >= len(self._worker_info_map)
-                else count
-            )
-            workers = []
-            attempts = 0
-            while len(workers) < count and attempts < self._max_attempts:
-                attempts += 1
-                worker = self._get_ceiling_value(self._hash(key, attempts))
-                if worker not in workers:
-                    workers.append(worker)
+        count = (
+            len(self._worker_info_map)
+            if count >= len(self._worker_info_map)
+            else count
+        )
+        workers = []
+        attempts = 0
+        while len(workers) < count and attempts < self._max_attempts:
+            attempts += 1
+            worker = self._get_ceiling_value(self._hash(key, attempts))
+            if worker not in workers:
+                workers.append(worker)
 
-            return workers
+        return workers
 
     def _start_background_update_ring(self, interval):
         def update_loop():
@@ -328,9 +314,9 @@ class ConsistentHashProvider:
             detect_diff_in_worker_info = True
 
         if detect_diff_in_worker_info:
-            self.update_hash_ring(worker_info_map)
+            self._update_hash_ring(worker_info_map)
 
-    def update_hash_ring(
+    def _update_hash_ring(
         self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
     ):
         with self._lock:
@@ -342,10 +328,6 @@ class ConsistentHashProvider:
             self.hash_ring = hash_ring
             self._worker_info_map = worker_info_map
             self._is_ring_initialized = True
-
-    def get_hash_ring(self):
-        with self._lock:
-            return self.hash_ring
 
     def _get_ceiling_value(self, hash_key: int):
         key_index = self.hash_ring.bisect_right(hash_key)

@@ -101,7 +101,6 @@ class AlluxioFileSystem:
     def __init__(
         self,
         etcd_hosts=None,
-        worker_hosts=None,
         options=None,
         logger=None,
         concurrency=64,
@@ -116,8 +115,6 @@ class AlluxioFileSystem:
             etcd_hosts (str, optional):
                 The hostnames of ETCD to get worker addresses from
                 The hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
-            worker_hosts (str, optional):
-                The worker hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
             options (dict, optional):
                 A dictionary of Alluxio property key and values.
                 Note that Alluxio Python API only support a limited set of Alluxio properties.
@@ -134,13 +131,9 @@ class AlluxioFileSystem:
                 The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
 
         """
-        if etcd_hosts is None and worker_hosts is None:
+        if etcd_hosts is None:
             raise ValueError(
                 "Must supply either 'etcd_hosts' or 'worker_hosts'"
-            )
-        if etcd_hosts and worker_hosts:
-            raise ValueError(
-                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
         self.session = self._create_session(concurrency)
