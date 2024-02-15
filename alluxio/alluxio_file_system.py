@@ -561,39 +561,31 @@ class AlluxioFileSystem:
         page_index = start_page_index
         while True:
             try:
+                read_offset = 0
+                read_length = self.page_size
                 if page_index == start_page_index:
+                    read_offset = start_page_offset
                     if start_page_index == end_page_index:
                         read_length = end_page_read_to - start_page_offset
                     else:
                         read_length = self.page_size - start_page_offset
-                    page_content = self._read_page(
-                        worker_host,
-                        worker_http_port,
-                        path_id,
-                        page_index,
-                        start_page_offset,
-                        read_length,
-                    )
                 elif page_index == end_page_index:
-                    page_content = self._read_page(
-                        worker_host,
-                        worker_http_port,
-                        path_id,
-                        page_index,
-                        0,
-                        end_page_read_to,
-                    )
-                else:
-                    page_content = self._read_page(
-                        worker_host, worker_http_port, path_id, page_index
-                    )
+                    read_length = end_page_read_to
 
+                page_content = self._read_page(
+                    worker_host,
+                    worker_http_port,
+                    path_id,
+                    page_index,
+                    read_offset,
+                    read_length,
+                )
                 yield page_content
 
                 # Check if it's the last page or the end of the file
                 if (
                     page_index == end_page_index
-                    or len(page_content) < self.page_size
+                    or len(page_content) < read_length
                 ):
                     break
 
@@ -646,12 +638,12 @@ class AlluxioFileSystem:
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
-                    self.logger.debug(
+                    self.logger.error(
                         f"Failed to load path {path} with return message {content}"
                     )
                     return False
                 if job_state == LoadState.STOPPED:
-                    self.logger.debug(
+                    self.logger.warning(
                         f"Failed to load path {path} with return message {content}, load stopped"
                     )
                     return False
@@ -711,7 +703,7 @@ class AlluxioFileSystem:
                     path_id=path_id,
                     page_index=page_index,
                 )
-                print(page_url)
+                self.logger.debug(f"Reading full page request {page_url}")
             else:
                 page_url = PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -721,12 +713,12 @@ class AlluxioFileSystem:
                     page_offset=offset,
                     page_length=length,
                 )
+                self.logger.debug(f"Reading page request {page_url}")
             response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
 
         except Exception as e:
-            print(e)
             raise Exception(
                 f"Error when requesting file {path_id} page {page_index} from {worker_host}: error {e}"
             ) from e
