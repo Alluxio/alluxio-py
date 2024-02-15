@@ -693,7 +693,7 @@ class AlluxioFileSystem:
                     path_id=path_id,
                     page_index=page_index,
                 )
-                print(page_url)
+                self.logger.debug(f"Reading full page request {page_url}")
             else:
                 page_url = PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -703,12 +703,12 @@ class AlluxioFileSystem:
                     page_offset=offset,
                     page_length=length,
                 )
+                self.logger.debug(f"Reading page request {page_url}")
             response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
 
         except Exception as e:
-            print(e)
             raise Exception(
                 f"Error when requesting file {path_id} page {page_index} from {worker_host}: error {e}"
             ) from e
