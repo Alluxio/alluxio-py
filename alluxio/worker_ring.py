@@ -3,6 +3,7 @@ import logging
 import random
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from typing import List
 from typing import Set
@@ -26,6 +27,7 @@ DEFAULT_NETTY_DATA_PORT = 29997
 DEFAULT_WEB_PORT = 30000
 DEFAULT_DOMAIN_SOCKET_PATH = ""
 DEFAULT_HTTP_SERVER_PORT = 28080
+DEFAULT_WORKER_IDENTIFIER_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -109,6 +111,26 @@ class WorkerEntity:
                 f"Failed to process given worker_info {worker_info} {e}"
             ) from e
 
+    @staticmethod
+    def from_host_and_port(worker_host, worker_http_port):
+        worker_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, worker_host)
+        uuid_bytes = worker_uuid.bytes
+        worker_identity = WorkerIdentity(
+            DEFAULT_WORKER_IDENTIFIER_VERSION, uuid_bytes
+        )
+        worker_net_address = WorkerNetAddress(
+            host=worker_host,
+            container_host=DEFAULT_CONTAINER_HOST,
+            rpc_port=DEFAULT_RPC_PORT,
+            data_port=DEFAULT_DATA_PORT,
+            secure_rpc_port=DEFAULT_SECURE_RPC_PORT,
+            netty_data_port=DEFAULT_NETTY_DATA_PORT,
+            web_port=DEFAULT_WEB_PORT,
+            domain_socket_path=DEFAULT_DOMAIN_SOCKET_PATH,
+            http_server_port=worker_http_port,
+        )
+        return WorkerEntity(worker_identity, worker_net_address)
+
 
 class EtcdClient:
     def __init__(self, host="localhost", port=2379, options=None):
@@ -179,6 +201,8 @@ class ConsistentHashProvider:
         self,
         etcd_hosts=None,
         etcd_port=2379,
+        worker_hosts=None,
+        worker_http_port=DEFAULT_HTTP_SERVER_PORT,
         options=None,
         logger=None,
         hash_node_per_worker=5,
@@ -195,6 +219,10 @@ class ConsistentHashProvider:
         self._is_ring_initialized = False
         self._worker_info_map = {}
         self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
+        if worker_hosts:
+            self._update_hash_ring(
+                self._generate_worker_info_map(worker_hosts, worker_http_port)
+            )
         if self._etcd_hosts:
             self._fetch_workers_and_update_ring()
             if self._etcd_refresh_workers_interval > 0:
@@ -351,3 +379,14 @@ class ConsistentHashProvider:
         hasher.update(worker.version.to_bytes(4, "little"))
         hasher.update(node_index.to_bytes(4, "little"))
         return hasher.sintdigest()
+
+    def _generate_worker_info_map(self, worker_hosts, worker_http_port):
+        worker_info_map = {}
+        for worker_host in worker_hosts:
+            worker_entity = WorkerEntity.from_host_and_port(
+                worker_host, worker_http_port
+            )
+            worker_info_map[
+                worker_entity.worker_identity
+            ] = worker_entity.worker_net_address
+        return worker_info_map

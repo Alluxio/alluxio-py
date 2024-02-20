@@ -52,7 +52,6 @@ def server(event_loop):
     return server
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_read_page(server):
     fs = AlluxioAsyncFileSystem(
@@ -63,7 +62,6 @@ async def test_read_page(server):
     assert data == b"es"
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_put_page(server):
     fs = AlluxioAsyncFileSystem(
