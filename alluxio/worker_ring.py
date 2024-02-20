@@ -49,6 +49,10 @@ class WorkerIdentity:
     identifier: bytes
 
 
+class NULL_NAMESPACE:
+    bytes = b""
+
+
 @dataclass(frozen=True)
 class WorkerEntity:
     worker_identity: WorkerIdentity
@@ -113,8 +117,9 @@ class WorkerEntity:
 
     @staticmethod
     def from_host_and_port(worker_host, worker_http_port):
-        worker_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, worker_host)
+        worker_uuid = uuid.uuid3(NULL_NAMESPACE, worker_host)
         uuid_bytes = worker_uuid.bytes
+
         worker_identity = WorkerIdentity(
             DEFAULT_WORKER_IDENTIFIER_VERSION, uuid_bytes
         )
@@ -382,7 +387,8 @@ class ConsistentHashProvider:
 
     def _generate_worker_info_map(self, worker_hosts, worker_http_port):
         worker_info_map = {}
-        for worker_host in worker_hosts:
+        host_list = [host.strip() for host in worker_hosts.split(",")]
+        for worker_host in host_list:
             worker_entity = WorkerEntity.from_host_and_port(
                 worker_host, worker_http_port
             )
