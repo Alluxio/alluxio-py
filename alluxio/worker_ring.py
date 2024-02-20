@@ -224,9 +224,7 @@ class ConsistentHashProvider:
             worker_addresses = []
             for worker_identity in worker_identities:
                 worker_address = self._worker_info_map.get(worker_identity)
-                if (
-                    worker_address
-                ):  # Check to ensure the worker_address is not None.
+                if worker_address:
                     worker_addresses.append(worker_address)
             return worker_addresses
 
@@ -297,23 +295,23 @@ class ConsistentHashProvider:
                 )
 
         worker_info_map = {}
-        detect_diff_in_worker_info = False
+        diff_in_worker_info_detected = False
         for worker_entity in worker_entities:
             worker_info_map[
                 worker_entity.worker_identity
             ] = worker_entity.worker_net_address
             if worker_entity.worker_identity not in self._worker_info_map:
-                detect_diff_in_worker_info = True
+                diff_in_worker_info_detected = True
             elif (
                 self._worker_info_map[worker_entity.worker_identity]
                 != worker_entity.worker_net_address
             ):
-                detect_diff_in_worker_info = True
+                diff_in_worker_info_detected = True
 
         if len(worker_info_map) != len(self._worker_info_map):
-            detect_diff_in_worker_info = True
+            diff_in_worker_info_detected = True
 
-        if detect_diff_in_worker_info:
+        if diff_in_worker_info_detected:
             self._update_hash_ring(worker_info_map)
 
     def _update_hash_ring(
