@@ -145,7 +145,7 @@ class AlluxioFileSystem:
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
         if etcd_hosts and not worker_hosts:
             self.logger.warning(
-                "Does not supply 'etcd_host'. Cannot tolerate Alluxio cluster changes."
+                "Does not supply 'etcd_hosts'. An etcd cluster is required for dynamic cluster changes."
             )
         self.session = self._create_session(concurrency)
 
