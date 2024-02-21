@@ -14,6 +14,8 @@ import humanfriendly
 import requests
 from requests.adapters import HTTPAdapter
 
+from .const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
+from .const import ALLUXIO_HASH_NODE_PER_WORKER_KEY
 from .const import ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
 from .const import ALLUXIO_PAGE_SIZE_KEY
 from .const import ALLUXIO_SUCCESS_IDENTIFIER
@@ -141,20 +143,32 @@ class AlluxioFileSystem:
                 "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
+        if etcd_hosts and not worker_hosts:
+            self.logger.warning(
+                "Does not supply 'etcd_hosts'. An etcd cluster is required for dynamic cluster changes."
+            )
         self.session = self._create_session(concurrency)
 
         # parse options
         page_size = ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
+        hash_node_per_worker = int(ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE)
         if options:
             if ALLUXIO_PAGE_SIZE_KEY in options:
                 page_size = options[ALLUXIO_PAGE_SIZE_KEY]
                 self.logger.debug(f"Page size is set to {page_size}")
+            if ALLUXIO_HASH_NODE_PER_WORKER_KEY in options:
+                hash_node_per_worker = int(
+                    options[ALLUXIO_HASH_NODE_PER_WORKER_KEY]
+                )
+                self.logger.debug(
+                    f"Hash node per worker is set to {hash_node_per_worker}"
+                )
+
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
             etcd_hosts=etcd_hosts,
             etcd_port=int(etcd_port),
-            worker_hosts=worker_hosts,
-            worker_http_port=http_port,
+            hash_node_per_worker=hash_node_per_worker,
             options=options,
             logger=self.logger,
             etcd_refresh_workers_interval=etcd_refresh_workers_interval,

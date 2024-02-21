@@ -1,0 +1,464 @@
+{
+  "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_checkin.json": [
+    {
+      "version": 1,
+      "identifier": "f4c597fd0865329ca22e1ab30e0adf33"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "55da12e6f8ea35059e783843d4733281"
+    },
+    {
+      "version": 1,
+      "identifier": "acf3522e534a35c2a811716eeb29c22e"
+    },
+    {
+      "version": 1,
+      "identifier": "18da1234f4cb339d8e563665adcbaae1"
+    }
+  ],
+  "gcs://bucket/file.txt": [
+    {
+      "version": 1,
+      "identifier": "ce88e51340d034eb95942143f1d177dd"
+    },
+    {
+      "version": 1,
+      "identifier": "d53648c23d853765a0662482a16a4ca3"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "b2e9c4abf2c133cab118acca6b6fe4e7"
+    },
+    {
+      "version": 1,
+      "identifier": "d69c0d9d83d7348bbf3ff323a450babc"
+    }
+  ],
+  "s://ai-testing/": [
+    {
+      "version": 1,
+      "identifier": "89d35a3cb15e3664b0e5e9e5091d54c4"
+    },
+    {
+      "version": 1,
+      "identifier": "ed014f952f6c3e1ca0d5a479e4141456"
+    },
+    {
+      "version": 1,
+      "identifier": "acf3522e534a35c2a811716eeb29c22e"
+    },
+    {
+      "version": 1,
+      "identifier": "02211ad6f0cf359e8a6b9ca7f79329c1"
+    },
+    {
+      "version": 1,
+      "identifier": "d5d8e197ad4f353b9ba5c2856bc844e1"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_review.json": [
+    {
+      "version": 1,
+      "identifier": "d53648c23d853765a0662482a16a4ca3"
+    },
+    {
+      "version": 1,
+      "identifier": "d1450ca53c3c3ccbb875326d4ec2d38f"
+    },
+    {
+      "version": 1,
+      "identifier": "4310bdfd3c763fb3a58edb9b4030d99f"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "0714e1f5551736ff85cef7d9fd8c28f2"
+    }
+  ],
+  "s3://bucket/path/to/dir": [
+    {
+      "version": 1,
+      "identifier": "464294a547843ecca2be5a615b1397c0"
+    },
+    {
+      "version": 1,
+      "identifier": "0fcc8d949efd3ed594bec8171d131a4e"
+    },
+    {
+      "version": 1,
+      "identifier": "d71a716e22ef33e4baa94336282c6f3b"
+    },
+    {
+      "version": 1,
+      "identifier": "e4d8ef54fd3834628e07fd42e79978b3"
+    },
+    {
+      "version": 1,
+      "identifier": "5d2e3793fc6638e98507610a19a6079f"
+    }
+  ],
+  "hdfs://host:port/path/to/file": [
+    {
+      "version": 1,
+      "identifier": "b785d1f098863821a4eb6bee226c35b7"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "4f23e7a1a230318a912dbdf8f78e0aed"
+    },
+    {
+      "version": 1,
+      "identifier": "d1450ca53c3c3ccbb875326d4ec2d38f"
+    },
+    {
+      "version": 1,
+      "identifier": "959e6e70afa63804bf6f6f003ab54adb"
+    }
+  ],
+  "wasbs://container@account.blob.core.windows.net/dir": [
+    {
+      "version": 1,
+      "identifier": "b2e9c4abf2c133cab118acca6b6fe4e7"
+    },
+    {
+      "version": 1,
+      "identifier": "d44ef730090b3bf4ad6ab93c7fc2ecd1"
+    },
+    {
+      "version": 1,
+      "identifier": "0714e1f5551736ff85cef7d9fd8c28f2"
+    },
+    {
+      "version": 1,
+      "identifier": "d71a716e22ef33e4baa94336282c6f3b"
+    },
+    {
+      "version": 1,
+      "identifier": "02211ad6f0cf359e8a6b9ca7f79329c1"
+    }
+  ],
+  "gs://bucket/file.txt": [
+    {
+      "version": 1,
+      "identifier": "35a44a2979bb392b86a4d51b44b666c7"
+    },
+    {
+      "version": 1,
+      "identifier": "acf3522e534a35c2a811716eeb29c22e"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "b065a65d21613f30b210668f36b99865"
+    },
+    {
+      "version": 1,
+      "identifier": "8aac9641549c3663bc5fc2a1d7b652d1"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_review_sample_large.csv": [
+    {
+      "version": 1,
+      "identifier": "eb5a6614aa793f968ecc6426a8aaf31b"
+    },
+    {
+      "version": 1,
+      "identifier": "d53648c23d853765a0662482a16a4ca3"
+    },
+    {
+      "version": 1,
+      "identifier": "1ae5694808e43da58ba98374c7e51190"
+    },
+    {
+      "version": 1,
+      "identifier": "e4d8ef54fd3834628e07fd42e79978b3"
+    },
+    {
+      "version": 1,
+      "identifier": "d69c0d9d83d7348bbf3ff323a450babc"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/model.pt": [
+    {
+      "version": 1,
+      "identifier": "b43de09a152b3d42ba0f628e69742db3"
+    },
+    {
+      "version": 1,
+      "identifier": "35a44a2979bb392b86a4d51b44b666c7"
+    },
+    {
+      "version": 1,
+      "identifier": "b785d1f098863821a4eb6bee226c35b7"
+    },
+    {
+      "version": 1,
+      "identifier": "1ae5694808e43da58ba98374c7e51190"
+    },
+    {
+      "version": 1,
+      "identifier": "8a812752548f33d4a7e83a2a7b4a5c80"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_business.json": [
+    {
+      "version": 1,
+      "identifier": "eb5a6614aa793f968ecc6426a8aaf31b"
+    },
+    {
+      "version": 1,
+      "identifier": "18da1234f4cb339d8e563665adcbaae1"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "b43de09a152b3d42ba0f628e69742db3"
+    },
+    {
+      "version": 1,
+      "identifier": "55da12e6f8ea35059e783843d4733281"
+    }
+  ],
+  "hdfs://namenode:8020/user/hadoop/file.txt": [
+    {
+      "version": 1,
+      "identifier": "eb5a6614aa793f968ecc6426a8aaf31b"
+    },
+    {
+      "version": 1,
+      "identifier": "a8fc3852f5b636bc846996f2f5fd52c4"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "63612b5f0daf3724b30428ee6a390e86"
+    },
+    {
+      "version": 1,
+      "identifier": "8a812752548f33d4a7e83a2a7b4a5c80"
+    }
+  ],
+  "gs://bucket/dir": [
+    {
+      "version": 1,
+      "identifier": "b065a65d21613f30b210668f36b99865"
+    },
+    {
+      "version": 1,
+      "identifier": "065141ec74bd3ad8bff25e7bc18408be"
+    },
+    {
+      "version": 1,
+      "identifier": "07a1007d01053baeb0aa798f88e1a0f2"
+    },
+    {
+      "version": 1,
+      "identifier": "1ae5694808e43da58ba98374c7e51190"
+    },
+    {
+      "version": 1,
+      "identifier": "ff552a31dc9c31dfaae746915261cc0f"
+    }
+  ],
+  "gcs://bucket/dir": [
+    {
+      "version": 1,
+      "identifier": "eb5a6614aa793f968ecc6426a8aaf31b"
+    },
+    {
+      "version": 1,
+      "identifier": "18da1234f4cb339d8e563665adcbaae1"
+    },
+    {
+      "version": 1,
+      "identifier": "f4017d1d98933b659d6b0e2811c22a1c"
+    },
+    {
+      "version": 1,
+      "identifier": "d69c0d9d83d7348bbf3ff323a450babc"
+    },
+    {
+      "version": 1,
+      "identifier": "ed014f952f6c3e1ca0d5a479e4141456"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_user.json": [
+    {
+      "version": 1,
+      "identifier": "ed014f952f6c3e1ca0d5a479e4141456"
+    },
+    {
+      "version": 1,
+      "identifier": "4f23e7a1a230318a912dbdf8f78e0aed"
+    },
+    {
+      "version": 1,
+      "identifier": "3e05246f5a4b37e7bd9a0b09b1706b95"
+    },
+    {
+      "version": 1,
+      "identifier": "b785d1f098863821a4eb6bee226c35b7"
+    },
+    {
+      "version": 1,
+      "identifier": "d53648c23d853765a0662482a16a4ca3"
+    }
+  ],
+  "s3://bucket/path/to/file": [
+    {
+      "version": 1,
+      "identifier": "0714e1f5551736ff85cef7d9fd8c28f2"
+    },
+    {
+      "version": 1,
+      "identifier": "a0e69147a1bc3b55ba88803686ee8ef8"
+    },
+    {
+      "version": 1,
+      "identifier": "b43de09a152b3d42ba0f628e69742db3"
+    },
+    {
+      "version": 1,
+      "identifier": "464294a547843ecca2be5a615b1397c0"
+    },
+    {
+      "version": 1,
+      "identifier": "4f23e7a1a230318a912dbdf8f78e0aed"
+    }
+  ],
+  "hdfs://host:port/path/to/dir": [
+    {
+      "version": 1,
+      "identifier": "d71a716e22ef33e4baa94336282c6f3b"
+    },
+    {
+      "version": 1,
+      "identifier": "eb5a6614aa793f968ecc6426a8aaf31b"
+    },
+    {
+      "version": 1,
+      "identifier": "8aac9641549c3663bc5fc2a1d7b652d1"
+    },
+    {
+      "version": 1,
+      "identifier": "b2e9c4abf2c133cab118acca6b6fe4e7"
+    },
+    {
+      "version": 1,
+      "identifier": "d69c0d9d83d7348bbf3ff323a450babc"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_academic_dataset_tip.json": [
+    {
+      "version": 1,
+      "identifier": "5d2e3793fc6638e98507610a19a6079f"
+    },
+    {
+      "version": 1,
+      "identifier": "d9824b27273034f69ddf0369b907de1e"
+    },
+    {
+      "version": 1,
+      "identifier": "35a44a2979bb392b86a4d51b44b666c7"
+    },
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "8aac9641549c3663bc5fc2a1d7b652d1"
+    }
+  ],
+  "hdfs://namenode:8020/user/hadoop/dir": [
+    {
+      "version": 1,
+      "identifier": "865668aadaba3511a84d8054613dd14b"
+    },
+    {
+      "version": 1,
+      "identifier": "e4d8ef54fd3834628e07fd42e79978b3"
+    },
+    {
+      "version": 1,
+      "identifier": "b065a65d21613f30b210668f36b99865"
+    },
+    {
+      "version": 1,
+      "identifier": "aacf21dd9eb537eeb332c48248e79865"
+    },
+    {
+      "version": 1,
+      "identifier": "b785d1f098863821a4eb6bee226c35b7"
+    }
+  ],
+  "s3://ai-ref-arch/yelp-review/yelp_review_sample.csv": [
+    {
+      "version": 1,
+      "identifier": "ff552a31dc9c31dfaae746915261cc0f"
+    },
+    {
+      "version": 1,
+      "identifier": "b2e9c4abf2c133cab118acca6b6fe4e7"
+    },
+    {
+      "version": 1,
+      "identifier": "aacf21dd9eb537eeb332c48248e79865"
+    },
+    {
+      "version": 1,
+      "identifier": "0fcc8d949efd3ed594bec8171d131a4e"
+    },
+    {
+      "version": 1,
+      "identifier": "f4017d1d98933b659d6b0e2811c22a1c"
+    }
+  ],
+  "wasbs://container@account.blob.core.windows.net/file.txt": [
+    {
+      "version": 1,
+      "identifier": "d7028a8eab373a28b2a2f6109a13011d"
+    },
+    {
+      "version": 1,
+      "identifier": "63612b5f0daf3724b30428ee6a390e86"
+    },
+    {
+      "version": 1,
+      "identifier": "acf3522e534a35c2a811716eeb29c22e"
+    },
+    {
+      "version": 1,
+      "identifier": "865668aadaba3511a84d8054613dd14b"
+    },
+    {
+      "version": 1,
+      "identifier": "b2e9c4abf2c133cab118acca6b6fe4e7"
+    }
+  ]
+}

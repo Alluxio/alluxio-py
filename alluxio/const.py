@@ -4,6 +4,10 @@ ALLUXIO_ETCD_USERNAME_KEY = "alluxio.etcd.username"
 ALLUXIO_ETCD_PASSWORD_KEY = "alluxio.etcd.password"
 ALLUXIO_PAGE_SIZE_KEY = "alluxio.worker.page.store.page.size"
 ALLUXIO_PAGE_SIZE_DEFAULT_VALUE = "1MB"
+ALLUXIO_HASH_NODE_PER_WORKER_KEY = (
+    "alluxio.user.consistent.hash.virtual.node.count.per.worker"
+)
+ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE = "5"
 ALLUXIO_SUCCESS_IDENTIFIER = "success"
 LIST_URL_FORMAT = "http://{worker_host}:{http_port}/v1/files"
 FULL_PAGE_URL_FORMAT = (
