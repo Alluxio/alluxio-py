@@ -214,10 +214,26 @@ class ConsistentHashProvider:
         max_attempts=100,
         etcd_refresh_workers_interval=None,
     ):
+        if not (etcd_hosts or worker_hosts):
+            raise ValueError(
+                "Must supply either 'etcd_hosts' or 'worker_hosts'"
+            )
+        if etcd_hosts and worker_hosts:
+            raise ValueError(
+                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
+            )
+        if not isinstance(etcd_port, int):
+            raise ValueError("'etcd_port' should be an integer")
+        if not isinstance(worker_http_port, int):
+            raise ValueError("'http_port' should be an integer")
+        self._logger = logger or logging.getLogger("ConsistentHashProvider")
+        if not etcd_hosts:
+            self._logger.warning(
+                "'etcd_hosts' not supplied. An etcd cluster is required for dynamic cluster changes."
+            )
         self._etcd_hosts = etcd_hosts
         self._etcd_port = etcd_port
         self._options = options
-        self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._hash_node_per_worker = hash_node_per_worker
         self._max_attempts = max_attempts
         self._lock = threading.Lock()

@@ -105,8 +105,8 @@ class AlluxioFileSystem:
         options=None,
         logger=None,
         concurrency=64,
-        http_port="28080",
-        etcd_port="2379",
+        etcd_port=None,
+        http_port=None,
         etcd_refresh_workers_interval=120,
     ):
         """
@@ -125,28 +125,17 @@ class AlluxioFileSystem:
                 A logger instance for logging messages.
             concurrency (int, optional):
                 The maximum number of concurrent operations. Default to 64.
-            etcd_port (str, optional):
+            etcd_port (int, optional):
                 The port of each etcd server.
-            http_port (string, optional):
+            http_port (int, optional):
                 The port of the HTTP server on each Alluxio worker node.
                 TODO (Chunxu): remove this variable and merge it into the worker_hosts
             etcd_refresh_workers_interval(int, optional):
                 The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
 
         """
-        if not (etcd_hosts or worker_hosts):
-            raise ValueError(
-                "Must supply either 'etcd_hosts' or 'worker_hosts'"
-            )
-        if etcd_hosts and worker_hosts:
-            raise ValueError(
-                "Supply either 'etcd_hosts' or 'worker_hosts', not both"
-            )
+
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
-        if not etcd_hosts:
-            self.logger.warning(
-                "'etcd_hosts' not supplied. An etcd cluster is required for dynamic cluster changes."
-            )
         self.session = self._create_session(concurrency)
 
         # parse options
@@ -165,16 +154,20 @@ class AlluxioFileSystem:
                 )
 
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
-        self.hash_provider = ConsistentHashProvider(
-            etcd_hosts=etcd_hosts,
-            etcd_port=int(etcd_port),
-            worker_hosts=worker_hosts,
-            worker_http_port=int(http_port),
-            hash_node_per_worker=hash_node_per_worker,
-            options=options,
-            logger=self.logger,
-            etcd_refresh_workers_interval=etcd_refresh_workers_interval,
-        )
+
+        hash_provider_args = {
+            "etcd_hosts": etcd_hosts,
+            "worker_hosts": worker_hosts,
+            "hash_node_per_worker": hash_node_per_worker,
+            "options": options,
+            "logger": self.logger,
+            "etcd_refresh_workers_interval": etcd_refresh_workers_interval,
+        }
+        if etcd_port is not None:
+            hash_provider_args["etcd_port"] = etcd_port
+        if http_port is not None:
+            hash_provider_args["worker_http_port"] = http_port
+        self.hash_provider = ConsistentHashProvider(**hash_provider_args)
 
     def listdir(self, path):
         """
