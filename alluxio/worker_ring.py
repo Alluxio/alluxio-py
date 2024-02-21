@@ -16,6 +16,7 @@ from .const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
 from .const import ALLUXIO_CLUSTER_NAME_KEY
 from .const import ALLUXIO_ETCD_PASSWORD_KEY
 from .const import ALLUXIO_ETCD_USERNAME_KEY
+from .const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
 from .const import ETCD_PREFIX_FORMAT
 
 DEFAULT_HOST = "localhost"
@@ -26,7 +27,6 @@ DEFAULT_SECURE_RPC_PORT = 0
 DEFAULT_NETTY_DATA_PORT = 29997
 DEFAULT_WEB_PORT = 30000
 DEFAULT_DOMAIN_SOCKET_PATH = ""
-DEFAULT_HTTP_SERVER_PORT = 28080
 DEFAULT_WORKER_IDENTIFIER_VERSION = 1
 
 
@@ -40,7 +40,7 @@ class WorkerNetAddress:
     netty_data_port: int = DEFAULT_NETTY_DATA_PORT
     web_port: int = DEFAULT_WEB_PORT
     domain_socket_path: str = DEFAULT_DOMAIN_SOCKET_PATH
-    http_server_port: int = DEFAULT_HTTP_SERVER_PORT
+    http_server_port: int = ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,7 @@ class WorkerEntity:
                 ),
                 http_server_port=worker_net_address_info.get(
                     "HttpServerPort",
-                    DEFAULT_HTTP_SERVER_PORT,
+                    ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE,
                 ),
             )
             return WorkerEntity(worker_identity, worker_net_address)
@@ -205,19 +205,19 @@ class ConsistentHashProvider:
     def __init__(
         self,
         etcd_hosts=None,
-        etcd_port=2379,
+        etcd_port=None,
         worker_hosts=None,
-        worker_http_port=DEFAULT_HTTP_SERVER_PORT,
+        worker_http_port=None,
         options=None,
         logger=None,
-        hash_node_per_worker=5,
-        max_attempts=100,
         etcd_refresh_workers_interval=None,
+        hash_node_per_worker=None,
+        max_attempts=100,
     ):
+        self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._etcd_hosts = etcd_hosts
         self._etcd_port = etcd_port
         self._options = options
-        self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._hash_node_per_worker = hash_node_per_worker
         self._max_attempts = max_attempts
         self._lock = threading.Lock()
