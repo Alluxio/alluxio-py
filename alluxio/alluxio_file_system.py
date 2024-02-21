@@ -827,9 +827,17 @@ class AlluxioAsyncFileSystem:
                 page_size = options[ALLUXIO_PAGE_SIZE_KEY]
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
-        self.hash_provider = ConsistentHashProvider(
-            etcd_hosts, int(etcd_port), worker_hosts, options, self.logger
-        )
+        hash_provider_args = {
+            "etcd_hosts": etcd_hosts,
+            "worker_hosts": worker_hosts,
+            "options": options,
+            "logger": self.logger,
+        }
+        if etcd_port is not None:
+            hash_provider_args["etcd_port"] = int(etcd_port)
+        if http_port is not None:
+            hash_provider_args["worker_http_port"] = int(http_port)
+        self.hash_provider = ConsistentHashProvider(**hash_provider_args)
         self.http_port = http_port
         self._loop = loop or asyncio.get_event_loop()
 
