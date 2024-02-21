@@ -55,7 +55,7 @@ def server(event_loop):
 @pytest.mark.asyncio
 async def test_read_page(server):
     fs = AlluxioAsyncFileSystem(
-        worker_hosts=server.host, http_port=server.port
+        worker_hosts=server.host, worker_http_port=server.port
     )
     assert await fs.write_page("s3://a/a.txt", 0, b"test")
     data = await fs.read_range("s3://a/a.txt", 1, 2)
@@ -65,6 +65,6 @@ async def test_read_page(server):
 @pytest.mark.asyncio
 async def test_put_page(server):
     fs = AlluxioAsyncFileSystem(
-        worker_hosts=server.host, http_port=server.port
+        worker_hosts=server.host, worker_http_port=server.port
     )
     assert await fs.write_page("s3://a/a.txt", 1, b"test")

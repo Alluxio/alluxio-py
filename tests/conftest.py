@@ -92,5 +92,5 @@ def fs(docker_alluxio):
     parsed_url = urlparse(docker_alluxio)
     host = parsed_url.hostname
     port = parsed_url.port
-    fs = AlluxioFileSystem(worker_hosts=host, http_port=port)
+    fs = AlluxioFileSystem(worker_hosts=host, worker_http_port=port)
     yield fs
