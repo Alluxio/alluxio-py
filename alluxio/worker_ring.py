@@ -225,7 +225,7 @@ class ConsistentHashProvider:
         if not isinstance(etcd_port, int):
             raise ValueError("'etcd_port' should be an integer")
         if not isinstance(worker_http_port, int):
-            raise ValueError("'http_port' should be an integer")
+            raise ValueError("'worker_http_port' should be an integer")
         self._logger = logger or logging.getLogger("ConsistentHashProvider")
         if not etcd_hosts:
             self._logger.warning(

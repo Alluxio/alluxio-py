@@ -106,7 +106,7 @@ class AlluxioFileSystem:
         logger=None,
         concurrency=64,
         etcd_port=None,
-        http_port=None,
+        worker_http_port=None,
         etcd_refresh_workers_interval=120,
     ):
         """
@@ -127,7 +127,7 @@ class AlluxioFileSystem:
                 The maximum number of concurrent operations. Default to 64.
             etcd_port (int, optional):
                 The port of each etcd server.
-            http_port (int, optional):
+            worker_http_port (int, optional):
                 The port of the HTTP server on each Alluxio worker node.
                 TODO (Chunxu): remove this variable and merge it into the worker_hosts
             etcd_refresh_workers_interval(int, optional):
@@ -165,8 +165,8 @@ class AlluxioFileSystem:
         }
         if etcd_port is not None:
             hash_provider_args["etcd_port"] = etcd_port
-        if http_port is not None:
-            hash_provider_args["worker_http_port"] = http_port
+        if worker_http_port is not None:
+            hash_provider_args["worker_http_port"] = worker_http_port
         self.hash_provider = ConsistentHashProvider(**hash_provider_args)
 
     def listdir(self, path):
