@@ -197,6 +197,7 @@ class AlluxioFileSystem:
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
 
         self.hash_provider = ConsistentHashProvider(
+            worker_hosts=worker_hosts,
             etcd_hosts=etcd_hosts,
             etcd_port=etcd_port,
             worker_hosts=worker_hosts,
