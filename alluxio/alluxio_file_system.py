@@ -134,7 +134,7 @@ class AlluxioFileSystem:
                 The interval to refresh worker list from ETCD membership service periodically. All non-negative values mean the service is disabled.
 
         """
-        if etcd_hosts is None and worker_hosts is None:
+        if not (etcd_hosts or worker_hosts):
             raise ValueError(
                 "Must supply either 'etcd_hosts' or 'worker_hosts'"
             )
@@ -143,9 +143,9 @@ class AlluxioFileSystem:
                 "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
         self.logger = logger or logging.getLogger("AlluxioFileSystem")
-        if etcd_hosts and not worker_hosts:
+        if not etcd_hosts:
             self.logger.warning(
-                "Does not supply 'etcd_hosts'. An etcd cluster is required for dynamic cluster changes."
+                "'etcd_hosts' not supplied. An etcd cluster is required for dynamic cluster changes."
             )
         self.session = self._create_session(concurrency)
 
