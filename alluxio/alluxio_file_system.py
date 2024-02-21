@@ -168,6 +168,7 @@ class AlluxioFileSystem:
         self.hash_provider = ConsistentHashProvider(
             etcd_hosts=etcd_hosts,
             etcd_port=int(etcd_port),
+            worker_hosts=worker_hosts,
             hash_node_per_worker=hash_node_per_worker,
             options=options,
             logger=self.logger,
