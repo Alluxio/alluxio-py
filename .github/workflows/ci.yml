@@ -27,7 +27,7 @@ jobs:
           environment-file: environment_conda.yaml
           environment-name: alluxio_test
           create-args: >-
-            python=${{ matrix.PY }}
+            python=${{ matrix.python-version }}
 
       - name: Conda info
         run: |
@@ -48,5 +48,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.8"
       - uses: pre-commit/action@v3.0.0
