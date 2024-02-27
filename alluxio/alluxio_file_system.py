@@ -8,6 +8,7 @@ import weakref
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
+from typing import Tuple
 
 import aiohttp
 import humanfriendly
@@ -1272,7 +1273,7 @@ class AlluxioAsyncFileSystem:
         headers=None,
         json=None,
         data=None,
-    ) -> tuple[int, bytes]:
+    ) -> Tuple[int, bytes]:
         await self._set_session()
         async with self.session.request(
             method=method.value,
