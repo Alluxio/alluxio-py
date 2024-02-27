@@ -5,6 +5,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
+from typing import Dict
 from typing import List
 from typing import Set
 
@@ -348,7 +349,7 @@ class ConsistentHashProvider:
             self._update_hash_ring(worker_info_map)
 
     def _update_hash_ring(
-        self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
+        self, worker_info_map: Dict[WorkerIdentity, WorkerNetAddress]
     ):
         with self._lock:
             hash_ring = SortedDict()
