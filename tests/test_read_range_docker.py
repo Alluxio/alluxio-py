@@ -1,7 +1,7 @@
 import os
 import random
 
-from alluxio import AlluxioFileSystem
+from alluxio import AlluxioPythonFileSystem
 from tests.conftest import ALLUXIO_FILE_PATH
 from tests.conftest import LOCAL_FILE_PATH
 
@@ -13,7 +13,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def validate_read_range(
-    alluxio_fs: AlluxioFileSystem,
+    alluxio_fs: AlluxioPythonFileSystem,
     alluxio_file_path,
     local_file_path,
     offset,
@@ -64,7 +64,7 @@ def validate_invalid_read_range(
         )
 
 
-def test_alluxio_filesystem(fs: AlluxioFileSystem):
+def test_alluxio_filesystem(fs: AlluxioPythonFileSystem):
     file_size = os.path.getsize(LOCAL_FILE_PATH)
     assert fs.load(ALLUXIO_FILE_PATH, 200)
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]

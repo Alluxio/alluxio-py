@@ -4,7 +4,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestServer
 
-from alluxio.alluxio_file_system import AlluxioAsyncFileSystem
+from alluxio.core import AlluxioAsyncFileSystem
 
 pytestmark = pytest.mark.asyncio
 
