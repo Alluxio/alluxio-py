@@ -61,15 +61,15 @@ Dataset metadata and data in the Alluxio under storage need to be loaded into Al
 to read by end-users. Run the load operations before executing the read commands.
 ```
 # Start a load operation
-load_success = alluxio.load('s3://mybucket/mypath/file')
+load_success = alluxio_client.load('s3://mybucket/mypath/file')
 print('Load successful:', load_success)
 
 # Check load progress
-progress = alluxio.load_progress('s3://mybucket/mypath/file')
+progress = alluxio_client.load_progress('s3://mybucket/mypath/file')
 print('Load progress:', progress)
 
 # Stop a load operation
-stop_success = alluxio.stop_load('s3://mybucket/mypath/file')
+stop_success = alluxio_client.stop_load('s3://mybucket/mypath/file')
 print('Stop successful:', stop_success)
 ```
 
@@ -79,7 +79,7 @@ Data can be written to Alluxio system cache via `write_page` command
 after which the data can be read from Alluxio system cache (Alternative to load operations).
 
 ```
-success = alluxio.write_page('s3://mybucket/mypath/file', page_index, page_bytes)
+success = alluxio_client.write_page('s3://mybucket/mypath/file', page_index, page_bytes)
 print('Write successful:', success)
 ```
 
@@ -87,14 +87,14 @@ print('Write successful:', success)
 List the contents of a directory:
 ```
 """
-contents = alluxio.listdir('s3://mybucket/mypath/dir')
+contents = alluxio_client.listdir('s3://mybucket/mypath/dir')
 print(contents)
 ```
 
 ### Get File Status
 Retrieve the status of a file or directory:
 ```
-status = alluxio.get_file_status('s3://mybucket/mypath/file')
+status = alluxio_client.get_file_status('s3://mybucket/mypath/file')
 print(status)
 ```
 
@@ -110,12 +110,12 @@ Args:
 Returns:
     file content (str): The full file content
 """
-content = alluxio.read('s3://mybucket/mypath/file')
+content = alluxio_client.read('s3://mybucket/mypath/file')
 print(content)
 ```
 Read a specific range of a file:
 ```
-content = alluxio.read_range('s3://mybucket/mypath/file', offset, length)
+content = alluxio_client.read_range('s3://mybucket/mypath/file', offset, length)
 print(content)
 ```
 
