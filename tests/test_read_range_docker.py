@@ -1,7 +1,7 @@
 import os
 import random
 
-from alluxio import AlluxioFileSystem
+from alluxio import AlluxioClient
 from tests.conftest import ALLUXIO_FILE_PATH
 from tests.conftest import LOCAL_FILE_PATH
 
@@ -13,13 +13,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 def validate_read_range(
-    alluxio_fs: AlluxioFileSystem,
+    alluxio_client: AlluxioClient,
     alluxio_file_path,
     local_file_path,
     offset,
     length,
 ):
-    alluxio_data = alluxio_fs.read_range(alluxio_file_path, offset, length)
+    alluxio_data = alluxio_client.read_range(alluxio_file_path, offset, length)
 
     with open(local_file_path, "rb") as local_file:
         local_file.seek(offset)
@@ -64,13 +64,13 @@ def validate_invalid_read_range(
         )
 
 
-def test_alluxio_filesystem(fs: AlluxioFileSystem):
+def test_alluxio_client(alluxio_client: AlluxioClient):
     file_size = os.path.getsize(LOCAL_FILE_PATH)
-    assert fs.load(ALLUXIO_FILE_PATH, 200)
+    assert alluxio_client.load(ALLUXIO_FILE_PATH, 200)
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
     for offset, length in invalid_test_cases:
         validate_invalid_read_range(
-            fs,
+            alluxio_client,
             ALLUXIO_FILE_PATH,
             LOCAL_FILE_PATH,
             offset,
@@ -84,7 +84,7 @@ def test_alluxio_filesystem(fs: AlluxioFileSystem):
         offset = random.randint(0, file_size - 1)
         length = min(random.randint(1, file_size - offset), max_length)
         validate_read_range(
-            fs,
+            alluxio_client,
             ALLUXIO_FILE_PATH,
             LOCAL_FILE_PATH,
             offset,
@@ -103,7 +103,7 @@ def test_alluxio_filesystem(fs: AlluxioFileSystem):
 
     for offset, length in special_test_cases:
         validate_read_range(
-            fs,
+            alluxio_client,
             ALLUXIO_FILE_PATH,
             LOCAL_FILE_PATH,
             offset,

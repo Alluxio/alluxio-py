@@ -1,5 +1,9 @@
-from .alluxio_file_system import AlluxioAsyncFileSystem
-from .alluxio_file_system import AlluxioFileSystem
-from .alluxio_file_system import AlluxioPathStatus
+from alluxio.core import AlluxioAsyncFileSystem
+from alluxio.core import AlluxioClient
+from alluxio.core import AlluxioPathStatus
 
-__all__ = ["AlluxioFileSystem", "AlluxioAsyncFileSystem", "AlluxioPathStatus"]
+__all__ = [
+    "AlluxioClient",
+    "AlluxioAsyncFileSystem",
+    "AlluxioPathStatus",
+]
