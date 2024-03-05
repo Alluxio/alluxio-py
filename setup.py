@@ -3,8 +3,8 @@ from setuptools import setup
 
 setup(
     name="alluxio",
-    version="1.0.0",
-    description="Alluxio Python library 1.0.0 provides API to interact with Alluxio servers.",
+    version="1.0.1-SNAPSHOT",
+    description="Alluxio Python client provides API to interact with Alluxio servers.",
     url="https://github.com/Alluxio/alluxio-py",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
