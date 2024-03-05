@@ -86,11 +86,11 @@ def docker_alluxio():
 
 
 @pytest.fixture
-def fs(docker_alluxio):
+def alluxio_client(docker_alluxio):
 
     LOGGER.debug(f"get AlluxioClient connect to {docker_alluxio}")
     parsed_url = urlparse(docker_alluxio)
     host = parsed_url.hostname
     port = parsed_url.port
-    fs = AlluxioClient(worker_hosts=host, worker_http_port=port)
-    yield fs
+    alluxio_client = AlluxioClient(worker_hosts=host, worker_http_port=port)
+    yield alluxio_client

@@ -39,9 +39,9 @@ def parse_args():
 
 
 def validate_read_range(
-    alluxio_fs, alluxio_file_path, local_file_path, offset, length
+    alluxio_client, alluxio_file_path, local_file_path, offset, length
 ):
-    alluxio_data = alluxio_fs.read_range(alluxio_file_path, offset, length)
+    alluxio_data = alluxio_client.read_range(alluxio_file_path, offset, length)
 
     with open(local_file_path, "rb") as local_file:
         local_file.seek(offset)
@@ -63,10 +63,10 @@ def validate_read_range(
 
 
 def manual_test_invalid_read_range(
-    alluxio_fs, alluxio_file_path, local_file_path, offset, length
+    alluxio_client, alluxio_file_path, local_file_path, offset, length
 ):
     try:
-        alluxio_fs.read_range(alluxio_file_path, offset, length)
+        alluxio_client.read_range(alluxio_file_path, offset, length)
     except Exception:
         pass
     else:
@@ -87,13 +87,13 @@ def manual_test_invalid_read_range(
 
 
 def main(args):
-    alluxio_fs = AlluxioClient(etcd_hosts=args.etcd_hosts)
+    alluxio_client = AlluxioClient(etcd_hosts=args.etcd_hosts)
     file_size = os.path.getsize(args.local_file_path)
 
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
     for offset, length in invalid_test_cases:
         manual_test_invalid_read_range(
-            alluxio_fs,
+            alluxio_client,
             args.alluxio_file_path,
             args.local_file_path,
             offset,
@@ -110,7 +110,7 @@ def main(args):
         if length == 0:
             length = None
         validate_read_range(
-            alluxio_fs,
+            alluxio_client,
             args.alluxio_file_path,
             args.local_file_path,
             offset,
@@ -130,7 +130,7 @@ def main(args):
 
     for offset, length in special_test_cases:
         validate_read_range(
-            alluxio_fs,
+            alluxio_client,
             args.alluxio_file_path,
             args.local_file_path,
             offset,

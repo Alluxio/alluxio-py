@@ -444,7 +444,7 @@ class AlluxioClient:
                 - LoadState.FAILED: The load job failed.
 
         Example:
-            load_state = alluxio_fs.load_progress("s3://mybucket/mypath/file")
+            load_state = alluxio.load_progress("s3://mybucket/mypath/file")
             print(f"Current Load State: {load_state.name}")
         """
         self._validate_path(path)
