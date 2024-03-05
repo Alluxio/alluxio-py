@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import pytest
 import requests
 
-from alluxio.core import AlluxioPythonFileSystem
+from alluxio.core import AlluxioClient
 
 LOGGER = logging.getLogger("alluxio_test")
 TEST_ROOT = os.getenv("TEST_ROOT", "file:///opt/alluxio/ufs/")
@@ -88,9 +88,9 @@ def docker_alluxio():
 @pytest.fixture
 def fs(docker_alluxio):
 
-    LOGGER.debug(f"get AlluxioFileSystem connect to {docker_alluxio}")
+    LOGGER.debug(f"get AlluxioClient connect to {docker_alluxio}")
     parsed_url = urlparse(docker_alluxio)
     host = parsed_url.hostname
     port = parsed_url.port
-    fs = AlluxioPythonFileSystem(worker_hosts=host, worker_http_port=port)
+    fs = AlluxioClient(worker_hosts=host, worker_http_port=port)
     yield fs

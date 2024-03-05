@@ -72,16 +72,16 @@ class OpType(Enum):
     STOP = "stop"
 
 
-class AlluxioPythonFileSystem:
+class AlluxioClient:
     """
     Access Alluxio file system
 
     Examples
     --------
     >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioPythonFileSystem(etcd_hosts="localhost")
+    >>> alluxio = AlluxioClient(etcd_hosts="localhost")
     >>> # Or launch Alluxio with user provided worker list
-    >>> alluxio = AlluxioPythonFileSystem(worker_hosts="host1,host2,host3")
+    >>> alluxio = AlluxioClient(worker_hosts="host1,host2,host3")
 
     >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
     [
@@ -856,7 +856,7 @@ class AlluxioAsyncFileSystem:
             raise ValueError(
                 "Supply either 'etcd_hosts' or 'worker_hosts', not both"
             )
-        self.logger = logger or logging.getLogger("AlluxioFileSystem")
+        self.logger = logger or logging.getLogger("AlluxioClient")
         self._session = None
 
         # parse options

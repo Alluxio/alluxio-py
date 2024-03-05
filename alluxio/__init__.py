@@ -1,9 +1,9 @@
 from .core import AlluxioAsyncFileSystem
+from .core import AlluxioClient
 from .core import AlluxioPathStatus
-from .core import AlluxioPythonFileSystem
 
 __all__ = [
-    "AlluxioPythonFileSystem",
+    "AlluxioClient",
     "AlluxioAsyncFileSystem",
     "AlluxioPathStatus",
 ]

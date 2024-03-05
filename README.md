@@ -23,24 +23,24 @@ please use [alluxiofs](https://github.com/fsspec/alluxiofs) instead.
 
 Install from source
 ```
-cd alluxio-python-library
+cd alluxio
 python setup.py sdist bdist_wheel
-pip install dist/alluxio_python_library-0.1-py3-none-any.whl
+pip install dist/alluxio-<alluxio_client_version>-py3-none-any.whl
 ```
 
 ## Usage
 
 ### Initialization
-Import and initialize the `AlluxioFileSystem` class:
+Import and initialize the `AlluxioClient` class:
 ```
 # Minimum setup for Alluxio with ETCD membership service
-alluxio = AlluxioFileSystem(etcd_hosts="localhost")
+alluxio = AlluxioClient(etcd_hosts="localhost")
 
 # Minimum setup for Alluxio with user-defined worker list
-alluxio = AlluxioFileSystem(worker_hosts="worker_host1,worker_host2")
+alluxio = AlluxioClient(worker_hosts="worker_host1,worker_host2")
 
 # Minimum setup for Alluxio with self-defined page size
-alluxio = AlluxioFileSystem(
+alluxio = AlluxioClient(
             etcd_hosts="localhost",
             options={"alluxio.worker.page.store.page.size": "20MB"}
             )
@@ -50,7 +50,7 @@ options = {
     "alluxio.etcd.password": "my_password",
     "alluxio.worker.page.store.page.size": "20MB"  # Any other options should be included here
 }
-alluxio = AlluxioFileSystem(
+alluxio = AlluxioClient(
     etcd_hosts="localhost",
     options=options
 )
@@ -61,15 +61,15 @@ Dataset metadata and data in the Alluxio under storage need to be loaded into Al
 to read by end-users. Run the load operations before executing the read commands.
 ```
 # Start a load operation
-load_success = alluxio_fs.load('s3://mybucket/mypath/file')
+load_success = alluxio.load('s3://mybucket/mypath/file')
 print('Load successful:', load_success)
 
 # Check load progress
-progress = alluxio_fs.load_progress('s3://mybucket/mypath/file')
+progress = alluxio.load_progress('s3://mybucket/mypath/file')
 print('Load progress:', progress)
 
 # Stop a load operation
-stop_success = alluxio_fs.stop_load('s3://mybucket/mypath/file')
+stop_success = alluxio.stop_load('s3://mybucket/mypath/file')
 print('Stop successful:', stop_success)
 ```
 
@@ -79,7 +79,7 @@ Data can be written to Alluxio system cache via `write_page` command
 after which the data can be read from Alluxio system cache (Alternative to load operations).
 
 ```
-success = alluxio_fs.write_page('s3://mybucket/mypath/file', page_index, page_bytes)
+success = alluxio.write_page('s3://mybucket/mypath/file', page_index, page_bytes)
 print('Write successful:', success)
 ```
 
@@ -87,14 +87,14 @@ print('Write successful:', success)
 List the contents of a directory:
 ```
 """
-contents = alluxio_fs.listdir('s3://mybucket/mypath/dir')
+contents = alluxio.listdir('s3://mybucket/mypath/dir')
 print(contents)
 ```
 
 ### Get File Status
 Retrieve the status of a file or directory:
 ```
-status = alluxio_fs.get_file_status('s3://mybucket/mypath/file')
+status = alluxio.get_file_status('s3://mybucket/mypath/file')
 print(status)
 ```
 
@@ -110,12 +110,12 @@ Args:
 Returns:
     file content (str): The full file content
 """
-content = alluxio_fs.read('s3://mybucket/mypath/file')
+content = alluxio.read('s3://mybucket/mypath/file')
 print(content)
 ```
 Read a specific range of a file:
 ```
-content = alluxio_fs.read_range('s3://mybucket/mypath/file', offset, length)
+content = alluxio.read_range('s3://mybucket/mypath/file', offset, length)
 print(content)
 ```
 
