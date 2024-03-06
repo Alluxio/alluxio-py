@@ -8,8 +8,8 @@ from urllib.parse import urlparse
 import pytest
 import requests
 
-from alluxio.core import AlluxioClient
-from alluxio.core import AlluxioClientConfig
+from alluxio import AlluxioClient
+from alluxio import AlluxioClientConfig
 
 LOGGER = logging.getLogger("alluxio_test")
 TEST_ROOT = os.getenv("TEST_ROOT", "file:///opt/alluxio/ufs/")

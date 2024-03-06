@@ -14,13 +14,13 @@ import etcd3
 import mmh3
 from sortedcontainers import SortedDict
 
+from alluxio.config import AlluxioClientConfig
 from alluxio.const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
 from alluxio.const import ALLUXIO_CLUSTER_NAME_KEY
 from alluxio.const import ALLUXIO_ETCD_PASSWORD_KEY
 from alluxio.const import ALLUXIO_ETCD_USERNAME_KEY
 from alluxio.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
 from alluxio.const import ETCD_PREFIX_FORMAT
-from alluxio.core import AlluxioClientConfig
 
 DEFAULT_HOST = "localhost"
 DEFAULT_CONTAINER_HOST = ""

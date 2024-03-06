@@ -3,7 +3,7 @@ import os
 import random
 
 from alluxio import AlluxioClient
-from alluxio.core import AlluxioClientConfig
+from alluxio import AlluxioClientConfig
 
 
 def parse_args():

@@ -1,6 +1,6 @@
+from alluxio.config import AlluxioClientConfig
 from alluxio.core import AlluxioAsyncFileSystem
 from alluxio.core import AlluxioClient
-from alluxio.core import AlluxioClientConfig
 from alluxio.core import AlluxioPathStatus
 
 __all__ = [
