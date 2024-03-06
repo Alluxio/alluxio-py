@@ -7,7 +7,9 @@ import time
 import weakref
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 
 import aiohttp
@@ -15,21 +17,22 @@ import humanfriendly
 import requests
 from requests.adapters import HTTPAdapter
 
-from .const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
-from .const import ALLUXIO_HASH_NODE_PER_WORKER_KEY
-from .const import ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
-from .const import ALLUXIO_PAGE_SIZE_KEY
-from .const import ALLUXIO_SUCCESS_IDENTIFIER
-from .const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
-from .const import FULL_PAGE_URL_FORMAT
-from .const import GET_FILE_STATUS_URL_FORMAT
-from .const import LIST_URL_FORMAT
-from .const import LOAD_PROGRESS_URL_FORMAT
-from .const import LOAD_SUBMIT_URL_FORMAT
-from .const import LOAD_URL_FORMAT
-from .const import PAGE_URL_FORMAT
-from .const import WRITE_PAGE_URL_FORMAT
-from .worker_ring import ConsistentHashProvider
+from alluxio.annotations import PublicAPI
+from alluxio.const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
+from alluxio.const import ALLUXIO_HASH_NODE_PER_WORKER_KEY
+from alluxio.const import ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
+from alluxio.const import ALLUXIO_PAGE_SIZE_KEY
+from alluxio.const import ALLUXIO_SUCCESS_IDENTIFIER
+from alluxio.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
+from alluxio.const import FULL_PAGE_URL_FORMAT
+from alluxio.const import GET_FILE_STATUS_URL_FORMAT
+from alluxio.const import LIST_URL_FORMAT
+from alluxio.const import LOAD_PROGRESS_URL_FORMAT
+from alluxio.const import LOAD_SUBMIT_URL_FORMAT
+from alluxio.const import LOAD_URL_FORMAT
+from alluxio.const import PAGE_URL_FORMAT
+from alluxio.const import WRITE_PAGE_URL_FORMAT
+from alluxio.worker_ring import ConsistentHashProvider
 
 logging.basicConfig(
     level=logging.WARN,
@@ -38,6 +41,7 @@ logging.basicConfig(
 
 
 @dataclass
+@PublicAPI(stability="beta")
 class AlluxioPathStatus:
     type: str
     name: str
@@ -48,95 +52,41 @@ class AlluxioPathStatus:
     length: float
 
 
-class LoadState(Enum):
-    RUNNING = "RUNNING"
-    VERIFYING = "VERIFYING"
-    STOPPED = "STOPPED"
-    SUCCEEDED = "SUCCEEDED"
-    FAILED = "FAILED"
-
-
-class Method(Enum):
-    GET = "GET"
-    POST = "POST"
-    PUT = "PUT"
-    DELETE = "DELETE"
-    HEAD = "HEAD"
-    OPTIONS = "OPTIONS"
-    PATCH = "PATCH"
-
-
-class OpType(Enum):
-    SUBMIT = "submit"
-    PROGRESS = "progress"
-    STOP = "stop"
-
-
-class AlluxioClient:
+@PublicAPI(stability="beta")
+class AlluxioClientConfig:
     """
-    Access Alluxio file system
-
-    Examples
-    --------
-    >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioClient(etcd_hosts="localhost")
-    >>> # Or launch Alluxio with user provided worker list
-    >>> alluxio = AlluxioClient(worker_hosts="host1,host2,host3")
-
-    >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
-    [
-        {
-            type: "file",
-            name: "my_file_name",
-            path: '/my_file_name',
-            ufs_path: 's3://example-bucket/my_file_name',
-            last_modification_time_ms: 0,
-            length: 77542,
-            human_readable_file_size: '75.72KB'
-        },
-
-    ]
-    >>> print(alluxio.read("s3://mybucket/mypath/dir/myfile"))
-    my_file_content
+    Class responsible for creating the configuration for Alluxio Client.
     """
 
     def __init__(
         self,
-        etcd_hosts=None,
-        worker_hosts=None,
-        options=None,
-        logger=None,
+        etcd_hosts: Optional[str] = None,
+        worker_hosts: Optional[str] = None,
+        options: Optional[Dict[str, Any]] = None,
+        logger: Optional[logging.Logger] = None,
         concurrency=64,
         etcd_port=2379,
         worker_http_port=ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE,
         etcd_refresh_workers_interval=120,
     ):
         """
-        Inits Alluxio file system.
+        Initializes Alluxio client configuration.
 
         Args:
-            etcd_hosts (str, optional):
-                The hostnames of ETCD to get worker addresses from
-                The hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
-            worker_hosts (str, optional):
-                The worker hostnames in host1,host2,host3 format. Either etcd_hosts or worker_hosts should be provided, not both.
-            options (dict, optional):
-                A dictionary of Alluxio property key and values.
-                Note that Alluxio Python API only support a limited set of Alluxio properties.
-            logger (Logger, optional):
-                A logger instance for logging messages.
-            concurrency (int, optional):
-                The maximum number of concurrent operations for HTTP requests. Default to 64.
-            etcd_port (int, optional):
-                The port of each etcd server.
-            worker_http_port (int, optional):
-                The port of the HTTP server on each Alluxio worker node.
-            etcd_refresh_workers_interval(int, optional):
-                The interval to refresh worker list from ETCD membership service periodically. All negative values mean the service is disabled.
-
+            etcd_hosts (Optional[str], optional): The hostnames of ETCD to get worker addresses from
+                in 'host1,host2,host3' format. Either etcd_hosts or worker_hosts should be provided, not both.
+            worker_hosts (Optional[str], optional): The worker hostnames in 'host1,host2,host3' format.
+                Either etcd_hosts or worker_hosts should be provided, not both.
+            options (Optional[Dict[str, Any]], optional): A dictionary of Alluxio property key and values.
+                Note that Alluxio Client only supports a limited set of Alluxio properties.
+            logger (Optional[logging.Logger], optional): A logger instance for logging messages.
+            concurrency (int, optional): The maximum number of concurrent operations for HTTP requests, default to 64.
+            etcd_port (int, optional): The port of each etcd server.
+            worker_http_port (int, optional): The port of the HTTP server on each Alluxio worker node.
+            etcd_refresh_workers_interval (int, optional): The interval to refresh worker list from ETCD membership service periodically.
+                All negative values mean the service is disabled.
         """
-        # TODO(lu/chunxu) change to ETCD endpoints in format of 'http://etcd_host:port, http://etcd_host:port' & worker hosts in 'host:port, host:port' format
-        self.logger = logger or logging.getLogger("AlluxioPython")
+        self.logger = logger or logging.getLogger("AlluxioClient")
         if not (etcd_hosts or worker_hosts):
             raise ValueError(
                 "Must supply either 'etcd_hosts' or 'worker_hosts'"
@@ -170,9 +120,13 @@ class AlluxioClient:
             raise ValueError(
                 "'etcd_refresh_workers_interval' should be an integer"
             )
-
-        self.session = self._create_session(concurrency)
-
+        self.etcd_hosts = etcd_hosts
+        self.worker_hosts = worker_hosts
+        self.options = options
+        self.concurrency = concurrency
+        self.etcd_port = etcd_port
+        self.worker_http_port = worker_http_port
+        self.etcd_refresh_workers_interval = etcd_refresh_workers_interval
         # parse options
         page_size = ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
         hash_node_per_worker = ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
@@ -195,18 +149,75 @@ class AlluxioClient:
                 "'hash_node_per_worker' should be a positive integer"
             )
 
+        self.hash_node_per_worker = hash_node_per_worker
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
 
-        self.hash_provider = ConsistentHashProvider(
-            etcd_hosts=etcd_hosts,
-            etcd_port=etcd_port,
-            worker_hosts=worker_hosts,
-            worker_http_port=worker_http_port,
-            hash_node_per_worker=hash_node_per_worker,
-            options=options,
-            logger=self.logger,
-            etcd_refresh_workers_interval=etcd_refresh_workers_interval,
-        )
+
+class HTTPRequestMethod(Enum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+    OPTIONS = "OPTIONS"
+    PATCH = "PATCH"
+
+
+class LoadOpType(Enum):
+    SUBMIT = "submit"
+    PROGRESS = "progress"
+    STOP = "stop"
+
+
+class LoadState(Enum):
+    RUNNING = "RUNNING"
+    VERIFYING = "VERIFYING"
+    STOPPED = "STOPPED"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+
+
+@PublicAPI(stability="beta")
+class AlluxioClient:
+    """
+    Access Alluxio file system
+
+    Examples
+    --------
+    >>> # Launch Alluxio with ETCD as service discovery
+    >>> alluxio_client = AlluxioClient(AlluxioClientConfig(etcd_hosts="localhost"))
+    >>> # Or launch Alluxio with user provided worker list
+    >>> alluxio_client = AlluxioClient(AlluxioClientConfig(worker_hosts="host1,host2,host3"))
+
+    >>> print(alluxio_client.listdir("s3://mybucket/mypath/dir"))
+    [
+        {
+            type: "file",
+            name: "my_file_name",
+            path: '/my_file_name',
+            ufs_path: 's3://example-bucket/my_file_name',
+            last_modification_time_ms: 0,
+            length: 77542,
+            human_readable_file_size: '75.72KB'
+        },
+
+    ]
+    >>> print(alluxio_client.read("s3://mybucket/mypath/dir/myfile"))
+    my_file_content
+    """
+
+    def __init__(self, config: AlluxioClientConfig):
+        """
+        Inits Alluxio Client
+
+        Args:
+            config (AlluxioClientConfig, required): The configuration of Alluxio client
+        """
+        # TODO(lu/chunxu) change to ETCD endpoints in format of 'http://etcd_host:port, http://etcd_host:port' & worker hosts in 'host:port, host:port' format
+        self.config = config
+        self.session = self._create_session(self.config.concurrency)
+
+        self.hash_provider = ConsistentHashProvider(self.config)
 
     def listdir(self, path):
         """
@@ -375,7 +386,7 @@ class AlluxioClient:
             path
         )
         try:
-            params = {"path": path, "opType": OpType.SUBMIT.value}
+            params = {"path": path, "opType": LoadOpType.SUBMIT.value}
             response = self.session.get(
                 LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -409,7 +420,7 @@ class AlluxioClient:
             path
         )
         try:
-            params = {"path": path, "opType": OpType.STOP.value}
+            params = {"path": path, "opType": LoadOpType.STOP.value}
             response = self.session.get(
                 LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -451,7 +462,7 @@ class AlluxioClient:
         worker_host, worker_http_port = self._get_preferred_worker_address(
             path
         )
-        params = {"path": path, "opType": OpType.PROGRESS.value}
+        params = {"path": path, "opType": LoadOpType.PROGRESS.value}
         load_progress_url = LOAD_URL_FORMAT.format(
             worker_host=worker_host,
             http_port=worker_http_port,
@@ -648,7 +659,7 @@ class AlluxioClient:
 
     def _load_file(self, worker_host, worker_http_port, path, timeout):
         try:
-            params = {"path": path, "opType": OpType.SUBMIT.value}
+            params = {"path": path, "opType": LoadOpType.SUBMIT.value}
             response = self.session.get(
                 LOAD_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -661,7 +672,7 @@ class AlluxioClient:
             if not content[ALLUXIO_SUCCESS_IDENTIFIER]:
                 return False
 
-            params = {"path": path, "opType": OpType.PROGRESS.value}
+            params = {"path": path, "opType": LoadOpType.PROGRESS.value}
             load_progress_url = LOAD_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=worker_http_port,
@@ -947,7 +958,7 @@ class AlluxioAsyncFileSystem:
         params = {"path": path}
 
         _, content = await self._request(
-            Method.GET,
+            HTTPRequestMethod.GET,
             LIST_URL_FORMAT.format(
                 worker_host=worker_host, http_port=self.http_port
             ),
@@ -1001,7 +1012,7 @@ class AlluxioAsyncFileSystem:
         worker_host = self._get_preferred_worker_host(path)
         params = {"path": path}
         _, content = await self._request(
-            Method.GET,
+            HTTPRequestMethod.GET,
             GET_FILE_STATUS_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
@@ -1085,7 +1096,7 @@ class AlluxioAsyncFileSystem:
         path_id = self._get_path_hash(file_path)
 
         status, content = await self._request(
-            Method.POST,
+            HTTPRequestMethod.POST,
             WRITE_PAGE_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
@@ -1149,7 +1160,7 @@ class AlluxioAsyncFileSystem:
 
     async def _load_file(self, worker_host: str, path: str, timeout):
         _, content = await self._request(
-            Method.GET,
+            HTTPRequestMethod.GET,
             LOAD_SUBMIT_URL_FORMAT.format(
                 worker_host=worker_host,
                 http_port=self.http_port,
@@ -1190,7 +1201,7 @@ class AlluxioAsyncFileSystem:
                 return False
 
     async def _load_progress_internal(self, load_url: str):
-        _, content = await self._request(Method.GET, load_url)
+        _, content = await self._request(HTTPRequestMethod.GET, load_url)
         content = json.loads(content.decode("utf-8"))
         if "jobState" not in content:
             raise KeyError(
@@ -1228,7 +1239,7 @@ class AlluxioAsyncFileSystem:
                 page_length=length,
             )
 
-        _, content = await self._request(Method.GET, page_url)
+        _, content = await self._request(HTTPRequestMethod.GET, page_url)
         return content
 
     def _get_path_hash(self, uri: str):
@@ -1266,7 +1277,7 @@ class AlluxioAsyncFileSystem:
 
     async def _request(
         self,
-        method: Method,
+        method: HTTPRequestMethod,
         url: str,
         *args,
         params: dict = None,

@@ -1,24 +1,26 @@
 import json
-import logging
 import random
 import threading
 import time
 import uuid
 from dataclasses import dataclass
+from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Set
 
 import etcd3
 import mmh3
 from sortedcontainers import SortedDict
 
-from .const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
-from .const import ALLUXIO_CLUSTER_NAME_KEY
-from .const import ALLUXIO_ETCD_PASSWORD_KEY
-from .const import ALLUXIO_ETCD_USERNAME_KEY
-from .const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
-from .const import ETCD_PREFIX_FORMAT
+from alluxio.const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+from alluxio.const import ALLUXIO_CLUSTER_NAME_KEY
+from alluxio.const import ALLUXIO_ETCD_PASSWORD_KEY
+from alluxio.const import ALLUXIO_ETCD_USERNAME_KEY
+from alluxio.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
+from alluxio.const import ETCD_PREFIX_FORMAT
+from alluxio.core import AlluxioClientConfig
 
 DEFAULT_HOST = "localhost"
 DEFAULT_CONTAINER_HOST = ""
@@ -139,7 +141,12 @@ class WorkerEntity:
 
 
 class EtcdClient:
-    def __init__(self, host="localhost", port=2379, options=None):
+    def __init__(
+        self,
+        host="localhost",
+        port=2379,
+        options: Optional[Dict[str, Any]] = None,
+    ):
         self._host = host
         self._port = port
 
@@ -149,7 +156,7 @@ class EtcdClient:
         self._prefix = ETCD_PREFIX_FORMAT.format(
             cluster_name=ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
         )
-        if options:
+        if options is not None:
             if ALLUXIO_ETCD_USERNAME_KEY in options:
                 self._etcd_username = options[ALLUXIO_ETCD_USERNAME_KEY]
             if ALLUXIO_ETCD_PASSWORD_KEY in options:
@@ -173,7 +180,6 @@ class EtcdClient:
         """
         # Note that EtcdClient should not be passed through python multiprocessing
         etcd = self._get_etcd_client()
-        worker_entities: Set[WorkerEntity] = set()
         try:
             worker_entities = {
                 WorkerEntity.from_worker_info(worker_info)
@@ -205,37 +211,25 @@ class EtcdClient:
 class ConsistentHashProvider:
     def __init__(
         self,
-        etcd_hosts=None,
-        etcd_port=None,
-        worker_hosts=None,
-        worker_http_port=None,
-        options=None,
-        logger=None,
-        etcd_refresh_workers_interval=None,
-        hash_node_per_worker=None,
-        max_attempts=100,
+        config: AlluxioClientConfig,
     ):
-        self._logger = logger or logging.getLogger("ConsistentHashProvider")
-        self._etcd_hosts = etcd_hosts
-        self._etcd_port = etcd_port
-        self._options = options
-        self._hash_node_per_worker = hash_node_per_worker
-        self._max_attempts = max_attempts
+        self.config = config
         self._lock = threading.Lock()
         self._is_ring_initialized = False
         self._worker_info_map = {}
-        self._etcd_refresh_workers_interval = etcd_refresh_workers_interval
-        if worker_hosts:
+        if self.config.worker_hosts is not None:
             self._update_hash_ring(
-                self._generate_worker_info_map(worker_hosts, worker_http_port)
+                self._generate_worker_info_map(
+                    self.config.worker_hosts, self.config.worker_http_port
+                )
             )
-        if self._etcd_hosts:
+        if self.config.etcd_hosts is not None:
             self._fetch_workers_and_update_ring()
-            if self._etcd_refresh_workers_interval > 0:
+            if self.config.etcd_refresh_workers_interval > 0:
                 self._shutdown_background_update_ring_event = threading.Event()
                 self._background_thread = None
                 self._start_background_update_ring(
-                    self._etcd_refresh_workers_interval
+                    self.config.etcd_refresh_workers_interval
                 )
 
     def get_multiple_workers(
@@ -275,9 +269,15 @@ class ConsistentHashProvider:
         )
         workers = []
         attempts = 0
-        while len(workers) < count and attempts < self._max_attempts:
+        keys_list = list(self.hash_ring.keys())
+        while len(workers) < count and attempts < 100:
             attempts += 1
-            worker = self._get_ceiling_value(self._hash(key, attempts))
+            key_index = self.hash_ring.bisect_right(self._hash(key, attempts))
+            if key_index < len(keys_list):
+                ceiling_key = keys_list[key_index]
+                worker = self.hash_ring[ceiling_key]
+            else:
+                worker = self.hash_ring.peekitem(0)[1]
             if worker not in workers:
                 workers.append(worker)
 
@@ -289,7 +289,9 @@ class ConsistentHashProvider:
                 try:
                     self._fetch_workers_and_update_ring()
                 except Exception as e:
-                    self._logger.error(f"Error updating worker hash ring: {e}")
+                    self.config.logger.error(
+                        f"Error updating worker hash ring: {e}"
+                    )
                 time.sleep(interval)
 
         self._background_thread = threading.Thread(target=update_loop)
@@ -297,7 +299,10 @@ class ConsistentHashProvider:
         self._background_thread.start()
 
     def shutdown_background_update_ring(self):
-        if self._etcd_hosts and self._etcd_refresh_workers_interval > 0:
+        if (
+            self.config.etcd_hosts is not None
+            and self.config.etcd_refresh_workers_interval > 0
+        ):
             self._shutdown_background_update_ring_event.set()
             if self._background_thread:
                 self._background_thread.join()
@@ -306,26 +311,28 @@ class ConsistentHashProvider:
         self.shutdown_background_update_ring()
 
     def _fetch_workers_and_update_ring(self):
-        etcd_hosts_list = self._etcd_hosts.split(",")
+        etcd_hosts_list = self.config.etcd_hosts.split(",")
         random.shuffle(etcd_hosts_list)
         worker_entities: Set[WorkerEntity] = set()
         for host in etcd_hosts_list:
             try:
                 worker_entities = EtcdClient(
-                    host=host, port=self._etcd_port, options=self._options
+                    host=host,
+                    port=self.config.etcd_port,
+                    options=self.config.options,
                 ).get_worker_entities()
                 break
-            except Exception as e:
+            except Exception:
                 continue
         if not worker_entities:
             if self._is_ring_initialized:
-                self._logger.info(
-                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
+                self.config.logger.info(
+                    f"Failed to achieve worker info list from ETCD servers:{self.config.etcd_hosts}"
                 )
                 return
             else:
                 raise Exception(
-                    f"Failed to achieve worker info list from ETCD servers:{self._etcd_hosts}"
+                    f"Failed to achieve worker info list from ETCD servers:{self.config.etcd_hosts}"
                 )
 
         worker_info_map = {}
@@ -354,31 +361,22 @@ class ConsistentHashProvider:
         with self._lock:
             hash_ring = SortedDict()
             for worker_identity in worker_info_map.keys():
-                for i in range(self._hash_node_per_worker):
+                for i in range(self.config.hash_node_per_worker):
                     hash_key = self._hash_worker_identity(worker_identity, i)
                     hash_ring[hash_key] = worker_identity
             self.hash_ring = hash_ring
             self._worker_info_map = worker_info_map
             self._is_ring_initialized = True
 
-    def _get_ceiling_value(self, hash_key: int):
-        key_index = self.hash_ring.bisect_right(hash_key)
-        if key_index < len(self.hash_ring):
-            ceiling_key = self.hash_ring.keys()[key_index]
-            ceiling_value = self.hash_ring[ceiling_key]
-            return ceiling_value
-        else:
-            return self.hash_ring.peekitem(0)[1]
-
-    def _hash(self, key: str, index: int) -> int:
+    @staticmethod
+    def _hash(key: str, index: int) -> int:
         hasher = mmh3.mmh3_32()
         hasher.update(key.encode("utf-8"))
         hasher.update(index.to_bytes(4, "little"))
         return hasher.sintdigest()
 
-    def _hash_worker_identity(
-        self, worker: WorkerIdentity, node_index: int
-    ) -> int:
+    @staticmethod
+    def _hash_worker_identity(worker: WorkerIdentity, node_index: int) -> int:
         # Hash the combined bytes
         hasher = mmh3.mmh3_32()
         hasher.update(worker.identifier)
@@ -386,7 +384,8 @@ class ConsistentHashProvider:
         hasher.update(node_index.to_bytes(4, "little"))
         return hasher.sintdigest()
 
-    def _generate_worker_info_map(self, worker_hosts, worker_http_port):
+    @staticmethod
+    def _generate_worker_info_map(worker_hosts, worker_http_port):
         worker_info_map = {}
         host_list = [host.strip() for host in worker_hosts.split(",")]
         for worker_host in host_list:
