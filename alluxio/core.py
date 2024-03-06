@@ -17,7 +17,6 @@ from requests.adapters import HTTPAdapter
 
 from alluxio.annotations import PublicAPI
 from alluxio.config import AlluxioClientConfig
-from alluxio.const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
 from alluxio.const import ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
 from alluxio.const import ALLUXIO_PAGE_SIZE_KEY
 from alluxio.const import ALLUXIO_SUCCESS_IDENTIFIER
@@ -490,30 +489,30 @@ class AlluxioClient:
             if not page_content:
                 break
             yield page_content
-            if len(page_content) < self.page_size:  # last page
+            if len(page_content) < self.config.page_size:  # last page
                 break
             page_index += 1
 
     def _range_page_generator(
         self, worker_host, worker_http_port, path_id, offset, length
     ):
-        start_page_index = offset // self.page_size
-        start_page_offset = offset % self.page_size
+        start_page_index = offset // self.config.page_size
+        start_page_offset = offset % self.config.page_size
 
-        end_page_index = (offset + length - 1) // self.page_size
-        end_page_read_to = ((offset + length - 1) % self.page_size) + 1
+        end_page_index = (offset + length - 1) // self.config.page_size
+        end_page_read_to = ((offset + length - 1) % self.config.page_size) + 1
 
         page_index = start_page_index
         while True:
             try:
                 read_offset = 0
-                read_length = self.page_size
+                read_length = self.config.page_size
                 if page_index == start_page_index:
                     read_offset = start_page_offset
                     if start_page_index == end_page_index:
                         read_length = end_page_read_to - start_page_offset
                     else:
-                        read_length = self.page_size - start_page_offset
+                        read_length = self.config.page_size - start_page_offset
                 elif page_index == end_page_index:
                     read_length = end_page_read_to
 
@@ -583,25 +582,25 @@ class AlluxioClient:
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
-                    self.logger.error(
+                    self.config.logger.error(
                         f"Failed to load path {path} with return message {content}"
                     )
                     return False
                 if job_state == LoadState.STOPPED:
-                    self.logger.warning(
+                    self.config.logger.warning(
                         f"Failed to load path {path} with return message {content}, load stopped"
                     )
                     return False
                 if timeout is None or stop_time - time.time() >= 10:
                     time.sleep(10)
                 else:
-                    self.logger.debug(
+                    self.config.logger.debug(
                         f"Failed to load path {path} within timeout"
                     )
                     return False
 
         except Exception as e:
-            self.logger.debug(
+            self.config.logger.debug(
                 f"Error when loading file {path} from {worker_host} with timeout {timeout}: error {e}"
             )
             return False
@@ -648,7 +647,9 @@ class AlluxioClient:
                     path_id=path_id,
                     page_index=page_index,
                 )
-                self.logger.debug(f"Reading full page request {page_url}")
+                self.config.logger.debug(
+                    f"Reading full page request {page_url}"
+                )
             else:
                 page_url = PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -658,7 +659,7 @@ class AlluxioClient:
                     page_offset=offset,
                     page_length=length,
                 )
-                self.logger.debug(f"Reading page request {page_url}")
+                self.config.logger.debug(f"Reading page request {page_url}")
             response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
@@ -774,14 +775,15 @@ class AlluxioAsyncFileSystem:
                 self.logger.debug(f"Page size is set to {page_size}")
         self.page_size = humanfriendly.parse_size(page_size, binary=True)
         self.hash_provider = ConsistentHashProvider(
-            etcd_hosts=etcd_hosts,
-            etcd_port=int(etcd_port),
-            worker_hosts=worker_hosts,
-            worker_http_port=int(http_port),
-            hash_node_per_worker=ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE,
-            options=options,
-            logger=self.logger,
-            etcd_refresh_workers_interval=120,
+            AlluxioClientConfig(
+                etcd_hosts=etcd_hosts,
+                etcd_port=int(etcd_port),
+                worker_hosts=worker_hosts,
+                worker_http_port=int(http_port),
+                options=options,
+                logger=self.logger,
+                etcd_refresh_workers_interval=120,
+            )
         )
         self.http_port = http_port
         self._loop = loop or asyncio.get_event_loop()

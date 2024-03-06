@@ -1,5 +1,6 @@
 import json
 
+from alluxio.config import AlluxioClientConfig
 from alluxio.worker_ring import ConsistentHashProvider
 from alluxio.worker_ring import WorkerIdentity
 from alluxio.worker_ring import WorkerNetAddress
@@ -11,9 +12,10 @@ def test_hash_ring():
         worker_hostnames = json.load(file)
 
     hash_provider = ConsistentHashProvider(
-        worker_hosts=", ".join(worker_hostnames),
-        hash_node_per_worker=5,
-        etcd_refresh_workers_interval=100000000,
+        AlluxioClientConfig(
+            worker_hosts=", ".join(worker_hostnames),
+            etcd_refresh_workers_interval=100000000,
+        )
     )
 
     hash_ring_path = "tests/hash_res/activeNodesMap.json"
