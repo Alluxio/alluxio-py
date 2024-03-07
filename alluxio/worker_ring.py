@@ -5,7 +5,6 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -16,10 +15,6 @@ import mmh3
 from sortedcontainers import SortedDict
 
 from alluxio.config import AlluxioClientConfig
-from alluxio.const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
-from alluxio.const import ALLUXIO_CLUSTER_NAME_KEY
-from alluxio.const import ALLUXIO_ETCD_PASSWORD_KEY
-from alluxio.const import ALLUXIO_ETCD_USERNAME_KEY
 from alluxio.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
 from alluxio.const import ETCD_PREFIX_FORMAT
 
@@ -144,9 +139,9 @@ class WorkerEntity:
 class EtcdClient:
     def __init__(
         self,
+        config: AlluxioClientConfig,
         host="localhost",
         port=2379,
-        alluxio_properties: Optional[Dict[str, Any]] = None,
     ):
         self._host = host
         self._port = port
@@ -155,26 +150,11 @@ class EtcdClient:
         self._etcd_username = None
         self._etcd_password = None
         self._prefix = ETCD_PREFIX_FORMAT.format(
-            cluster_name=ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+            cluster_name=config.cluster_name
         )
-        if alluxio_properties is not None:
-            if ALLUXIO_ETCD_USERNAME_KEY in alluxio_properties:
-                self._etcd_username = alluxio_properties[
-                    ALLUXIO_ETCD_USERNAME_KEY
-                ]
-            if ALLUXIO_ETCD_PASSWORD_KEY in alluxio_properties:
-                self._etcd_password = alluxio_properties[
-                    ALLUXIO_ETCD_PASSWORD_KEY
-                ]
-            if ALLUXIO_CLUSTER_NAME_KEY in alluxio_properties:
-                self._prefix = ETCD_PREFIX_FORMAT.format(
-                    cluster_name=alluxio_properties[ALLUXIO_CLUSTER_NAME_KEY]
-                )
-
-        if (self._etcd_username is None) != (self._etcd_password is None):
-            raise ValueError(
-                "Both ETCD username and password must be set or both should be unset."
-            )
+        if config.etcd_username is not None:
+            self._etcd_username = config.etcd_username
+            self._etcd_password = config.etcd_password
 
     def get_worker_entities(self) -> Set[WorkerEntity]:
         """
@@ -324,7 +304,7 @@ class ConsistentHashProvider:
                 worker_entities = EtcdClient(
                     host=host,
                     port=self.config.etcd_port,
-                    alluxio_properties=self.config.alluxio_properties,
+                    config=self.config,
                 ).get_worker_entities()
                 break
             except Exception:

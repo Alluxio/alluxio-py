@@ -785,8 +785,8 @@ class AlluxioAsyncFileSystem:
                 etcd_port=int(etcd_port),
                 worker_hosts=worker_hosts,
                 worker_http_port=int(http_port),
-                alluxio_properties=options,
                 etcd_refresh_workers_interval=120,
+                page_size=page_size,
             ),
             self.logger,
         )
@@ -1012,12 +1012,13 @@ class AlluxioAsyncFileSystem:
         return 200 <= status < 300
 
     async def _range_page_generator(
-        self, worker_host: str, path_id: str, offset: float, length: float
+        self, worker_host: str, path_id: str, offset: int, length: int
     ):
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
 
         # Determine the end page index and the read-to position
+        end_page_read_to = self.page_size
         if length == -1:
             end_page_index = None
         else:
