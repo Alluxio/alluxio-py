@@ -64,7 +64,7 @@ def validate_invalid_read_range(
         )
 
 
-def test_alluxio_client(alluxio_client: AlluxioClient):
+def test_read_range(alluxio_client: AlluxioClient):
     file_size = os.path.getsize(LOCAL_FILE_PATH)
     assert alluxio_client.load(ALLUXIO_FILE_PATH, 200)
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]
