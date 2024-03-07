@@ -298,7 +298,8 @@ class ConsistentHashProvider:
 
     def shutdown_background_update_ring(self):
         if self._etcd_hosts and self._etcd_refresh_workers_interval > 0:
-            self._shutdown_background_update_ring_event.set()
+            if _shutdown_background_update_ring_event:
+                self._shutdown_background_update_ring_event.set()
             if self._background_thread:
                 self._background_thread.join()
 
