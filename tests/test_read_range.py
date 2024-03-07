@@ -3,6 +3,7 @@ import os
 import random
 
 from alluxio import AlluxioClient
+from alluxio import AlluxioClientConfig
 
 
 def parse_args():
@@ -87,7 +88,9 @@ def manual_test_invalid_read_range(
 
 
 def main(args):
-    alluxio_client = AlluxioClient(etcd_hosts=args.etcd_hosts)
+    alluxio_client = AlluxioClient(
+        AlluxioClientConfig(etcd_hosts=args.etcd_hosts)
+    )
     file_size = os.path.getsize(args.local_file_path)
 
     invalid_test_cases = [(-1, 100), (file_size - 1, -2)]

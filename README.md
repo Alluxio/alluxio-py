@@ -34,26 +34,26 @@ pip install dist/alluxio-<alluxio_client_version>-py3-none-any.whl
 Import and initialize the `AlluxioClient` class:
 ```
 # Minimum setup for Alluxio with ETCD membership service
-alluxio_client = AlluxioClient(etcd_hosts="localhost")
+alluxio_client = AlluxioClient(AlluxioClientConfig(etcd_hosts="localhost"))
 
 # Minimum setup for Alluxio with user-defined worker list
-alluxio_client = AlluxioClient(worker_hosts="worker_host1,worker_host2")
+alluxio_client = AlluxioClient(AlluxioClientConfig(worker_hosts="worker_host1,worker_host2"))
 
 # Minimum setup for Alluxio with self-defined page size
-alluxio_client = AlluxioClient(
+alluxio_client = AlluxioClient(AlluxioClientConfig(
             etcd_hosts="localhost",
             options={"alluxio.worker.page.store.page.size": "20MB"}
-            )
+            ))
 # Minimum setup for Alluxio with ETCD membership service with username/password
 options = {
     "alluxio.etcd.username": "my_user",
     "alluxio.etcd.password": "my_password",
     "alluxio.worker.page.store.page.size": "20MB"  # Any other options should be included here
 }
-alluxio_client = AlluxioClient(
+alluxio_client = AlluxioClient(AlluxioClientConfig(
     etcd_hosts="localhost",
     options=options
-)
+))
 ```
 
 ### Load Operations
