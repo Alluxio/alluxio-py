@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 import threading
 import time
@@ -145,7 +146,7 @@ class EtcdClient:
         self,
         host="localhost",
         port=2379,
-        options: Optional[Dict[str, Any]] = None,
+        alluxio_properties: Optional[Dict[str, Any]] = None,
     ):
         self._host = host
         self._port = port
@@ -156,14 +157,18 @@ class EtcdClient:
         self._prefix = ETCD_PREFIX_FORMAT.format(
             cluster_name=ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
         )
-        if options is not None:
-            if ALLUXIO_ETCD_USERNAME_KEY in options:
-                self._etcd_username = options[ALLUXIO_ETCD_USERNAME_KEY]
-            if ALLUXIO_ETCD_PASSWORD_KEY in options:
-                self._etcd_password = options[ALLUXIO_ETCD_PASSWORD_KEY]
-            if ALLUXIO_CLUSTER_NAME_KEY in options:
+        if alluxio_properties is not None:
+            if ALLUXIO_ETCD_USERNAME_KEY in alluxio_properties:
+                self._etcd_username = alluxio_properties[
+                    ALLUXIO_ETCD_USERNAME_KEY
+                ]
+            if ALLUXIO_ETCD_PASSWORD_KEY in alluxio_properties:
+                self._etcd_password = alluxio_properties[
+                    ALLUXIO_ETCD_PASSWORD_KEY
+                ]
+            if ALLUXIO_CLUSTER_NAME_KEY in alluxio_properties:
                 self._prefix = ETCD_PREFIX_FORMAT.format(
-                    cluster_name=options[ALLUXIO_CLUSTER_NAME_KEY]
+                    cluster_name=alluxio_properties[ALLUXIO_CLUSTER_NAME_KEY]
                 )
 
         if (self._etcd_username is None) != (self._etcd_password is None):
@@ -212,7 +217,9 @@ class ConsistentHashProvider:
     def __init__(
         self,
         config: AlluxioClientConfig,
+        logger: Optional[logging.Logger] = None,
     ):
+        self.logger = logger or logging.getLogger("ConsistentHashProvider")
         self.config = config
         self._lock = threading.Lock()
         self._is_ring_initialized = False
@@ -289,9 +296,7 @@ class ConsistentHashProvider:
                 try:
                     self._fetch_workers_and_update_ring()
                 except Exception as e:
-                    self.config.logger.error(
-                        f"Error updating worker hash ring: {e}"
-                    )
+                    self.logger.error(f"Error updating worker hash ring: {e}")
                 time.sleep(interval)
 
         self._background_thread = threading.Thread(target=update_loop)
@@ -319,14 +324,14 @@ class ConsistentHashProvider:
                 worker_entities = EtcdClient(
                     host=host,
                     port=self.config.etcd_port,
-                    options=self.config.options,
+                    alluxio_properties=self.config.alluxio_properties,
                 ).get_worker_entities()
                 break
             except Exception:
                 continue
         if not worker_entities:
             if self._is_ring_initialized:
-                self.config.logger.info(
+                self.logger.info(
                     f"Failed to achieve worker info list from ETCD servers:{self.config.etcd_hosts}"
                 )
                 return

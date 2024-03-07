@@ -8,6 +8,7 @@ import weakref
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 
 import aiohttp
@@ -101,18 +102,24 @@ class AlluxioClient:
     my_file_content
     """
 
-    def __init__(self, config: AlluxioClientConfig):
+    def __init__(
+        self,
+        config: AlluxioClientConfig,
+        logger: Optional[logging.Logger] = None,
+    ):
         """
         Inits Alluxio Client
 
         Args:
             config (AlluxioClientConfig, required): The configuration of Alluxio client
+            logger (Optional[logging.Logger], optional): A logger instance for logging messages.
         """
+        self.logger = logger or logging.getLogger("AlluxioClient")
         # TODO(lu/chunxu) change to ETCD endpoints in format of 'http://etcd_host:port, http://etcd_host:port' & worker hosts in 'host:port, host:port' format
         self.config = config
         self.session = self._create_session(self.config.concurrency)
 
-        self.hash_provider = ConsistentHashProvider(self.config)
+        self.hash_provider = ConsistentHashProvider(self.config, self.logger)
 
     def listdir(self, path):
         """
@@ -582,25 +589,25 @@ class AlluxioClient:
                 if job_state == LoadState.SUCCEEDED:
                     return True
                 if job_state == LoadState.FAILED:
-                    self.config.logger.error(
+                    self.logger.error(
                         f"Failed to load path {path} with return message {content}"
                     )
                     return False
                 if job_state == LoadState.STOPPED:
-                    self.config.logger.warning(
+                    self.logger.warning(
                         f"Failed to load path {path} with return message {content}, load stopped"
                     )
                     return False
                 if timeout is None or stop_time - time.time() >= 10:
                     time.sleep(10)
                 else:
-                    self.config.logger.debug(
+                    self.logger.debug(
                         f"Failed to load path {path} within timeout"
                     )
                     return False
 
         except Exception as e:
-            self.config.logger.debug(
+            self.logger.debug(
                 f"Error when loading file {path} from {worker_host} with timeout {timeout}: error {e}"
             )
             return False
@@ -647,9 +654,7 @@ class AlluxioClient:
                     path_id=path_id,
                     page_index=page_index,
                 )
-                self.config.logger.debug(
-                    f"Reading full page request {page_url}"
-                )
+                self.logger.debug(f"Reading full page request {page_url}")
             else:
                 page_url = PAGE_URL_FORMAT.format(
                     worker_host=worker_host,
@@ -659,7 +664,7 @@ class AlluxioClient:
                     page_offset=offset,
                     page_length=length,
                 )
-                self.config.logger.debug(f"Reading page request {page_url}")
+                self.logger.debug(f"Reading page request {page_url}")
             response = self.session.get(page_url)
             response.raise_for_status()
             return response.content
@@ -780,10 +785,10 @@ class AlluxioAsyncFileSystem:
                 etcd_port=int(etcd_port),
                 worker_hosts=worker_hosts,
                 worker_http_port=int(http_port),
-                options=options,
-                logger=self.logger,
+                alluxio_properties=options,
                 etcd_refresh_workers_interval=120,
-            )
+            ),
+            self.logger,
         )
         self.http_port = http_port
         self._loop = loop or asyncio.get_event_loop()
