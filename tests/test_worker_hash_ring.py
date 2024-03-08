@@ -6,7 +6,7 @@ from alluxio.worker_ring import WorkerNetAddress
 
 
 def test_hash_ring():
-    worker_hostnames_path = "tests/hash_res/workerHostnames.json"
+    worker_hostnames_path = "tests/assets/hash_res/workerHostnames.json"
     with open(worker_hostnames_path, "r") as file:
         worker_hostnames = json.load(file)
 
@@ -16,10 +16,10 @@ def test_hash_ring():
         etcd_refresh_workers_interval=100000000,
     )
 
-    hash_ring_path = "tests/hash_res/activeNodesMap.json"
+    hash_ring_path = "tests/assets/hash_res/activeNodesMap.json"
     validate_hash_ring(hash_provider.hash_ring, hash_ring_path)
 
-    worker_list_path = "tests/hash_res/workerList.json"
+    worker_list_path = "tests/assets/hash_res/workerList.json"
     with open(worker_list_path, "r") as file:
         workers_data = json.load(file)
 
@@ -35,7 +35,7 @@ def test_hash_ring():
     hash_provider._update_hash_ring(worker_info_map)
     validate_hash_ring(hash_provider.hash_ring, hash_ring_path)
 
-    file_workers_path = "tests/hash_res/fileUrlWorkers.json"
+    file_workers_path = "tests/assets/hash_res/fileUrlWorkers.json"
     with open(file_workers_path, "r") as file:
         file_workers_data = json.load(file)
 
