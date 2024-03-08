@@ -110,3 +110,7 @@ def test_alluxio_client(alluxio_client: AlluxioClient):
             length,
         )
     LOGGER.debug("Passed corner test cases")
+
+
+def test_etcd_alluxio_client(etcd_alluxio_client: AlluxioClient):
+    test_alluxio_client(etcd_alluxio_client)
