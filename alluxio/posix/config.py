@@ -1,18 +1,23 @@
+import logging
+
 import yaml
 import os
 
+from alluxio.posix.ufs.alluxio import validate_alluxio_config, update_alluxio_config
+from alluxio.posix.ufs.oss import validate_oss_config, update_oss_config
 from alluxio.posix.const import Constants
 from alluxio.posix.exception import ConfigMissingError, ConfigInvalidError
 
 
 class ConfigManager:
-    def __init__(self, config_file_path='config/ufs_config.yaml'):
-        self.config_file_path = config_file_path
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO)
+        self.config_file_path = os.getenv('ALLUXIO_PY_CONFIG_FILE_PATH', 'config/ufs_config.yaml')
         self.config_data = self._load_config()
         self.validation_functions = {
-            Constants.OSS_FILESYSTEM_TYPE: self._validate_oss_config,
-            Constants.ALLUXIO_FILESYSTEM_TYPE: self._validate_alluxio_config,
-            Constants.S3_FILESYSTEM_TYPE: self._validate_s3_config
+            Constants.OSS_FILESYSTEM_TYPE: validate_oss_config,
+            Constants.ALLUXIO_FILESYSTEM_TYPE: validate_alluxio_config
         }
 
     def _load_config(self):
@@ -25,6 +30,11 @@ class ConfigManager:
                 return config
             except yaml.YAMLError as e:
                 raise ValueError(f"Error parsing YAML file: {e}")
+
+    def set_config_path(self, new_path):
+        self.config_file_path = new_path
+        self.config_data = self._load_config()
+        print(f"Configuration path updated and config reloaded from {new_path}.")
 
     def get_config(self, fs_name: str) -> dict:
         try:
@@ -43,35 +53,15 @@ class ConfigManager:
     def get_config_fs_list(self) -> list:
         return self.config_data.keys()
 
-    @staticmethod
-    def _validate_oss_config(config):
-        required_keys = [
-            Constants.OSS_ACCESS_KEY_ID,
-            Constants.OSS_ACCESS_KEY_SECRET,
-            Constants.OSS_ENDPOINT,
-            Constants.OSS_BUCKET_NAME
-        ]
-
-        for key in required_keys:
-            if key not in config:
-                raise ConfigMissingError(f"Missing required OSS config key: {key}")
-            if not config[key]:
-                raise ValueError(f"OSS config key '{key}' cannot be empty")
-
-    @staticmethod
-    def _validate_alluxio_config(config):
-        required_keys = []
-        if config.get(Constants.ALLUXIO_ETCD_ENABLE, False):
-            # If ALLUXIO_ETCD_ENABLE is True, ALLUXIO_ETCD_HOST must be set
-            required_keys.append(Constants.ALLUXIO_ETCD_HOST)
+    def update_config(self, fs_type, key, value):
+        if fs_type not in self.get_config_fs_list():
+            raise KeyError(f"No configuration available for {fs_type}")
+        config_data = self.get_config(fs_type)
+        if fs_type == Constants.OSS_FILESYSTEM_TYPE:
+            self.config_data[fs_type] = update_oss_config(config_data, key, value)
+        elif fs_type == Constants.ALLUXIO_FILESYSTEM_TYPE:
+            self.config_data[fs_type] = update_alluxio_config(config_data, key, value)
+        elif fs_type == Constants.S3_FILESYSTEM_TYPE:
+            raise NotImplementedError()
         else:
-            # If ALLUXIO_ETCD_ENABLE is False, ALLUXIO_WORKER_HOSTS must be set
-            required_keys.append(Constants.ALLUXIO_WORKER_HOSTS)
-
-        if not all(config.get(key) for key in required_keys):
-            raise ConfigMissingError(f"The following keys must be set in the configuration: {required_keys}")
-
-
-    @staticmethod
-    def _validate_s3_config(config):
-        raise NotImplementedError
+            raise ValueError(f"Unsupported file system type: {fs_type}")

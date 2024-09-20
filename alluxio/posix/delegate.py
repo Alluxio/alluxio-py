@@ -1,6 +1,6 @@
 import os
 from alluxio.posix import fileimpl
-config_manager = fileimpl.ConfigManager("../../config/ufs_config.yaml")
+config_manager = fileimpl.ConfigManager()
 delegate_fs = fileimpl.DelegateFileSystem(config_manager)
 
 os.stat = fileimpl.stat

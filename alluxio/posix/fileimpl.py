@@ -165,9 +165,9 @@ class DelegateFileSystem:
 
     def get_file_system(self, path: str):
         fs_name, bucket = self.__parse__url(path)
-        config = self.config_manager.get_config(fs_name)
         if fs_name == Constants.LOCAL_FILESYSTEM_TYPE:
             return None
+        config = self.config_manager.get_config(fs_name)
         if config[Constants.ALLUXIO_ENABLE]:
             fs_name = (Constants.ALLUXIO_FILESYSTEM_TYPE + Constants.ALLUXIO_SEP_SIGN + fs_name +
                        Constants.ALLUXIO_SEP_SIGN + config[Constants.BUCKET_NAME])
@@ -201,19 +201,19 @@ class DelegateFileSystem:
 
 class FSStorage(threading.local):
     def __init__(self):
-        self.data = {}
+        self.fs = {}
 
     def __getitem__(self, key):
-        return self.data[key]
+        return self.fs[key]
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        self.fs[key] = value
 
     def __delitem__(self, key):
-        del self.data[key]
+        del self.fs[key]
 
     def __contains__(self, key):
-        return key in self.data
+        return key in self.fs
 
     def get(self, key, default=None):
-        return self.data.get(key, default)
+        return self.fs.get(key, default)
