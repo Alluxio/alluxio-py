@@ -19,14 +19,16 @@ def validate_alluxio_config(config):
         raise ConfigMissingError(f"The following keys must be set in the configuration: {required_keys}")
 
 
-def update_alluxio_config(config_data, key, value):
+def update_alluxio_config(config_data, updates):
     allowed_keys = [
-        ALLUXIO_ETCD_ENABLE,
-        ALLUXIO_ETCD_HOST,
-        ALLUXIO_WORKER_HOSTS
+        'ALLUXIO_ETCD_ENABLE',
+        'ALLUXIO_ETCD_HOST',
+        'ALLUXIO_WORKER_HOSTS'
     ]
-    if key not in allowed_keys:
-        raise ValueError(f"Invalid configuration key for Alluxio: {key}")
-    config_data[key] = value
+    for key, value in updates.items():
+        if key not in allowed_keys:
+            raise ValueError(f"Invalid configuration key for Alluxio: {key}")
+        config_data[key] = value
+
     validate_alluxio_config(config_data)
     return config_data

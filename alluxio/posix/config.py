@@ -13,7 +13,9 @@ class ConfigManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
-        self.config_file_path = os.getenv('ALLUXIO_PY_CONFIG_FILE_PATH', 'config/ufs_config.yaml')
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_file_path = os.getenv('ALLUXIO_PY_CONFIG_FILE_PATH', os.path.join(current_dir, 'config',
+                                                                                      'ufs_config.yaml'))
         self.config_data = self._load_config()
         self.validation_functions = {
             Constants.OSS_FILESYSTEM_TYPE: validate_oss_config,
@@ -22,7 +24,8 @@ class ConfigManager:
 
     def _load_config(self):
         if not os.path.exists(self.config_file_path):
-            raise FileNotFoundError(f"{self.config_file_path} does not exist.")
+            logging.warning(f"Config file not found: {self.config_file_path}. Initializing without loading config.")
+            return
 
         with open(self.config_file_path, 'r', encoding='utf-8') as file:
             try:
@@ -51,17 +54,22 @@ class ConfigManager:
             raise ConfigMissingError(fs_name, str(e))
 
     def get_config_fs_list(self) -> list:
-        return self.config_data.keys()
+        if self.config_data is None:
+            return []
+        else:
+            return self.config_data.keys()
 
-    def update_config(self, fs_type, key, value):
+    def update_config(self, fs_type, **kwargs):
         if fs_type not in self.get_config_fs_list():
             raise KeyError(f"No configuration available for {fs_type}")
         config_data = self.get_config(fs_type)
+
         if fs_type == Constants.OSS_FILESYSTEM_TYPE:
-            self.config_data[fs_type] = update_oss_config(config_data, key, value)
+            self.config_data[fs_type] = update_oss_config(config_data, kwargs)
         elif fs_type == Constants.ALLUXIO_FILESYSTEM_TYPE:
-            self.config_data[fs_type] = update_alluxio_config(config_data, key, value)
+            self.config_data[fs_type] = update_alluxio_config(config_data, kwargs)
         elif fs_type == Constants.S3_FILESYSTEM_TYPE:
             raise NotImplementedError()
         else:
             raise ValueError(f"Unsupported file system type: {fs_type}")
+

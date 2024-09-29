@@ -1,7 +1,10 @@
 import os
 from alluxio.posix import fileimpl
-config_manager = fileimpl.ConfigManager()
-delegate_fs = fileimpl.DelegateFileSystem(config_manager)
+from alluxio.posix.config import ConfigManager
+from alluxio.posix.delegateFs import DelegateFileSystem
+
+config_manager = ConfigManager()
+delegate_fs = DelegateFileSystem(config_manager)
 
 os.stat = fileimpl.stat
 os.open = fileimpl.open

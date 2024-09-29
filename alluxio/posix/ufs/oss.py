@@ -21,14 +21,17 @@ def validate_oss_config(config):
             raise ValueError(f"OSS config key '{key}' cannot be empty")
 
 
-def update_oss_config(config_data, key, value):
-    if key not in [
-        OSS_ACCESS_KEY_ID,
-        OSS_ACCESS_KEY_SECRET,
-        OSS_ENDPOINT,
+def update_oss_config(config_data, updates):
+    valid_keys = [
+        'OSS_ACCESS_KEY_ID',
+        'OSS_ACCESS_KEY_SECRET',
+        'OSS_ENDPOINT',
         Constants.BUCKET_NAME
-    ]:
-        raise ValueError(f"Invalid configuration key: {key}")
-    config_data[key] = value
+    ]
+    for key, value in updates.items():
+        if key not in valid_keys:
+            raise ValueError(f"Invalid configuration key: {key}")
+        config_data[key] = value
+
     validate_oss_config(config_data)
     return config_data
