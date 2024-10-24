@@ -1,4 +1,3 @@
-from alluxio.posix.const import Constants
 from alluxio.posix.exception import ConfigMissingError
 
 ALLUXIO_ETCD_ENABLE = "alluxio_etcd_enable"
