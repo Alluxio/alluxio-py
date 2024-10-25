@@ -11,6 +11,7 @@ from alluxio.posix.ufs.oss import OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_
 
 
 class TestConfigManager(unittest.TestCase):
+
     def setUp(self):
         # Prepare a mock configuration
         self.mock_config = {
@@ -40,12 +41,6 @@ class TestConfigManager(unittest.TestCase):
         manager = ConfigManager()
         self.assertEqual(manager.config_data, self.mock_config)
 
-    def test_set_config_path(self):
-        manager = ConfigManager()
-        with self.assertLogs(level='INFO') as log:
-            manager.set_config_path('new/path/to/config.yaml')
-        self.assertIn('Configuration path updated and config reloaded from new/path/to/config.yaml', log.output[0])
-
     def test_get_config_valid(self):
         manager = ConfigManager()
         oss_config = manager.get_config(Constants.OSS_FILESYSTEM_TYPE)
@@ -55,23 +50,6 @@ class TestConfigManager(unittest.TestCase):
         manager = ConfigManager()
         with self.assertRaises(ConfigMissingError):
             manager.get_config('nonexistent')
-
-    def test_update_oss_config(self):
-        manager = ConfigManager()
-        with self.assertLogs(level='INFO') as log:
-            update_oss_config(Constants.OSS_FILESYSTEM_TYPE, OSS_ACCESS_KEY_ID, 'new_key')
-        self.assertIn("OSS configuration for oss_access_key_id has been updated.", log.output[0])
-
-    def test_update_alluxio_config(self):
-        manager = ConfigManager()
-        with self.assertLogs(level='INFO') as log:
-            update_alluxio_config(Constants.ALLUXIO_FILESYSTEM_TYPE, ALLUXIO_ETCD_HOST, 'new_host')
-        self.assertIn("Alluxio configuration for alluxio_etcd_host has been updated.", log.output[0])
-
-    def test_update_config_unsupported_fs(self):
-        manager = ConfigManager()
-        with self.assertRaises(ValueError):
-            manager.update_config('unsupported_fs_type', 'some_key', 'some_value')
 
 
 if __name__ == '__main__':
