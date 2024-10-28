@@ -1,6 +1,7 @@
 import logging
 import re
 import threading
+
 import fsspec
 
 from alluxio.posix.config import ConfigManager
@@ -38,11 +39,11 @@ class DelegateFileSystem:
             )
         if config[ALLUXIO_ENABLE]:
             fs_name = (
-                    Constants.ALLUXIO_FILESYSTEM_TYPE
-                    + Constants.ALLUXIO_SEP_SIGN
-                    + fs_name
-                    + Constants.ALLUXIO_SEP_SIGN
-                    + config[Constants.BUCKET_NAME]
+                Constants.ALLUXIO_FILESYSTEM_TYPE
+                + Constants.ALLUXIO_SEP_SIGN
+                + fs_name
+                + Constants.ALLUXIO_SEP_SIGN
+                + config[Constants.BUCKET_NAME]
             )
             if config.get(ALLUXIO_ETCD_ENABLE):
                 self.filesystem_storage.fs[fs_name] = fsspec.filesystem(
@@ -62,7 +63,7 @@ class DelegateFileSystem:
                 Constants.OSS_FILESYSTEM_TYPE,
                 key=config[OSS_ACCESS_KEY_ID],
                 secret=config[OSS_ACCESS_KEY_SECRET],
-                endpoint=config[OSS_ENDPOINT]
+                endpoint=config[OSS_ENDPOINT],
             )
             return self.filesystem_storage.fs[fs_name]
         elif fs_name == Constants.S3_FILESYSTEM_TYPE:
@@ -78,11 +79,11 @@ class DelegateFileSystem:
         config = self.config_manager.get_config(fs_name)
         if config[ALLUXIO_ENABLE]:
             fs_name = (
-                    Constants.ALLUXIO_FILESYSTEM_TYPE
-                    + Constants.ALLUXIO_SEP_SIGN
-                    + fs_name
-                    + Constants.ALLUXIO_SEP_SIGN
-                    + config[Constants.BUCKET_NAME]
+                Constants.ALLUXIO_FILESYSTEM_TYPE
+                + Constants.ALLUXIO_SEP_SIGN
+                + fs_name
+                + Constants.ALLUXIO_SEP_SIGN
+                + config[Constants.BUCKET_NAME]
             )
         if hasattr(self.filesystem_storage, fs_name):
             return self.filesystem_storage.fs[fs_name]

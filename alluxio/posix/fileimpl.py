@@ -116,7 +116,8 @@ def rename(src: str, dest: str, **kw):
         except Exception as e:
             logging.error(
                 f"Failed to rename file by delegateFileSystem with exception: {e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_rename(src, dest, **kw)
     logging.error(
         "Source and destination are on different file systems or not supported."
