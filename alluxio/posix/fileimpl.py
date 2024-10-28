@@ -23,7 +23,8 @@ def open(file: str, mode: str = "r", **kw):
         except Exception as e:
             logging.error(
                 f"Failed to open file by delegateFileSystem with exception:{e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_open(file, mode, **kw)
     return local_open(file, mode, **kw)
 
@@ -38,7 +39,8 @@ def stat(path: str, **kw):
         except Exception as e:
             logging.error(
                 f"Failed to stat file by delegateFileSystem with exception:{e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_stat(path, **kw)
     logging.info("LocalFileSystem getStatus filemeta: %s", path)
     return local_stat(path, **kw)
@@ -53,7 +55,8 @@ def listdir(path: str, **kw):
         except Exception as e:
             logging.error(
                 f"Failed to list directory by delegateFileSystem with exception: {e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_listdir(path, **kw)
     return local_listdir(path, **kw)
 
@@ -67,7 +70,8 @@ def mkdir(path: str, mode=0o777, **kw):
         except Exception as e:
             logging.error(
                 f"Failed to make directory by delegateFileSystem with exception: {e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_mkdir(path, mode, **kw)
     return local_mkdir(path, mode, **kw)
 
@@ -96,7 +100,8 @@ def remove(path: str, **kw):
         except Exception as e:
             logging.error(
                 f"Failed to remove file by delegateFileSystem with exception: {e}."
-                f"Used local filesystem instead.")
+                f"Used local filesystem instead."
+            )
             return local_remove(path, **kw)
     return local_remove(path, **kw)
 
@@ -113,5 +118,7 @@ def rename(src: str, dest: str, **kw):
                 f"Failed to rename file by delegateFileSystem with exception: {e}."
                 f"Used local filesystem instead.")
             return local_rename(src, dest, **kw)
-    logging.error("Source and destination are on different file systems or not supported.")
+    logging.error(
+        "Source and destination are on different file systems or not supported."
+    )
     return local_rename(src, dest, **kw)

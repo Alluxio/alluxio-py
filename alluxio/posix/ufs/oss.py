@@ -1,9 +1,9 @@
 from alluxio.posix.const import Constants
 from alluxio.posix.exception import ConfigMissingError
 
-OSS_ACCESS_KEY_ID = 'access_key_id'
-OSS_ACCESS_KEY_SECRET = 'access_key_secret'
-OSS_ENDPOINT = 'endpoint'
+OSS_ACCESS_KEY_ID = "access_key_id"
+OSS_ACCESS_KEY_SECRET = "access_key_secret"
+OSS_ENDPOINT = "endpoint"
 
 
 def validate_oss_config(config):
@@ -11,7 +11,7 @@ def validate_oss_config(config):
         OSS_ACCESS_KEY_ID,
         OSS_ACCESS_KEY_SECRET,
         OSS_ENDPOINT,
-        Constants.BUCKET_NAME
+        Constants.BUCKET_NAME,
     ]
 
     for key in required_keys:
@@ -23,10 +23,10 @@ def validate_oss_config(config):
 
 def update_oss_config(config_data, updates):
     valid_keys = [
-        'OSS_ACCESS_KEY_ID',
-        'OSS_ACCESS_KEY_SECRET',
-        'OSS_ENDPOINT',
-        Constants.BUCKET_NAME
+        "OSS_ACCESS_KEY_ID",
+        "OSS_ACCESS_KEY_SECRET",
+        "OSS_ENDPOINT",
+        Constants.BUCKET_NAME,
     ]
     for key, value in updates.items():
         if key not in valid_keys:

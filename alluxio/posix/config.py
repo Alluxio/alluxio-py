@@ -1,12 +1,14 @@
 import logging
-
-import yaml
 import os
+import yaml
 
-from alluxio.posix.ufs.alluxio import validate_alluxio_config, update_alluxio_config
-from alluxio.posix.ufs.oss import validate_oss_config, update_oss_config
 from alluxio.posix.const import Constants
-from alluxio.posix.exception import ConfigMissingError, ConfigInvalidError
+from alluxio.posix.exception import ConfigInvalidError
+from alluxio.posix.exception import ConfigMissingError
+from alluxio.posix.ufs.alluxio import update_alluxio_config
+from alluxio.posix.ufs.alluxio import validate_alluxio_config
+from alluxio.posix.ufs.oss import update_oss_config
+from alluxio.posix.ufs.oss import validate_oss_config
 
 
 class ConfigManager:
@@ -14,20 +16,24 @@ class ConfigManager:
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config_file_path = os.getenv('ALLUXIO_PY_CONFIG_FILE_PATH', os.path.join(current_dir, 'config',
-                                                                                      'ufs_config.yaml'))
+        self.config_file_path = os.getenv(
+            "ALLUXIO_PY_CONFIG_FILE_PATH",
+            os.path.join(current_dir, "config", "ufs_config.yaml"),
+        )
         self.config_data = self._load_config()
         self.validation_functions = {
             Constants.OSS_FILESYSTEM_TYPE: validate_oss_config,
-            Constants.ALLUXIO_FILESYSTEM_TYPE: validate_alluxio_config
+            Constants.ALLUXIO_FILESYSTEM_TYPE: validate_alluxio_config,
         }
 
     def _load_config(self):
         if not os.path.exists(self.config_file_path):
-            logging.warning(f"Config file not found: {self.config_file_path}. Initializing without loading config.")
+            logging.warning(
+                f"Config file not found: {self.config_file_path}. Initializing without loading config."
+            )
             return
 
-        with open(self.config_file_path, 'r', encoding='utf-8') as file:
+        with open(self.config_file_path, "r", encoding="utf-8") as file:
             try:
                 config = yaml.safe_load(file)
                 return config
@@ -37,7 +43,9 @@ class ConfigManager:
     def set_config_path(self, new_path):
         self.config_file_path = new_path
         self.config_data = self._load_config()
-        print(f"Configuration path updated and config reloaded from {new_path}.")
+        print(
+            f"Configuration path updated and config reloaded from {new_path}."
+        )
 
     def get_config(self, fs_name: str) -> dict:
         try:
@@ -46,10 +54,15 @@ class ConfigManager:
             if validation_function is not None:
                 validation_function(fs_config)
             else:
-                raise ConfigInvalidError(fs_name, f"No validation function for file system: {fs_name}")
+                raise ConfigInvalidError(
+                    fs_name,
+                    f"No validation function for file system: {fs_name}",
+                )
             return fs_config
         except KeyError:
-            raise ConfigMissingError(fs_name, "FileSystem Configuration is missing")
+            raise ConfigMissingError(
+                fs_name, "FileSystem Configuration is missing"
+            )
         except ValueError as e:
             raise ConfigMissingError(fs_name, str(e))
 
@@ -67,9 +80,10 @@ class ConfigManager:
         if fs_type == Constants.OSS_FILESYSTEM_TYPE:
             self.config_data[fs_type] = update_oss_config(config_data, kwargs)
         elif fs_type == Constants.ALLUXIO_FILESYSTEM_TYPE:
-            self.config_data[fs_type] = update_alluxio_config(config_data, kwargs)
+            self.config_data[fs_type] = update_alluxio_config(
+                config_data, kwargs
+            )
         elif fs_type == Constants.S3_FILESYSTEM_TYPE:
             raise NotImplementedError()
         else:
             raise ValueError(f"Unsupported file system type: {fs_type}")
-
