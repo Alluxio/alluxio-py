@@ -10,5 +10,7 @@ dependencies:
   - humanfriendly
   - mmh3
   - sortedcontainers
+  - yaml
+  - fsspec
   - pip:
         - git+https://github.com/kragniz/python-etcd3
