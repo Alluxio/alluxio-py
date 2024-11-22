@@ -1,5 +1,4 @@
 class Constants:
-
     # general config
     BUCKET_NAME = "bucket_name"
     # URL prefix

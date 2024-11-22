@@ -14,7 +14,8 @@ import humanfriendly
 import requests
 from requests.adapters import HTTPAdapter
 
-from .const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE
+from .const import ALLUXIO_HASH_NODE_PER_WORKER_DEFAULT_VALUE, TAIL_URL_FORMAT, HEAD_URL_FORMAT, RM_URL_FORMAT, \
+    MKDIR_URL_FORMAT, TOUCH_URL_FORMAT, MV_URL_FORMAT, CP_URL_FORMAT
 from .const import ALLUXIO_HASH_NODE_PER_WORKER_KEY
 from .const import ALLUXIO_PAGE_SIZE_DEFAULT_VALUE
 from .const import ALLUXIO_PAGE_SIZE_KEY
@@ -28,6 +29,7 @@ from .const import LOAD_SUBMIT_URL_FORMAT
 from .const import LOAD_URL_FORMAT
 from .const import PAGE_URL_FORMAT
 from .const import WRITE_PAGE_URL_FORMAT
+from .pytorch import AlluxioDataset
 from .worker_ring import ConsistentHashProvider
 
 logging.basicConfig(
@@ -71,16 +73,52 @@ class OpType(Enum):
     STOP = "stop"
 
 
-class AlluxioFileSystem:
+@dataclass(frozen=True)
+class RangeParameters:
+    start_page_index: int
+    start_page_offset: int
+    end_page_index: int
+    end_page_read_to: int
+
+
+@dataclass
+class RMOption:
+    # delete files and subdirectories recursively
+    recursive: bool = False
+    # Marks a directory to either trigger a metadata sync or skip the metadata sync on next access.
+    sync_parent_next_time: bool = False
+    # remove directories without checking UFS contents are in sync
+    remove_unchecked_option: bool = False
+    # remove data and metadata from Alluxio space only
+    remove_alluxio_only: bool = True
+    # remove mount points in the directory
+    delete_mount_point: bool = False
+
+
+@dataclass(frozen=True)
+class CPOption:
+    # delete files and subdirectories recursively
+    recursive: bool = True
+    # forces to overwrite the destination file if it exists
+    forced: bool = False
+    # Number of threads used to copy files in parallel, default value is CPU cores * 2
+    thread: int = None
+    # Read buffer size in bytes, default is 8MB when copying from local, and 64MB when copying to local
+    buffer_size: str = None
+    # Preserve file permission attributes when copying files. All ownership, permissions and ACLs will be preserved
+    preserve: bool = True
+
+
+class AlluxioClient:
     """
     Access Alluxio file system
 
     Examples
     --------
     >>> # Launch Alluxio with ETCD as service discovery
-    >>> alluxio = AlluxioFileSystem(etcd_hosts="localhost")
+    >>> alluxio = AlluxioClient(etcd_hosts="localhost")
     >>> # Or launch Alluxio with user provided worker list
-    >>> alluxio = AlluxioFileSystem(worker_hosts="host1,host2,host3")
+    >>> alluxio = AlluxioClient(worker_hosts="host1,host2,host3")
 
     >>> print(alluxio.listdir("s3://mybucket/mypath/dir"))
     [
@@ -100,15 +138,15 @@ class AlluxioFileSystem:
     """
 
     def __init__(
-        self,
-        etcd_hosts=None,
-        worker_hosts=None,
-        options=None,
-        logger=None,
-        concurrency=64,
-        etcd_port=2379,
-        worker_http_port=ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE,
-        etcd_refresh_workers_interval=120,
+            self,
+            etcd_hosts=None,
+            worker_hosts=None,
+            options=None,
+            logger=None,
+            concurrency=64,
+            etcd_port=2379,
+            worker_http_port=ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE,
+            etcd_refresh_workers_interval=120,
     ):
         """
         Inits Alluxio file system.
@@ -153,7 +191,7 @@ class AlluxioFileSystem:
                 "'etcd_port' should be an integer in the range 1-65535"
             )
         if not isinstance(worker_http_port, int) or not (
-            1 <= worker_http_port <= 65535
+                1 <= worker_http_port <= 65535
         ):
             raise ValueError(
                 "'worker_http_port' should be an integer in the range 1-65535"
@@ -187,8 +225,8 @@ class AlluxioFileSystem:
                     f"Hash node per worker is set to {hash_node_per_worker}"
                 )
         if (
-            not isinstance(hash_node_per_worker, int)
-            or hash_node_per_worker <= 0
+                not isinstance(hash_node_per_worker, int)
+                or hash_node_per_worker <= 0
         ):
             raise ValueError(
                 "'hash_node_per_worker' should be a positive integer"
@@ -336,9 +374,9 @@ class AlluxioFileSystem:
             ) from e
 
     def load(
-        self,
-        path,
-        timeout=None,
+            self,
+            path,
+            timeout=None,
     ):
         """
         Loads a file.
@@ -357,8 +395,8 @@ class AlluxioFileSystem:
         return self._load_file(worker_host, worker_http_port, path, timeout)
 
     def submit_load(
-        self,
-        path,
+            self,
+            path,
     ):
         """
         Submits a load job for a file.
@@ -391,8 +429,8 @@ class AlluxioFileSystem:
             ) from e
 
     def stop_load(
-        self,
-        path,
+            self,
+            path,
     ):
         """
         Stops a load job for a file.
@@ -425,8 +463,8 @@ class AlluxioFileSystem:
             ) from e
 
     def load_progress(
-        self,
-        path,
+            self,
+            path,
     ):
         """
         Gets the progress of the load job for a path.
@@ -587,7 +625,7 @@ class AlluxioFileSystem:
             page_index += 1
 
     def _range_page_generator(
-        self, worker_host, worker_http_port, path_id, offset, length
+            self, worker_host, worker_http_port, path_id, offset, length
     ):
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
@@ -621,8 +659,8 @@ class AlluxioFileSystem:
 
                 # Check if it's the last page or the end of the file
                 if (
-                    page_index == end_page_index
-                    or len(page_content) < read_length
+                        page_index == end_page_index
+                        or len(page_content) < read_length
                 ):
                     break
 
@@ -699,7 +737,7 @@ class AlluxioFileSystem:
             return False
 
     def _load_progress_internal(
-        self, load_url: str, params: Dict
+            self, load_url: str, params: Dict
     ) -> (LoadState, str):
         try:
             response = self.session.get(load_url, params=params)
@@ -719,13 +757,13 @@ class AlluxioFileSystem:
             ) from e
 
     def _read_page(
-        self,
-        worker_host,
-        worker_http_port,
-        path_id,
-        page_index,
-        offset=None,
-        length=None,
+            self,
+            worker_host,
+            worker_http_port,
+            path_id,
+            page_index,
+            offset=None,
+            length=None,
     ):
         if (offset is None) != (length is None):
             raise ValueError(
@@ -793,6 +831,124 @@ class AlluxioFileSystem:
                 "path must be a full path with a protocol (e.g., 'protocol://path')"
             )
 
+    def _create(self, file_path: str, url_format: str) -> bool:
+        self._validate_path(file_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(file_path)
+        path_id = self._get_path_hash(file_path)
+        try:
+            response = requests.post(
+                url_format.format(
+                    worker_host=worker_host,
+                    http_port=worker_http_port,
+                    path_id=path_id,
+                    file_path=file_path,
+                )
+            )
+            response.raise_for_status()
+            return 200 <= response.status_code < 300
+        except requests.RequestException as e:
+            raise Exception(f"Error happens when creating {file_path}") from e
+
+    def create_directory(self, file_path: str) -> bool:
+        return self._create(file_path, MKDIR_URL_FORMAT)
+
+    def create_file(self, file_path: str) -> bool:
+        return self._create(file_path, TOUCH_URL_FORMAT)
+
+    def move(self, source_path: str, target_path: str) -> bool:
+        self._validate_path(source_path)
+        self._validate_path(target_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(source_path)
+        path_id = self._get_path_hash(source_path)
+        try:
+            response = requests.post(
+                MV_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=worker_http_port,
+                    path_id=path_id,
+                    srcPath=source_path,
+                    dstPath=target_path,
+                )
+            )
+            response.raise_for_status()
+            return 200 <= response.status_code < 300
+        except requests.RequestException as e:
+            raise Exception(f"Error move a file from {source_path} to {target_path}") from e
+
+    def remove(self, path: str, option: RMOption = RMOption()) -> bool:
+        self._validate_path(path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            path
+        )
+        path_id = self._get_path_hash(path)
+        params = option.__dict__
+        try:
+            response = requests.post(
+                RM_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=worker_http_port,
+                    path_id=path_id,
+                    file_path=path,
+                ),
+                params=params,
+            )
+            response.raise_for_status()
+            return 200 <= response.status_code < 300
+        except requests.RequestException as e:
+            raise Exception(f"Error remove a file {path}") from e
+
+    def copy(self, source_path: str, target_path: str, option: CPOption = CPOption()) -> bool:
+        self._validate_path(source_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            source_path
+        )
+        path_id = self._get_path_hash(source_path)
+        params = option.__dict__
+        try:
+            response = requests.post(
+                CP_URL_FORMAT.format(
+                    worker_host=worker_host,
+                    http_port=worker_http_port,
+                    path_id=path_id,
+                    srcPath=source_path,
+                    dstPath=target_path,
+                ),
+                params=params,
+            )
+            response.raise_for_status()
+            return 200 <= response.status_code < 300
+        except requests.RequestException as e:
+            raise Exception(f"Error copy a file from {source_path} to {target_path}") from e
+
+    def _ends(self, file_path: str, url_format: str, num_of_bytes: int = None) -> bytes:
+        self._validate_path(file_path)
+        worker_host, worker_http_port = self._get_preferred_worker_address(
+            file_path
+        )
+        path_id = self._get_path_hash(file_path)
+        try:
+            response = requests.get(
+                url_format.format(
+                    worker_host=worker_host,
+                    http_port=worker_http_port,
+                    path_id=path_id,
+                    file_path=file_path,
+                ),
+                params={"numOfBytes": num_of_bytes},
+            )
+            return b"".join(response.iter_content())
+        except requests.RequestException as e:
+            raise Exception(f"Error show the ends of {file_path}") from e
+
+    def tail(self, file_path: str, num_of_bytes: int = None) -> bytes:
+        return self._ends(file_path, TAIL_URL_FORMAT, num_of_bytes)
+
+    def head(self, file_path: str, num_of_bytes: int = None) -> bytes:
+        return self._ends(file_path, HEAD_URL_FORMAT, num_of_bytes)
+
+    def pytorch(self, folder_path: str) -> AlluxioDataset:
+        return AlluxioDataset(folder_path, self)
+
 
 class AlluxioAsyncFileSystem:
     """
@@ -819,14 +975,14 @@ class AlluxioAsyncFileSystem:
     """
 
     def __init__(
-        self,
-        etcd_hosts=None,
-        worker_hosts=None,
-        options=None,
-        logger=None,
-        http_port="28080",
-        etcd_port="2379",
-        loop=None,
+            self,
+            etcd_hosts=None,
+            worker_hosts=None,
+            options=None,
+            logger=None,
+            http_port="28080",
+            etcd_port="2379",
+            loop=None,
     ):
         """
         Inits Alluxio file system.
@@ -1019,9 +1175,9 @@ class AlluxioAsyncFileSystem:
         )
 
     async def load(
-        self,
-        path: str,
-        timeout=None,
+            self,
+            path: str,
+            timeout=None,
     ):
         """
         Loads a file.
@@ -1038,7 +1194,7 @@ class AlluxioAsyncFileSystem:
         return self._load_file(worker_host, path, timeout)
 
     async def read_range(
-        self, file_path: str, offset: int, length: int
+            self, file_path: str, offset: int, length: int
     ) -> bytes:
         """
         Reads parts of a file.
@@ -1066,7 +1222,7 @@ class AlluxioAsyncFileSystem:
         return b"".join(await page_contents)
 
     async def write_page(
-        self, file_path: str, page_index: int, page_bytes: bytes
+            self, file_path: str, page_index: int, page_bytes: bytes
     ):
         """
         Writes a page.
@@ -1097,7 +1253,7 @@ class AlluxioAsyncFileSystem:
         return 200 <= status < 300
 
     async def _range_page_generator(
-        self, worker_host: str, path_id: str, offset: float, length: float
+            self, worker_host: str, path_id: str, offset: float, length: float
     ):
         start_page_index = offset // self.page_size
         start_page_offset = offset % self.page_size
@@ -1138,8 +1294,8 @@ class AlluxioAsyncFileSystem:
 
             # Check if it's the last page or the end of the file
             if (
-                page_index == end_page_index
-                or len(page_content) < self.page_size
+                    page_index == end_page_index
+                    or len(page_content) < self.page_size
             ):
                 break
 
@@ -1198,12 +1354,12 @@ class AlluxioAsyncFileSystem:
         return LoadState(content["jobState"])
 
     async def _read_page(
-        self,
-        worker_host,
-        path_id: str,
-        page_index: int,
-        offset=None,
-        length=None,
+            self,
+            worker_host,
+            path_id: str,
+            page_index: int,
+            offset=None,
+            length=None,
     ):
         if (offset is None) != (length is None):
             raise ValueError(
@@ -1264,24 +1420,24 @@ class AlluxioAsyncFileSystem:
             )
 
     async def _request(
-        self,
-        method: Method,
-        url: str,
-        *args,
-        params: dict = None,
-        headers=None,
-        json=None,
-        data=None,
+            self,
+            method: Method,
+            url: str,
+            *args,
+            params: dict = None,
+            headers=None,
+            json=None,
+            data=None,
     ) -> tuple[int, bytes]:
         await self._set_session()
         async with self.session.request(
-            method=method.value,
-            url=url,
-            params=params,
-            json=json,
-            headers=headers,
-            data=data,
-            timeout=None,
+                method=method.value,
+                url=url,
+                params=params,
+                json=json,
+                headers=headers,
+                data=data,
+                timeout=None,
         ) as r:
             status = r.status
             contents = await r.read()

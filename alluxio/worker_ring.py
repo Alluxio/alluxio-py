@@ -203,16 +203,16 @@ class EtcdClient:
 
 class ConsistentHashProvider:
     def __init__(
-        self,
-        etcd_hosts=None,
-        etcd_port=None,
-        worker_hosts=None,
-        worker_http_port=None,
-        options=None,
-        logger=None,
-        etcd_refresh_workers_interval=None,
-        hash_node_per_worker=None,
-        max_attempts=100,
+            self,
+            etcd_hosts=None,
+            etcd_port=None,
+            worker_hosts=None,
+            worker_http_port=None,
+            options=None,
+            logger=None,
+            etcd_refresh_workers_interval=None,
+            hash_node_per_worker=None,
+            max_attempts=100,
     ):
         self._logger = logger or logging.getLogger("ConsistentHashProvider")
         self._etcd_hosts = etcd_hosts
@@ -238,7 +238,7 @@ class ConsistentHashProvider:
                 )
 
     def get_multiple_workers(
-        self, key: str, count: int
+            self, key: str, count: int
     ) -> List[WorkerNetAddress]:
         """
         Retrieve a specified number of worker addresses based on a given key.
@@ -262,7 +262,7 @@ class ConsistentHashProvider:
             return worker_addresses
 
     def _get_multiple_worker_identities(
-        self, key: str, count: int
+            self, key: str, count: int
     ) -> List[WorkerIdentity]:
         """
         This method needs external lock to ensure safety
@@ -336,8 +336,8 @@ class ConsistentHashProvider:
             if worker_entity.worker_identity not in self._worker_info_map:
                 diff_in_worker_info_detected = True
             elif (
-                self._worker_info_map[worker_entity.worker_identity]
-                != worker_entity.worker_net_address
+                    self._worker_info_map[worker_entity.worker_identity]
+                    != worker_entity.worker_net_address
             ):
                 diff_in_worker_info_detected = True
 
@@ -348,7 +348,7 @@ class ConsistentHashProvider:
             self._update_hash_ring(worker_info_map)
 
     def _update_hash_ring(
-        self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
+            self, worker_info_map: dict[WorkerIdentity, WorkerNetAddress]
     ):
         with self._lock:
             hash_ring = SortedDict()
@@ -376,7 +376,7 @@ class ConsistentHashProvider:
         return hasher.sintdigest()
 
     def _hash_worker_identity(
-        self, worker: WorkerIdentity, node_index: int
+            self, worker: WorkerIdentity, node_index: int
     ) -> int:
         # Hash the combined bytes
         hasher = mmh3.mmh3_32()

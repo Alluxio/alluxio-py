@@ -20,6 +20,15 @@ WRITE_PAGE_URL_FORMAT = (
     "http://{worker_host}:{http_port}/v1/file/{path_id}/page/{page_index}"
 )
 GET_FILE_STATUS_URL_FORMAT = "http://{worker_host}:{http_port}/v1/info"
+MKDIR_URL_FORMAT = "http://{worker_host}:{http_port}/v1/mkdir/{path_id}?ufsFullPath={file_path}"
+TOUCH_URL_FORMAT = "http://{worker_host}:{http_port}/v1/touch/{path_id}?ufsFullPath={file_path}"
+MV_URL_FORMAT = "http://{worker_host}:{http_port}/v1/mv/{path_id}?srcPath={srcPath}&dstPath={dstPath}"
+RM_URL_FORMAT = (
+    "http://{worker_host}:{http_port}/v1/rm/{path_id}?ufsFullPath={file_path}"
+)
+CP_URL_FORMAT = "http://{worker_host}:{http_port}/v1/copy/{path_id}?srcPath={srcPath}&dstPath={dstPath}"
+TAIL_URL_FORMAT = "http://{worker_host}:{http_port}/v1/tail/{path_id}?ufsFullPath={file_path}"
+HEAD_URL_FORMAT = "http://{worker_host}:{http_port}/v1/head/{path_id}?ufsFullPath={file_path}"
 LOAD_URL_FORMAT = "http://{worker_host}:{http_port}/v1/load"
 # TODO (chunxu): Remove the concrete types of LOAD formats. Keep them for asyncio.
 LOAD_SUBMIT_URL_FORMAT = (

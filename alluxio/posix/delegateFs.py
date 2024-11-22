@@ -39,11 +39,11 @@ class DelegateFileSystem:
             )
         if config[ALLUXIO_ENABLE]:
             fs_name = (
-                Constants.ALLUXIO_FILESYSTEM_TYPE
-                + Constants.ALLUXIO_SEP_SIGN
-                + fs_name
-                + Constants.ALLUXIO_SEP_SIGN
-                + config[Constants.BUCKET_NAME]
+                    Constants.ALLUXIO_FILESYSTEM_TYPE
+                    + Constants.ALLUXIO_SEP_SIGN
+                    + fs_name
+                    + Constants.ALLUXIO_SEP_SIGN
+                    + config[Constants.BUCKET_NAME]
             )
             if config.get(ALLUXIO_ETCD_ENABLE):
                 self.filesystem_storage.fs[fs_name] = fsspec.filesystem(
@@ -79,11 +79,11 @@ class DelegateFileSystem:
         config = self.config_manager.get_config(fs_name)
         if config[ALLUXIO_ENABLE]:
             fs_name = (
-                Constants.ALLUXIO_FILESYSTEM_TYPE
-                + Constants.ALLUXIO_SEP_SIGN
-                + fs_name
-                + Constants.ALLUXIO_SEP_SIGN
-                + config[Constants.BUCKET_NAME]
+                    Constants.ALLUXIO_FILESYSTEM_TYPE
+                    + Constants.ALLUXIO_SEP_SIGN
+                    + fs_name
+                    + Constants.ALLUXIO_SEP_SIGN
+                    + config[Constants.BUCKET_NAME]
             )
         if hasattr(self.filesystem_storage, fs_name):
             return self.filesystem_storage.fs[fs_name]
