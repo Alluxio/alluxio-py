@@ -11,23 +11,22 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
-from tkinter.ttk import Treeview
 from typing import Tuple, Generator
 
 import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
 
-from alluxiofs.config import AlluxioClientConfig
-from alluxiofs.const import LIST_URL_FORMAT, GET_FILE_STATUS_URL_FORMAT, \
+from alluxio.config import AlluxioClientConfig
+from alluxio.const import LIST_URL_FORMAT, GET_FILE_STATUS_URL_FORMAT, \
     WRITE_PAGE_URL_FORMAT, FULL_PAGE_URL_FORMAT, PAGE_URL_FORMAT, LOAD_URL_FORMAT, ALLUXIO_SUCCESS_IDENTIFIER, \
     MKDIR_URL_FORMAT, TOUCH_URL_FORMAT, MV_URL_FORMAT, RM_URL_FORMAT, CP_URL_FORMAT, TAIL_URL_FORMAT, HEAD_URL_FORMAT
-from alluxiofs.exception import PageReadException, PageWriteException, GetFileStatusException, LoadException, \
+from alluxio.exception import PageReadException, PageWriteException, GetFileStatusException, LoadException, \
     FileOperationException
-from alluxiofs.load import load_file, load_progress_internal, OpType
-from alluxiofs.logger import set_log_level
-from alluxiofs.segment import SegmentRanges
-from alluxiofs.worker_ring import ConsistentHashProvider, logger
+from alluxio.load import load_file, load_progress_internal, OpType
+from alluxio.logger import set_log_level
+from alluxio.segment import SegmentRanges
+from alluxio.worker_ring import ConsistentHashProvider, logger
 
 
 @dataclass

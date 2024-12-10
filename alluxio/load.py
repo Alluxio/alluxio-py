@@ -14,8 +14,8 @@ from typing import Dict
 
 from requests import Session
 
-from alluxiofs.const import LOAD_URL_FORMAT, ALLUXIO_SUCCESS_IDENTIFIER
-from alluxiofs.exception import LoadException
+from alluxio.const import LOAD_URL_FORMAT, ALLUXIO_SUCCESS_IDENTIFIER
+from alluxio.exception import LoadException
 
 logger = logging.getLogger(__name__)
 

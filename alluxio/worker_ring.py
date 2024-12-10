@@ -21,12 +21,12 @@ import etcd3
 import mmh3
 from sortedcontainers import SortedDict
 
-from alluxiofs.config import AlluxioClientConfig
-from alluxiofs.const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
-from alluxiofs.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
-from alluxiofs.const import ETCD_PREFIX_FORMAT
-from alluxiofs.exception import WorkInfoParseException, NoWorkerEntitiesException
-from alluxiofs.logger import set_log_level
+from alluxio.config import AlluxioClientConfig
+from alluxio.const import ALLUXIO_CLUSTER_NAME_DEFAULT_VALUE
+from alluxio.const import ALLUXIO_WORKER_HTTP_SERVER_PORT_DEFAULT_VALUE
+from alluxio.const import ETCD_PREFIX_FORMAT
+from alluxio.exception import WorkInfoParseException, NoWorkerEntitiesException
+from alluxio.logger import set_log_level
 
 DEFAULT_HOST = "localhost"
 DEFAULT_CONTAINER_HOST = ""

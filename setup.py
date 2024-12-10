@@ -2,19 +2,16 @@ from setuptools import find_packages
 from setuptools import setup
 
 setup(
-    name="alluxiofs",
-    version="1.0.3",
-    description="Alluxio Fsspec provides Alluxio filesystem spec implementation.",
+    name="alluxio",
+    version="0.1.0",
+    description="Alluxio Python SDK provides Alluxio access implementation.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/fsspec/alluxiofs",
-    packages=find_packages(exclude=["tests", "tests.*"]),
+    url="https://github.com/Alluxio/alluxio-py",
+    packages=['alluxio'],
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        # Alluxio fs dependencies
-        "fsspec",
-        # Alluxio client dependencies
         "aiohttp",
         "decorator",
         "humanfriendly",
@@ -33,11 +30,10 @@ setup(
         ]
     },
     python_requires=">=3.8",
-    maintainer="Lu Qiu",
-    maintainer_email="luqiujob@gmail.com",
+    maintainer="Alluxio",
     entry_points={
         "fsspec.specs": [
-            "alluxio=alluxiofs.AlluxioFileSystem",
+            "alluxio=alluxiofs.AlluxioClient",
         ],
     },
 )
