@@ -1,0 +1,55 @@
+syntax = "proto3";
+package blender.main.assert;
+
+import "google/protobuf/empty.proto";
+
+service DatasetService {
+  rpc WriteDataset (WriteRequest) returns (google.protobuf.Empty);
+  rpc ReadDataset  (ReadRequest) returns (ReadResponse);
+  rpc ListVersions (VersionsRequest) returns (VersionsResponse);
+  rpc RollbackDataset (RollbackRequest) returns (google.protobuf.Empty);
+  rpc OptimizeDataset (OptimizeRequest) returns (google.protobuf.Empty);
+  rpc CreateIndex     (IndexRequest) returns (google.protobuf.Empty);
+  rpc QuerySQL        (SQLRequest) returns (SQLResponse);
+}
+
+message WriteRequest {
+  string mode = 1;                // overwrite, append, upsert
+  bytes  table_ipc = 2;           // Arrow IPC payload
+  string options    = 3;          // JSON-encoded options map
+}
+
+message ReadRequest {
+  string params = 1;              // JSON-encoded read params (version, filters, columns)
+}
+
+message ReadResponse {
+  bytes table_ipc = 1;
+}
+
+message VersionsRequest {}
+message VersionsResponse {
+  string versions_json = 1;      // JSON list of version metadata
+}
+
+message RollbackRequest {
+  int32 version = 1;
+}
+
+message OptimizeRequest {
+  string options = 1;              // JSON-encoded optimize options
+}
+
+message IndexRequest {
+  string column = 1;
+  string options = 2;              // JSON-encoded index options
+}
+
+message SQLRequest {
+  string sql = 1;
+}
+
+message SQLResponse {
+  string data_json   = 1;         // JSON array of row arrays
+  repeated string columns = 2;
+}
