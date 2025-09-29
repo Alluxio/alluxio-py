@@ -231,3 +231,29 @@ def build_s3_uri(bucket: str, *keys: str) -> str:
         return f"s3://{bucket}"
     joined = "/".join([bucket] + [k.strip("/") for k in keys])
     return f"s3://{joined}"
+
+
+def _mk_s3fs_kwargs(o: Dict[str, Any]) -> Dict[str, Any]:
+    """Build fsspec S3 filesystem kwargs from storage_options-like dict."""
+    k = o.get("aws_access_key_id") or o.get("key")
+    s = o.get("aws_secret_access_key") or o.get("secret")
+    r = o.get("region") or o.get("client_kwargs", {}).get("region_name")
+    e = o.get("endpoint_override") or o.get("client_kwargs", {}).get(
+        "endpoint_url"
+    )
+    kw = {}
+    if k:
+        kw["key"] = k
+    if s:
+        kw["secret"] = s
+    ck = {}
+    if e:
+        ck["endpoint_url"] = e
+    if r:
+        ck["region_name"] = r
+    if ck:
+        kw["client_kwargs"] = ck
+    # respect http/https based on endpoint
+    if e:
+        kw["use_ssl"] = str(e).lower().startswith("https://")
+    return kw

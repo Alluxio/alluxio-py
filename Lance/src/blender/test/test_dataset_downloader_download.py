@@ -4,7 +4,7 @@ from pathlib import Path
 import lance
 import pyarrow as pa
 
-from Lance.src.blender.main.converter.text_converter import TextConverter
+from Lance.src.blender.main.converter.language_converter import TextConverter
 from Lance.src.blender.main.downloader.dataset_downloader import (
     DatasetDownloader,
 )

@@ -10,8 +10,8 @@ import torch
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 
-from ..core.mapping import ColumnMapping
-from ..core.reader import LanceExampleReader
+from Lance.src.blender.main.integration.core.mapping import ColumnMapping
+from Lance.src.blender.main.integration.core.reader import LanceExampleReader
 
 
 def _to_torch(obj: Any) -> Any:

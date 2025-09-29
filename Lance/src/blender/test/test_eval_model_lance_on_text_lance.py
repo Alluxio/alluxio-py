@@ -11,7 +11,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 
 from Lance.src.blender.main.integration.core.mapping import ColumnMapping
-from Lance.src.blender.main.integration.pytorch.lance_torch_dataset import (
+from Lance.src.blender.main.integration.deep_learning_framework.pytorch.lance_torch_dataset import (
     LanceTorchDataset,
 )
 

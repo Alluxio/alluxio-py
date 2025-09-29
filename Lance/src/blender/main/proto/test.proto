@@ -3,53 +3,129 @@ package blender.main.assert;
 
 import "google/protobuf/empty.proto";
 
+// ======================================================
+// Service definition
+// ======================================================
 service DatasetService {
-  rpc WriteDataset (WriteRequest) returns (google.protobuf.Empty);
-  rpc ReadDataset  (ReadRequest) returns (ReadResponse);
-  rpc ListVersions (VersionsRequest) returns (VersionsResponse);
-  rpc RollbackDataset (RollbackRequest) returns (google.protobuf.Empty);
-  rpc OptimizeDataset (OptimizeRequest) returns (google.protobuf.Empty);
-  rpc CreateIndex     (IndexRequest) returns (google.protobuf.Empty);
-  rpc QuerySQL        (SQLRequest) returns (SQLResponse);
+  // Generic write path: overwrite / append (prefer UpsertDataset for upserts)
+  rpc WriteDataset   (WriteRequest)    returns (google.protobuf.Empty);
+
+  // Dedicated upsert endpoint (recommended instead of WriteDataset(mode="upsert"))
+  rpc UpsertDataset  (UpsertRequest)   returns (google.protobuf.Empty);
+
+  // Read dataset as Arrow IPC (non-streaming)
+  rpc ReadDataset    (ReadRequest)     returns (ReadResponse);
+
+  // List version metadata
+  rpc ListVersions   (VersionsRequest) returns (VersionsResponse);
+
+  // Restore to a historical version and return triplet:
+  // (restored_from, old_head, new_head)
+  rpc Rollback       (RestoreRequest)  returns (RestoreResponse);
+
+  // Semantically same as Rollback but indicates restoring to a later historical version
+  rpc ForwardTo      (RestoreRequest)  returns (RestoreResponse);
+
+  // Hard delete rows matching the filter predicate on server side
+  rpc DeleteRows     (DeleteRequest)   returns (google.protobuf.Empty);
+
+  // Maintenance operations
+  rpc OptimizeDataset(OptimizeRequest) returns (google.protobuf.Empty);
+  rpc CreateIndex    (IndexRequest)    returns (google.protobuf.Empty);
+
+  // SQL query endpoint
+  rpc QuerySQL       (SQLRequest)      returns (SQLResponse);
+
+  // ------------------ Legacy (deprecated) ------------------
+  // Old rollback without return values; kept for backward compatibility
+  rpc RollbackDataset (RollbackRequest) returns (google.protobuf.Empty) {
+    option deprecated = true;
+  }
 }
 
+
+// ======================================================
+// Requests / Responses
+// ======================================================
+
+// ------------------ Write / Upsert ------------------
 message WriteRequest {
-  string mode = 1;                // overwrite, append, upsert
-  bytes  table_ipc = 2;           // Arrow IPC payload
-  string options    = 3;          // JSON-encoded options map
+  // Accepted values: "overwrite", "append", (legacy) "upsert"
+  // Prefer calling UpsertDataset instead of mode="upsert".
+  string mode      = 1;
+  bytes  table_ipc = 2;   // Arrow IPC payload
+  string options   = 3;   // JSON-encoded options map
 }
 
+message UpsertRequest {
+  bytes  table_ipc = 1;   // Arrow IPC payload
+  string options   = 2;   // JSON-encoded options map
+}
+
+// ------------------ Read ------------------
 message ReadRequest {
-  string params = 1;              // JSON-encoded read params (version, filters, columns)
+  // Typed fields (recommended)
+  int32  version        = 2;                 // Historical version to read; 0/absent = head
+  repeated string columns = 3;               // Optional projection
+  string filters_json   = 4;                 // JSON-encoded [(col, op, val), ...]
+  int32  limit          = 5;                 // Optional row limit
+  string order_by       = 6;                 // Optional order clause (e.g., "ts DESC")
+
+  // Backward compatible field (deprecated). If provided, server may ignore typed fields.
+  string params         = 1 [deprecated = true]; // JSON-encoded read params
 }
 
 message ReadResponse {
-  bytes table_ipc = 1;
+  bytes table_ipc = 1; // Arrow IPC payload
 }
 
+// ------------------ Versions ------------------
 message VersionsRequest {}
+
 message VersionsResponse {
-  string versions_json = 1;      // JSON list of version metadata
+  // JSON list of version metadata; structure is server-defined
+  string versions_json = 1;
 }
 
+// ------------------ Restore (Rollback / ForwardTo) ------------------
+message RestoreRequest {
+  int32 version = 1; // Historical version to restore to
+}
+
+message RestoreResponse {
+  int32 restored_from = 1; // The requested historical version (input echo)
+  int32 old_head      = 2; // Head version before restore
+  int32 new_head      = 3; // New head version created by restore
+}
+
+// Legacy request for deprecated RollbackDataset
 message RollbackRequest {
   int32 version = 1;
 }
 
+// ------------------ Maintenance ------------------
 message OptimizeRequest {
-  string options = 1;              // JSON-encoded optimize options
+  string options = 1; // JSON-encoded optimize options
 }
 
 message IndexRequest {
-  string column = 1;
-  string options = 2;              // JSON-encoded index options
+  string column  = 1;
+  string options = 2; // JSON-encoded index options
 }
 
+message DeleteRequest {
+  // JSON-encoded filters, e.g.:
+  //   [["status","=","obsolete"], ["age",">",40]]
+  string filters_json = 1;
+}
+
+// ------------------ SQL ------------------
 message SQLRequest {
   string sql = 1;
 }
 
 message SQLResponse {
-  string data_json   = 1;         // JSON array of row arrays
+  // JSON array of row arrays (or row objects, server-defined)
+  string data_json = 1;
   repeated string columns = 2;
 }

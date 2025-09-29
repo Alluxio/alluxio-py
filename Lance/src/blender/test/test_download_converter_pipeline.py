@@ -6,7 +6,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from Lance.src.blender.main.converter.text_converter import TextConverter
+from Lance.src.blender.main.converter.language_converter import TextConverter
 from Lance.src.blender.main.downloader.dataset_downloader import (
     DatasetDownloader,
 )

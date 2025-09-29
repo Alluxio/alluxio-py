@@ -5,7 +5,6 @@ from typing import Optional
 from datasets import DatasetDict
 from datasets import load_dataset
 from huggingface_hub import snapshot_download
-from huggingface_hub.errors import HfHubHTTPError
 
 from Lance.src.blender.main.base.base_downloader import BaseDownloader
 
@@ -72,7 +71,7 @@ class DatasetDownloader(BaseDownloader):
                     if has_data_files:
                         break
                 return path
-            except HfHubHTTPError as e:
+            except Exception as e:  # maybe can use the HfHubHTTPError
                 raise RuntimeError(f"snapshot_download 失败：{e}") from e
 
         elif self.mode == "arrow":
