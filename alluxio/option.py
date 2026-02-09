@@ -9,22 +9,29 @@ Notes:
 from .common import _JsonEncodable
 
 
-class CreateDirectory(_JsonEncodable):  # pylint: disable=too-few-public-methods
+class CreateDirectory(_JsonEncodable):
     """Options to be used in :meth:`alluxio.Client.create_directory`.
-
+ 
     Args:
         allow_exists (bool): Whether the directory can already exist.
         mode (:obj:`alluxio.wire.Mode`): The directory's access mode.
         recursive (bool): Whether to create intermediate directories along the path as necessary.
         write_type (:obj:`alluxio.wire.WriteType`): Where to create the directory,
             e.g. in Alluxio only, in under storage only, or in both.
+        xattr (dict): Extended attributes to be set on the directory.
+        ttl (int): Time to live in milliseconds.
+        ttl_action (str): Action to take when TTL expires.
     """
+ 
     def __init__(self, **kwargs):
         self.allow_exists = kwargs.get('allow_exists')
         self.mode = kwargs.get('mode')
         self.recursive = kwargs.get('recursive')
         self.write_type = kwargs.get('write_type')
-
+        self.ttl = kwargs.get('ttl')
+        self.ttlAction = kwargs.get('ttlAction')
+        self.xattr = kwargs.get('xattr', {})
+ 
     def json(self):
         obj = {}
         if self.allow_exists is not None:
@@ -35,6 +42,27 @@ class CreateDirectory(_JsonEncodable):  # pylint: disable=too-few-public-methods
             obj['recursive'] = self.recursive
         if self.write_type is not None:
             obj['writeType'] = self.write_type.json()
+         
+        # 处理commonOptions（包含TTL配置）
+        common_options = {}
+        if self.ttl is not None:
+            common_options['ttl'] = self.ttl
+        if self.ttlAction is not None:
+            common_options['ttlAction'] = self.ttlAction
+         
+        if common_options:
+            obj['commonOptions'] = common_options
+             
+        # 预留
+        if self.xattr:
+            obj['xattr'] = {}
+            for key, value in self.xattr.items():
+                if isinstance(value, str):
+                    import base64
+                    obj['xattr'][key] = base64.b64encode(value.encode()).decode()
+                else:
+                    obj['xattr'][key] = value
+                     
         return obj
 
 
